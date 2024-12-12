@@ -1,0 +1,57 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ForecastPreview from '../../components/ForecastPreview.astro';
+import { getCollection } from 'astro:content';
+
+const allForecasts = await getCollection('forecasts');
+const regions = [...new Set(allForecasts.map(forecast => forecast.data.region))];
+const selectedRegion = Astro.url.searchParams.get('region') || 'all';
+
+const filteredForecasts = selectedRegion === 'all'
+  ? allForecasts
+  : allForecasts.filter(forecast => forecast.data.region === selectedRegion);
+
+const sortedForecasts = filteredForecasts.sort((a, b) => 
+  b.data.date.getTime() - a.data.date.getTime()
+);
+---
+
+<BaseLayout 
+  title="Energy Market Forecasts"
+  description="Browse all energy market forecasts by region and date">
+  
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold mb-6">Energy Market Forecasts</h1>
+    
+    <div class="flex flex-wrap gap-4 mb-6">
+      <a 
+        href="/forecasts"
+        class={`px-4 py-2 rounded-full text-sm font-medium ${
+          selectedRegion === 'all' 
+            ? 'bg-blue-600 text-white' 
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        }`}
+      >
+        All Regions
+      </a>
+      {regions.map(region => (
+        <a 
+          href={`/forecasts?region=${region}`}
+          class={`px-4 py-2 rounded-full text-sm font-medium ${
+            selectedRegion === region 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          {region}
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {sortedForecasts.map(forecast => (
+      <ForecastPreview forecast={forecast} />
+    ))}
+  </div>
+</BaseLayout>

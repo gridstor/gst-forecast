@@ -7,11 +7,11 @@ console.log('Connecting to database...');
 
 // Define brand colors
 const colors = {
-  primary: '#34D5ED',      // Bright blue
-  secondary: '#107D87',    // Teal
-  tertiary: '#0B2B5B',     // Navy
-  accent: '#FF9F1C',       // Orange
-  dark: '#2A2A2A'
+  primary: '#2AB3CB',    // Bright turquoise
+  secondary: '#1D7874',  // Teal green
+  tertiary: '#679289',   // Sage green
+  accent: '#F4C095',     // Peach
+  dark: '#E2231A'        // Red
 };
 
 const forecasts = await prisma.caiso_long_term_forecasts_annual.findMany({
@@ -57,17 +57,24 @@ const groupedData = forecasts.reduce((acc, forecast) => {
 console.log('Sample grouped data:', Object.entries(groupedData)[0]);
 
 // Update datasets configuration
-const datasets = Object.entries(groupedData).map(([key, data], index) => ({
-  label: key, // Use original MarkType-MarkCase as label
-  data: data,
-  borderColor: index === 0 ? colors.primary : 
-               index === 1 ? colors.secondary :
-               index === 2 ? colors.tertiary : 
-               colors.accent,
-  tension: 0.3,
-  borderWidth: 4,         // Thicker lines
-  order: 1
-}));
+const datasets = Object.entries(groupedData).map(([key, data], index) => {
+  const isDefaultLine = key.includes('GST_SP15_Revenue_4h-Base') || 
+                       key.includes('GST_SP15_Revenue_4h-Upside') ||
+                       key.includes('GST_SP15_Revenue_4h-Downside');
+  
+  return {
+    label: key,
+    data: data,
+    borderColor: key.includes('-Base') ? colors.primary :
+                key.includes('-Upside') ? colors.secondary :
+                key.includes('-Downside') ? colors.tertiary :
+                colors.accent,
+    tension: 0,
+    borderWidth: 4,
+    order: 1,
+    hidden: !isDefaultLine  // Hide non-default lines
+  };
+});
 ---
 
 <div class="viz-container">

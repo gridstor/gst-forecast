@@ -34,6 +34,13 @@ const forecasts = await prisma.caiso_long_term_forecasts_annual.findMany({
   }
 });
 
+// Convert BigInt to Number in the forecasts data
+const serializedForecasts = forecasts.map(forecast => ({
+  ...forecast,
+  Value: forecast.Value ? Number(forecast.Value) : null,
+  FlowDateStart: forecast.FlowDateStart ? Number(forecast.FlowDateStart) : null
+}));
+
 // Log the results
 console.log('Fetched forecasts:', forecasts.length);
 console.log('Sample forecast:', forecasts[0]);
@@ -91,7 +98,8 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
     </button>
   </div>
   <div class="chart-container">
-    <canvas id="caisoChart" data-datasets={JSON.stringify(datasets)}></canvas>
+    <div id="chartData" style="display: none">{JSON.stringify(serializedForecasts)}</div>
+    <canvas id="caisoChart"></canvas>
   </div>
   <div class="mt-4 px-4">
     <div id="caisoSlider" class="my-4"></div>
@@ -111,15 +119,44 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
   </div>
 </div>
 
-<script is:inline>
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
+<script>
+  // Add type declarations for external libraries
+  declare const Chart: any;
+  declare const noUiSlider: any;
+
+  const chartDataElement = document.getElementById('chartData');
+  const chartData = chartDataElement ? JSON.parse(chartDataElement.textContent || '[]') : [];
+  
+  function loadScript(src: string) {
+    return new Promise<void>((resolve, reject) => {
       const script = document.createElement('script');
       script.src = src;
-      script.onload = resolve;
-      script.onerror = reject;
+      script.onload = () => resolve();
+      script.onerror = (e) => reject(e);
       document.head.appendChild(script);
     });
+  }
+
+  interface ChartDataPoint {
+    date: string;
+    value: number;
+  }
+
+  interface Dataset {
+    label: string;
+    data: ChartDataPoint[];
+    borderColor: string;
+    tension: number;
+    borderWidth: number;
+    order: number;
+    hidden: boolean;
+  }
+
+  interface SliderElement extends HTMLElement {
+    noUiSlider: {
+      on: (event: string, callback: (values: any[]) => void) => void;
+      create: (options: any) => void;
+    };
   }
 
   async function initChart() {
@@ -128,10 +165,49 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
       await loadScript('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js');
       await loadScript('https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js');
 
-      const canvas = document.getElementById('caisoChart');
-      const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
+      interface Forecast {
+        MarkType: string;
+        MarkCase: string;
+        FlowDateStart: number;
+        Value: number;
+      }
+
+      const groupedData: Record<string, ChartDataPoint[]> = chartData.reduce((acc: Record<string, ChartDataPoint[]>, forecast: Forecast) => {
+        const key = `${forecast.MarkType}-${forecast.MarkCase}`;
+        acc[key] = acc[key] || [];
+        
+        const year = Number(forecast.FlowDateStart);
+        const date = new Date(year, 0, 1);
+
+        acc[key].push({
+          date: date.toISOString(),
+          value: forecast.Value ?? 0
+        });
+        return acc;
+      }, {} as Record<string, ChartDataPoint[]>);
+
+      const datasets: Dataset[] = Object.entries(groupedData).map(([key, data]) => {
+        const isDefaultLine = key.includes('GST_SP15_Revenue_4h-Base') || 
+                           key.includes('GST_SP15_Revenue_4h-Upside') ||
+                           key.includes('GST_SP15_Revenue_4h-Downside');
+        
+        return {
+          label: key,
+          data,
+          borderColor: key.includes('-Base') ? '#2AB3CB' :
+                    key.includes('-Upside') ? '#1D7874' :
+                    key.includes('-Downside') ? '#679289' :
+                    '#F4C095',
+          tension: 0,
+          borderWidth: 4,
+          order: 1,
+          hidden: !isDefaultLine
+        };
+      });
+
+      const canvas = document.getElementById('caisoChart') as HTMLCanvasElement;
       
-      if (canvas && datasets.length > 0) {
+      if (canvas) {
         const chart = new Chart(canvas, {
           type: 'line',
           data: {
@@ -217,7 +293,7 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
         });
 
         // Initialize slider
-        const slider = document.getElementById('caisoSlider');  // Changed ID to be unique
+        const slider = document.getElementById('caisoSlider') as SliderElement;
         if (slider) {
           const years = datasets[0]?.data.map(d => new Date(d.date).getFullYear()) || [];
           const minYear = Math.min(...years);
@@ -267,17 +343,17 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
     }
   }
 
-  initChart();
+  // Initialize the chart when the DOM is ready
+  document.addEventListener('DOMContentLoaded', initChart);
 
   function downloadData() {
     const datasets = JSON.parse(document.getElementById('caisoChart')?.dataset?.datasets || '[]');
-    const csvRows = [['Date', ...datasets.map(d => d.label)]];
+    const csvRows = [['Date', ...datasets.map((d: Dataset) => d.label)]];
     
-    // Initialize with index signature
     const dataByDate = Object.create(null);
     
-    datasets.forEach(dataset => {
-      dataset.data.forEach(point => {
+    datasets.forEach((dataset: Dataset) => {
+      dataset.data.forEach((point: ChartDataPoint) => {
         if (!dataByDate[point.date]) {
           dataByDate[point.date] = { date: point.date };
         }
@@ -285,11 +361,11 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
       });
     });
 
-    // Convert to CSV rows
-    Object.values(dataByDate).forEach(row => {
+    Object.values(dataByDate).forEach((row: unknown) => {
+      const typedRow = row as { date: string; [key: string]: any };
       csvRows.push([
-        new Date(row.date).getFullYear(),
-        ...datasets.map(d => row[d.label] || '')
+        new Date(typedRow.date).getFullYear(),
+        ...datasets.map((d: Dataset) => typedRow[d.label] || '')
       ]);
     });
 

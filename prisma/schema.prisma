@@ -37,3 +37,25 @@ model Forecast {
   date      DateTime
   // Add other fields as needed
 }
+
+model ercot_10_year_forecasts {
+  FlowDateStart                BigInt?
+  Term                         String?
+  MarkDate                     String?
+  MarkType                     String
+  MarkCase                     String
+  MarkFundamentalsDesc         String?
+  MarkModelTypeDesc            String?
+  MarkDispatchOptimizationDesc String?
+  GridStorPurpose              String?
+  Value                        Float?
+  Units                        String?
+  TableCreationTime            String?
+  MarkLocation                 String?
+  MarkMarket                   String?
+  CurveCreator                 String?
+  CurrentMark                  BigInt?
+  valueType                    String?
+
+  @@unique([MarkType, MarkCase])
+}

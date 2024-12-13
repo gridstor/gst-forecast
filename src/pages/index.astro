@@ -1,11 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import CaisoTenYearForecastChart from '../components/CaisoTenYearForecastChart.astro';
+import ErcotSouthTenYearForecastChart from '../components/ErcotSouthTenYearForecastChart.astro';
+import ErcotHoustonTenYearForecastChart from '../components/ErcotHoustonTenYearForecastChart.astro';
 ---
 
-<Layout title="CAISO Forecasts">
-  <main class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-8">CAISO 10 Year Forecasts</h1>
-    <CaisoTenYearForecastChart />
+<Layout title="GridStor Analytics">
+  <main class="p-4 md:p-10 mx-auto max-w-7xl">
+    <div class="space-y-8">
+      <CaisoTenYearForecastChart />
+      <ErcotSouthTenYearForecastChart />
+      <ErcotHoustonTenYearForecastChart />
+    </div>
   </main>
 </Layout>

@@ -1,0 +1,217 @@
+---
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+
+// Define brand colors
+const colors = {
+  primary: '#34D5ED',      // Bright blue
+  secondary: '#107D87',    // Teal
+  tertiary: '#0B2B5B',     // Navy
+  accent: '#FF9F1C',       // Orange
+};
+
+const forecasts = await prisma.ercot_10_year_forecasts.findMany({
+  select: {
+    FlowDateStart: true,
+    Value: true,
+    MarkType: true,
+    MarkCase: true
+  },
+  where: {
+    Value: { not: null },
+    FlowDateStart: { not: null },
+    AND: {
+      MarkType: { startsWith: 'SOUTH_' },
+      MarkCase: { not: '' }
+    }
+  },
+  orderBy: {
+    FlowDateStart: 'asc'
+  }
+});
+
+// Group data by MarkType and MarkCase
+const groupedData = forecasts.reduce((acc: Record<string, Array<{date: string, value: number}>>, forecast) => {
+  const key = `${forecast.MarkType}-${forecast.MarkCase}`;
+  if (!acc[key]) {
+    acc[key] = [];
+  }
+
+  // Convert year number directly to date
+  const year = Number(forecast.FlowDateStart);
+  const date = new Date(year, 0, 1);
+
+  acc[key].push({
+    date: date.toISOString(),
+    value: forecast.Value ?? 0
+  });
+  return acc;
+}, {});
+
+// Update datasets configuration
+const datasets = Object.entries(groupedData).map(([key, data], index) => ({
+  label: key,
+  data: data,
+  borderColor: index === 0 ? colors.primary : 
+               index === 1 ? colors.secondary :
+               index === 2 ? colors.tertiary : 
+               colors.accent,
+  tension: 0.3,
+  borderWidth: 4,
+  order: 1,
+  hidden: !key.includes('SOUTH_GST - Base-Base') && !key.includes('SOUTH_Aurora-Base')  // Hide all except GST Base and Aurora Base
+}));
+---
+
+<div class="viz-container">
+  <div class="flex justify-between items-center mb-4">
+    <div>
+      <h2 class="viz-title">ERCOT South 10-year Battery Revenue</h2>
+      <p class="text-gray-600">Long-term revenue projections across scenarios</p>
+    </div>
+    <button 
+      onclick="downloadData()"
+      class="bg-gs-blue hover:bg-gs-dark text-white font-medium py-2 px-4 rounded transition-colors"
+    >
+      Download Data
+    </button>
+  </div>
+  <div class="chart-container">
+    <canvas id="southChart" data-datasets={JSON.stringify(datasets)}></canvas>
+  </div>
+</div>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import 'chartjs-adapter-date-fns';
+  import { enUS } from 'date-fns/locale';
+
+  const canvas = document.getElementById('southChart') as HTMLCanvasElement;
+  const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
+
+  if (canvas) {
+    try {
+      const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          datasets: datasets.map((dataset: { label: string; data: any[]; borderColor: string }) => ({
+            ...dataset,
+            parsing: {
+              xAxisKey: 'date',
+              yAxisKey: 'value'
+            },
+            pointRadius: 1,
+            fill: false,
+            borderWidth: 4
+          }))
+        },
+        options: {
+          maintainAspectRatio: false,
+          responsive: true,
+          interaction: {
+            mode: 'nearest',
+            intersect: false
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'year',
+                displayFormats: {
+                  year: 'yyyy'
+                },
+                tooltipFormat: 'yyyy'
+              },
+              adapters: {
+                date: {
+                  locale: enUS
+                }
+              },
+              title: {
+                display: true,
+                text: 'Year',
+                font: {
+                  size: 14,
+                  weight: 500
+                }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '$/kw-mn',
+                font: {
+                  size: 14,
+                  weight: 500
+                }
+              },
+              ticks: {
+                maxTicksLimit: 10,
+                callback: function(value) {
+                  return value.toLocaleString();
+                }
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                font: {
+                  size: 12
+                },
+                boxWidth: 10
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#2A2A2A',
+              bodyColor: '#2A2A2A',
+              borderColor: '#E5E7EB',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: true,
+              intersect: false
+            }
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error creating chart:', error);
+    }
+  }
+
+  function downloadData() {
+    const datasets = JSON.parse(document.getElementById('southChart')?.dataset?.datasets || '[]');
+    const csvRows = [['Date', ...datasets.map((d: { label: string }) => d.label)]];
+    
+    const dataByDate: Record<string, any> = {};
+    datasets.forEach((dataset: { label: string; data: Array<{ date: string; value: number }> }) => {
+      dataset.data.forEach(point => {
+        if (!dataByDate[point.date]) {
+          dataByDate[point.date] = { date: point.date };
+        }
+        dataByDate[point.date][dataset.label] = point.value;
+      });
+    });
+
+    Object.values(dataByDate).forEach((row: { date: string; [key: string]: any }) => {
+      csvRows.push([
+        new Date(row.date).getFullYear(),
+        ...datasets.map((d: { label: string }) => row[d.label] || '')
+      ]);
+    });
+
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'south-battery-revenue.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+</script> 

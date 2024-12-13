@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model caiso_10_year_forecasts {
+  FlowDateStart                BigInt?
+  Term                         String?
+  MarkDate                     String?
+  MarkType                     String
+  MarkCase                     String
+  MarkFundamentalsDesc         String?
+  MarkModelTypeDesc            String?
+  MarkDispatchOptimizationDesc String?
+  GridStorPurpose              String?
+  Value                        Float?
+  Units                        String?
+  TableCreationTime            String?
+  MarkLocation                 String?
+  MarkMarket                   String?
+  CurveCreator                 String?
+  CurrentMark                  BigInt?
+  valueType                    String?
+
+  @@unique([MarkType, MarkCase])
+}
+
+model Forecast {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  value     Float
+  date      DateTime
+  // Add other fields as needed
+}

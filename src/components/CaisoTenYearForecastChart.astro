@@ -1,0 +1,254 @@
+---
+import { PrismaClient } from '@prisma/client'
+const prisma = new PrismaClient()
+
+// Add console log to check database connection
+console.log('Connecting to database...');
+
+// Define brand colors
+const colors = {
+  primary: '#34D5ED',      // Bright blue
+  secondary: '#107D87',    // Teal
+  tertiary: '#0B2B5B',     // Navy
+  accent: '#FF9F1C',       // Orange
+  dark: '#2A2A2A'
+};
+
+const forecasts = await prisma.caiso_10_year_forecasts.findMany({
+  select: {
+    FlowDateStart: true,
+    Value: true,
+    MarkType: true,
+    MarkCase: true
+  },
+  where: {
+    Value: { not: null },
+    FlowDateStart: { not: null },
+    AND: {
+      MarkType: { not: '' },
+      MarkCase: { not: '' }
+    }
+  },
+  orderBy: {
+    FlowDateStart: 'asc'
+  }
+});
+
+// Log the results
+console.log('Fetched forecasts:', forecasts.length);
+console.log('Sample forecast:', forecasts[0]);
+
+// Group data by MarkType and MarkCase
+const groupedData = forecasts.reduce((acc: Record<string, Array<{date: string, value: number}>>, forecast) => {
+  const key = `${forecast.MarkType}-${forecast.MarkCase}`;
+  if (!acc[key]) {
+    acc[key] = [];
+  }
+
+  // Convert year number directly to date
+  const year = Number(forecast.FlowDateStart);
+  const date = new Date(year, 0, 1); // January 1st of the year
+  
+  console.log('Processing date:', {
+    originalValue: forecast.FlowDateStart,
+    year: year,
+    convertedDate: date.toISOString()
+  });
+
+  acc[key].push({
+    date: date.toISOString(),
+    value: forecast.Value ?? 0
+  });
+  return acc;
+}, {});
+
+// Add debug logging
+console.log('Sample grouped data:', Object.entries(groupedData)[0]);
+
+// Update datasets configuration
+const datasets = Object.entries(groupedData).map(([key, data], index) => ({
+  label: key, // Use original MarkType-MarkCase as label
+  data: data,
+  borderColor: index === 0 ? colors.primary : 
+               index === 1 ? colors.secondary :
+               index === 2 ? colors.tertiary : 
+               colors.accent,
+  tension: 0.3,
+  borderWidth: 4,         // Thicker lines
+  order: 1
+}));
+---
+
+<div class="viz-container">
+  <div class="flex justify-between items-center mb-4">
+    <div>
+      <h2 class="viz-title">SP-15 10-year 4-hour Battery Revenue</h2>
+      <p class="text-gray-600">Long-term revenue projections across scenarios</p>
+    </div>
+    <button 
+      onclick="downloadData()"
+      class="bg-gs-blue hover:bg-gs-dark text-white font-medium py-2 px-4 rounded transition-colors"
+    >
+      Download Data
+    </button>
+  </div>
+  <div class="chart-container">
+    <canvas id="caisoChart" data-datasets={JSON.stringify(datasets)}></canvas>
+  </div>
+</div>
+
+<script>
+  import Chart from 'chart.js/auto';
+  import 'chartjs-adapter-date-fns';
+  import { enUS } from 'date-fns/locale';
+
+  const canvas = document.getElementById('caisoChart') as HTMLCanvasElement;
+  const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
+
+  console.log('Initializing chart script...');
+  console.log('Full datasets:', datasets);
+  
+  if (canvas) {
+    try {
+      const chart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          datasets: datasets.map((dataset: { label: string; data: any[]; borderColor: string }) => ({
+            ...dataset,
+            parsing: {
+              xAxisKey: 'date',
+              yAxisKey: 'value'
+            },
+            pointRadius: 1,
+            fill: false,
+            borderWidth: 2
+          }))
+        },
+        options: {
+          maintainAspectRatio: false,
+          responsive: true,
+          interaction: {
+            mode: 'nearest',
+            intersect: false
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                unit: 'year',
+                displayFormats: {
+                  year: 'yyyy'
+                },
+                tooltipFormat: 'yyyy'
+              },
+              adapters: {
+                date: {
+                  locale: enUS
+                }
+              },
+              title: {
+                display: true,
+                text: 'Year',
+                font: {
+                  size: 14,
+                  weight: 500
+                }
+              },
+              grid: {
+                color: '#E5E7EB'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: '$/kw-mn',
+                font: {
+                  size: 14,
+                  weight: 500
+                }
+              },
+              grid: {
+                color: '#E5E7EB'
+              }
+            }
+          },
+          plugins: {
+            title: {
+              display: false
+            },
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 20,
+                usePointStyle: true,
+                font: {
+                  size: 12
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              titleColor: '#2A2A2A',
+              bodyColor: '#2A2A2A',
+              borderColor: '#E5E7EB',
+              borderWidth: 1,
+              padding: 12,
+              displayColors: true,
+              intersect: false
+            }
+          }
+        }
+      });
+      console.log('Chart created successfully');
+    } catch (error) {
+      console.error('Error creating chart:', error);
+    }
+  } else {
+    console.error('Canvas element not found');
+  }
+
+  function downloadData() {
+    const datasets = JSON.parse(document.getElementById('caisoChart')?.dataset?.datasets || '[]');
+    const csvRows = [['Date', ...datasets.map((d: { label: string }) => d.label)]];
+    
+    // Organize data by date
+    const dataByDate: Record<string, any> = {};
+    datasets.forEach((dataset: { label: string; data: Array<{ date: string; value: number }> }) => {
+      dataset.data.forEach(point => {
+        if (!dataByDate[point.date]) {
+          dataByDate[point.date] = { date: point.date };
+        }
+        dataByDate[point.date][dataset.label] = point.value;
+      });
+    });
+
+    // Convert to CSV rows
+    Object.values(dataByDate).forEach((row: { date: string; [key: string]: any }) => {
+      csvRows.push([
+        new Date(row.date).getFullYear(),
+        ...datasets.map((d: { label: string }) => row[d.label] || '')
+      ]);
+    });
+
+    const csvContent = csvRows.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sp15-battery-revenue.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+</script>
+
+<style>
+  .chart-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 600px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+  }
+</style> 

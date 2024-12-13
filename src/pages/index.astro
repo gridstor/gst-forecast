@@ -1,69 +1,11 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import Hero from '../components/Hero.astro';
-import ForecastGrid from '../components/forecasts/ForecastGrid.astro';
-import { getCollection } from 'astro:content';
-
-// Get latest forecasts for each region
-const allForecasts = await getCollection('forecasts');
-const regions = [...new Set(allForecasts.map(f => f.data.region))];
-
-const latestForecasts = regions.map(region => {
-  return allForecasts
-    .filter(f => f.data.region === region)
-    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())[0];
-}).filter(Boolean);
-
-// Get all forecasts for infinite scroll
-const initialForecasts = allForecasts
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-  .slice(0, 9);
+import Layout from '../layouts/Layout.astro';
+import CaisoTenYearForecastChart from '../components/CaisoTenYearForecastChart.astro';
 ---
 
-<BaseLayout 
-  title="Energy Market Forecasts"
-  description="Advanced forecasting and analytics for energy storage markets">
-  
-  <Hero />
-  
-  <section class="py-20 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">Latest Regional Forecasts</h2>
-        <p class="text-xl text-gray-600">Current market analysis across all regions</p>
-      </div>
-      
-      <ForecastGrid forecasts={latestForecasts} />
-    </div>
-  </section>
-
-  <section class="py-20 bg-white">
-    <div class="container mx-auto px-4">
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold text-gray-900 mb-4">All Forecasts</h2>
-        <p class="text-xl text-gray-600">Browse our complete collection of market analyses</p>
-      </div>
-      
-      <ForecastGrid forecasts={initialForecasts} loadMore={true} />
-    </div>
-  </section>
-
-  <section class="py-20 bg-gray-50">
-    <div class="container mx-auto px-4">
-      <div class="grid md:grid-cols-3 gap-8">
-        <a href="/presentations" class="group p-8 bg-white rounded-lg hover:bg-brand-primary/10 transition-colors">
-          <h3 class="text-xl font-semibold mb-3 group-hover:text-brand-secondary">Presentations</h3>
-          <p class="text-gray-600">View our latest market analysis presentations and insights</p>
-        </a>
-        <a href="/documentation" class="group p-8 bg-white rounded-lg hover:bg-brand-primary/10 transition-colors">
-          <h3 class="text-xl font-semibold mb-3 group-hover:text-brand-secondary">Documentation</h3>
-          <p class="text-gray-600">Learn about our forecasting methodology and processes</p>
-        </a>
-        <a href="/forecasts" class="group p-8 bg-white rounded-lg hover:bg-brand-primary/10 transition-colors">
-          <h3 class="text-xl font-semibold mb-3 group-hover:text-brand-secondary">All Forecasts</h3>
-          <p class="text-gray-600">Browse our complete archive of energy market forecasts</p>
-        </a>
-      </div>
-    </div>
-  </section>
-</BaseLayout>
+<Layout title="CAISO Forecasts">
+  <main class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">CAISO 10 Year Forecasts</h1>
+    <CaisoTenYearForecastChart />
+  </main>
+</Layout>

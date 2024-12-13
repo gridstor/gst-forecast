@@ -1,14 +1,10 @@
 [build]
-  command = "npm run build"
+  command = "npm install && npx prisma generate && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-# Ensure Prisma generates the client during build
 [build.lifecycle]
   onBuild = "npx prisma generate"
 
@@ -20,7 +16,3 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["@prisma/client", "prisma"]
-
-[dev]
-  framework = "astro"
-  targetPort = 4321 

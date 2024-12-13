@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma';
 
 export const GET: APIRoute = async () => {
   try {
-    const forecasts = await prisma.ercot_10_year_forecasts.findMany({
+    const forecasts = await prisma.ercot_long_term_forecasts_annual.findMany({
       where: {
         OR: [
           { AND: [{ MarkType: 'SOUTH_Aurora' }, { MarkCase: 'Base' }] },

@@ -10,7 +10,10 @@ const colors = {
   accent: '#FF9F1C',       // Orange
 };
 
-const forecasts = await prisma.ercot_10_year_forecasts.findMany({
+// Add debug logs
+console.log('Starting ERCOT South data fetch...');
+
+const forecasts = await prisma.ercot_long_term_forecasts_annual.findMany({
   select: {
     FlowDateStart: true,
     Value: true,
@@ -30,38 +33,62 @@ const forecasts = await prisma.ercot_10_year_forecasts.findMany({
   }
 });
 
+// Log raw data
+console.log('Raw ERCOT South forecasts:', forecasts);
+
 // Group data by MarkType and MarkCase
-const groupedData = forecasts.reduce((acc: Record<string, Array<{date: string, value: number}>>, forecast) => {
+const groupedData = forecasts.reduce((acc, forecast) => {
   const key = `${forecast.MarkType}-${forecast.MarkCase}`;
+  console.log('Processing forecast:', forecast);
+  console.log('Generated key:', key);
+  
   if (!acc[key]) {
     acc[key] = [];
   }
 
-  // Convert year number directly to date
-  const year = Number(forecast.FlowDateStart);
-  const date = new Date(year, 0, 1);
+  const year = typeof forecast.FlowDateStart === 'string' 
+    ? parseInt(forecast.FlowDateStart, 10) 
+    : Number(forecast.FlowDateStart);
 
   acc[key].push({
-    date: date.toISOString(),
-    value: forecast.Value ?? 0
+    date: new Date(year, 0, 1).toISOString(),
+    value: Number(forecast.Value) || 0
   });
   return acc;
-}, {});
+}, {} as { [key: string]: Array<{date: string, value: number}> });
+
+// Log grouped data
+console.log('Grouped ERCOT South data:', groupedData);
 
 // Update datasets configuration
-const datasets = Object.entries(groupedData).map(([key, data], index) => ({
-  label: key,
-  data: data,
-  borderColor: index === 0 ? colors.primary : 
-               index === 1 ? colors.secondary :
-               index === 2 ? colors.tertiary : 
-               colors.accent,
-  tension: 0.3,
-  borderWidth: 4,
-  order: 1,
-  hidden: !key.includes('SOUTH_GST - Base-Base') && !key.includes('SOUTH_Aurora-Base')  // Hide all except GST Base and Aurora Base
-}));
+const datasets = Object.entries(groupedData).map(([key, data], index) => {
+  const dataset = {
+    label: key,
+    data: data,
+    borderColor: index === 0 ? colors.primary : 
+                 index === 1 ? colors.secondary :
+                 index === 2 ? colors.tertiary : 
+                 colors.accent,
+    tension: 0,
+    borderWidth: 4,
+    order: 1,
+    hidden: !key.includes('SOUTH_GST - Base-Base') && !key.includes('SOUTH_Aurora-Base')
+  };
+  console.log('Created dataset:', dataset);
+  return dataset;
+});
+
+console.log('Final ERCOT South datasets:', datasets);
+
+const years = datasets[0]?.data.map(d => new Date(d.date).getFullYear()) || [];
+const minYear = Math.min(...years.map(Number));
+const maxYear = Math.max(...years.map(Number));
+// Add debug logs in the frontmatter
+console.log('Years:', years);
 ---
+
+<!-- Add these to the head of your Layout.astro or directly here -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
 
 <div class="viz-container">
   <div class="flex justify-between items-center mb-4">
@@ -76,142 +103,225 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => ({
       Download Data
     </button>
   </div>
-  <div class="chart-container">
+  <div class="chart-container" style="height: 500px;">
     <canvas id="southChart" data-datasets={JSON.stringify(datasets)}></canvas>
+  </div>
+  
+  <!-- Date Range Selector -->
+  <div class="mt-4 px-4">
+    <div id="slider" class="my-4"></div>
+    <div class="flex justify-between text-sm text-gray-600">
+      <span id="startDate"></span>
+      <span id="endDate"></span>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+    {datasets.map(dataset => (
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-sm font-medium text-gray-600">{dataset.label}</h3>
+        <p class="text-2xl font-bold mt-2" id={`stat-${dataset.label}`}>-</p>
+        <p class="text-xs text-gray-500">Average $/kw-mn</p>
+      </div>
+    ))}
   </div>
 </div>
 
-<script>
-  import Chart from 'chart.js/auto';
-  import 'chartjs-adapter-date-fns';
-  import { enUS } from 'date-fns/locale';
+<script is:inline>
+  // Load scripts in order
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
 
-  const canvas = document.getElementById('southChart') as HTMLCanvasElement;
-  const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
-
-  if (canvas) {
+  async function initChart() {
     try {
-      const chart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          datasets: datasets.map((dataset: { label: string; data: any[]; borderColor: string }) => ({
-            ...dataset,
-            parsing: {
-              xAxisKey: 'date',
-              yAxisKey: 'value'
-            },
-            pointRadius: 1,
-            fill: false,
-            borderWidth: 4
-          }))
-        },
-        options: {
-          maintainAspectRatio: false,
-          responsive: true,
-          interaction: {
-            mode: 'nearest',
-            intersect: false
+      await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js');
+
+      const canvas = document.getElementById('southChart');
+      const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
+      
+      console.log('ERCOT South Initial data:', datasets);
+
+      if (canvas && datasets.length > 0) {
+        const chart = new Chart(canvas, {
+          type: 'line',
+          data: {
+            datasets: datasets.map(dataset => ({
+              ...dataset,
+              parsing: {
+                xAxisKey: 'date',
+                yAxisKey: 'value'
+              },
+              pointRadius: 1,
+              fill: false
+            }))
           },
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: 'year',
-                displayFormats: {
-                  year: 'yyyy'
-                },
-                tooltipFormat: 'yyyy'
-              },
-              adapters: {
-                date: {
-                  locale: enUS
+          options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  unit: 'year',
+                  displayFormats: {
+                    year: 'yyyy'
+                  }
                 }
               },
-              title: {
-                display: true,
-                text: 'Year',
-                font: {
-                  size: 14,
-                  weight: 500
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: '$/kw-mn'
                 }
               }
             },
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: '$/kw-mn',
-                font: {
-                  size: 14,
-                  weight: 500
-                }
-              },
-              ticks: {
-                maxTicksLimit: 10,
-                callback: function(value) {
-                  return value.toLocaleString();
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  font: {
+                    size: 12
+                  }
                 }
               }
-            }
-          },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                font: {
-                  size: 12
-                },
-                boxWidth: 10
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#2A2A2A',
-              bodyColor: '#2A2A2A',
-              borderColor: '#E5E7EB',
-              borderWidth: 1,
-              padding: 12,
-              displayColors: true,
-              intersect: false
             }
           }
+        });
+
+        // Initialize slider
+        const slider = document.getElementById('slider');
+        if (slider) {
+          const years = datasets[0]?.data.map(d => new Date(d.date).getFullYear()) || [];
+          const minYear = Math.min(...years);
+          const maxYear = Math.max(...years);
+
+          noUiSlider.create(slider, {
+            start: [minYear, maxYear],
+            connect: true,
+            range: {
+              'min': minYear,
+              'max': maxYear
+            },
+            step: 1
+          });
+
+          // Add slider update handler
+          slider.noUiSlider.on('update', (values) => {
+            const [start, end] = values.map(Number);
+            const startDate = new Date(start, 0, 1);
+            const endDate = new Date(end, 11, 31);
+            
+            chart.options.scales.x.min = startDate;
+            chart.options.scales.x.max = endDate;
+            chart.update();
+
+            // Update stats cards
+            datasets.forEach(dataset => {
+              const filteredData = dataset.data.filter(d => {
+                const year = new Date(d.date).getFullYear();
+                return year >= start && year <= end;
+              });
+              
+              const average = filteredData.reduce((sum, d) => sum + d.value, 0) / filteredData.length;
+              const statEl = document.getElementById(`stat-${dataset.label}`);
+              if (statEl) {
+                statEl.textContent = `$${average.toLocaleString('en-US', { 
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2 
+                })}`;
+              }
+            });
+          });
         }
-      });
+      }
     } catch (error) {
-      console.error('Error creating chart:', error);
+      console.error('Error initializing ERCOT South chart:', error);
     }
   }
 
-  function downloadData() {
-    const datasets = JSON.parse(document.getElementById('southChart')?.dataset?.datasets || '[]');
-    const csvRows = [['Date', ...datasets.map((d: { label: string }) => d.label)]];
-    
-    const dataByDate: Record<string, any> = {};
-    datasets.forEach((dataset: { label: string; data: Array<{ date: string; value: number }> }) => {
-      dataset.data.forEach(point => {
-        if (!dataByDate[point.date]) {
-          dataByDate[point.date] = { date: point.date };
-        }
-        dataByDate[point.date][dataset.label] = point.value;
-      });
-    });
+  // Initialize everything
+  initChart();
+</script>
 
-    Object.values(dataByDate).forEach((row: { date: string; [key: string]: any }) => {
-      csvRows.push([
-        new Date(row.date).getFullYear(),
-        ...datasets.map((d: { label: string }) => row[d.label] || '')
-      ]);
-    });
-
-    const csvContent = csvRows.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'south-battery-revenue.csv';
-    a.click();
-    window.URL.revokeObjectURL(url);
+<style>
+  input[type="range"] {
+    @apply h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer;
   }
-</script> 
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 bg-gs-blue rounded-full hover:bg-gs-dark transition-colors;
+  }
+  .chart-container {
+    @apply mb-8;
+  }
+  .noUi-connect {
+    @apply bg-gs-blue;
+  }
+  .noUi-handle {
+    @apply bg-gs-blue hover:bg-gs-dark transition-colors cursor-pointer;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 50% !important;
+    width: 16px !important;
+    height: 16px !important;
+    right: -8px !important;
+  }
+  .noUi-handle::before,
+  .noUi-handle::after {
+    display: none;
+  }
+  .noUi-target {
+    @apply bg-gray-200 border-0 shadow-none h-2;
+  }
+  /* Slider styling */
+  .noUi-connect {
+    background: #34D5ED; /* Your primary blue color */
+  }
+  
+  .noUi-handle {
+    border: none;
+    background: #34D5ED;
+    box-shadow: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  
+  .noUi-handle:hover {
+    transform: scale(1.1);
+  }
+  
+  .noUi-handle::before,
+  .noUi-handle::after {
+    display: none;
+  }
+  
+  .noUi-target {
+    background: #e5e7eb;
+    border: none;
+    box-shadow: none;
+    height: 8px;
+  }
+  
+  /* Tooltip styling */
+  .noUi-tooltip {
+    background: #34D5ED;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+</style> 

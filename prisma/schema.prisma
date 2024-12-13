@@ -8,7 +8,7 @@ datasource db {
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model caiso_10_year_forecasts {
+model caiso_long_term_forecasts_annual {
   FlowDateStart                BigInt?
   Term                         String?
   MarkDate                     String?
@@ -38,7 +38,7 @@ model Forecast {
   // Add other fields as needed
 }
 
-model ercot_10_year_forecasts {
+model ercot_long_term_forecasts_annual {
   FlowDateStart                BigInt?
   Term                         String?
   MarkDate                     String?

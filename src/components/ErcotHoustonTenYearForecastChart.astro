@@ -10,7 +10,7 @@ const colors = {
   accent: '#FF9F1C',       // Orange
 };
 
-const forecasts = await prisma.ercot_10_year_forecasts.findMany({
+const forecasts = await prisma.ercot_long_term_forecasts_annual.findMany({
   select: {
     FlowDateStart: true,
     Value: true,
@@ -31,13 +31,10 @@ const forecasts = await prisma.ercot_10_year_forecasts.findMany({
 });
 
 // Group data by MarkType and MarkCase
-const groupedData = forecasts.reduce((acc: Record<string, Array<{date: string, value: number}>>, forecast) => {
+const groupedData = forecasts.reduce((acc, forecast) => {
   const key = `${forecast.MarkType}-${forecast.MarkCase}`;
-  if (!acc[key]) {
-    acc[key] = [];
-  }
-
-  // Convert year number directly to date
+  acc[key] = acc[key] || [];  // More reliable way to initialize array
+  
   const year = Number(forecast.FlowDateStart);
   const date = new Date(year, 0, 1);
 
@@ -63,6 +60,8 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => ({
 }));
 ---
 
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
+
 <div class="viz-container">
   <div class="flex justify-between items-center mb-4">
     <div>
@@ -79,109 +78,156 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => ({
   <div class="chart-container">
     <canvas id="houstonChart" data-datasets={JSON.stringify(datasets)}></canvas>
   </div>
+  <div class="mt-4 px-4">
+    <div id="houstonSlider" class="my-4"></div>
+    <div class="flex justify-between text-sm text-gray-600">
+      <span id="houstonStartDate"></span>
+      <span id="houstonEndDate"></span>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+    {datasets.map(dataset => (
+      <div class="bg-white rounded-lg shadow p-4">
+        <h3 class="text-sm font-medium text-gray-600">{dataset.label}</h3>
+        <p class="text-2xl font-bold mt-2" id={`stat-${dataset.label}`}>-</p>
+        <p class="text-xs text-gray-500">Average $/kw-mn</p>
+      </div>
+    ))}
+  </div>
 </div>
 
-<script>
-  import Chart from 'chart.js/auto';
-  import 'chartjs-adapter-date-fns';
-  import { enUS } from 'date-fns/locale';
+<script is:inline>
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
 
-  const canvas = document.getElementById('houstonChart') as HTMLCanvasElement;
-  const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
-
-  if (canvas) {
+  async function initChart() {
     try {
-      const chart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          datasets: datasets.map((dataset: { label: string; data: any[]; borderColor: string }) => ({
-            ...dataset,
-            parsing: {
-              xAxisKey: 'date',
-              yAxisKey: 'value'
-            },
-            pointRadius: 1,
-            fill: false,
-            borderWidth: 4
-          }))
-        },
-        options: {
-          maintainAspectRatio: false,
-          responsive: true,
-          interaction: {
-            mode: 'nearest',
-            intersect: false
-          },
-          scales: {
-            x: {
-              type: 'time',
-              time: {
-                unit: 'year',
-                displayFormats: {
-                  year: 'yyyy'
-                },
-                tooltipFormat: 'yyyy'
+      await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js');
+
+      const canvas = document.getElementById('houstonChart');
+      const datasets = JSON.parse(canvas?.dataset?.datasets || '[]');
+      
+      console.log('ERCOT Houston Initial data:', datasets);
+
+      if (canvas && datasets.length > 0) {
+        const chart = new Chart(canvas, {
+          type: 'line',
+          data: {
+            datasets: datasets.map(dataset => ({
+              ...dataset,
+              parsing: {
+                xAxisKey: 'date',
+                yAxisKey: 'value'
               },
-              adapters: {
-                date: {
-                  locale: enUS
+              pointRadius: 1,
+              fill: false
+            }))
+          },
+          options: {
+            maintainAspectRatio: false,
+            responsive: true,
+            scales: {
+              x: {
+                type: 'time',
+                time: {
+                  unit: 'year',
+                  displayFormats: {
+                    year: 'yyyy'
+                  }
                 }
               },
-              title: {
-                display: true,
-                text: 'Year',
-                font: {
-                  size: 14,
-                  weight: 500
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: '$/kw-mn'
                 }
               }
             },
-            y: {
-              title: {
-                display: true,
-                text: '$/kw-mn',
-                font: {
-                  size: 14,
-                  weight: 500
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 20,
+                  usePointStyle: true,
+                  font: {
+                    size: 12
+                  }
                 }
               }
-            }
-          },
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                font: {
-                  size: 12
-                }
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-              titleColor: '#2A2A2A',
-              bodyColor: '#2A2A2A',
-              borderColor: '#E5E7EB',
-              borderWidth: 1,
-              padding: 12,
-              displayColors: true,
-              intersect: false
             }
           }
+        });
+
+        // Initialize slider
+        const slider = document.getElementById('houstonSlider');
+        if (slider) {
+          const years = datasets[0]?.data.map(d => new Date(d.date).getFullYear()) || [];
+          const minYear = Math.min(...years);
+          const maxYear = Math.max(...years);
+
+          noUiSlider.create(slider, {
+            start: [minYear, maxYear],
+            connect: true,
+            range: {
+              'min': minYear,
+              'max': maxYear
+            },
+            step: 1
+          });
+
+          // Add slider update handler
+          slider.noUiSlider.on('update', (values) => {
+            const [start, end] = values.map(Number);
+            const startDate = new Date(start, 0, 1);
+            const endDate = new Date(end, 11, 31);
+            
+            chart.options.scales.x.min = startDate;
+            chart.options.scales.x.max = endDate;
+            chart.update();
+
+            // Update stats cards
+            datasets.forEach(dataset => {
+              const filteredData = dataset.data.filter(d => {
+                const year = new Date(d.date).getFullYear();
+                return year >= start && year <= end;
+              });
+              
+              const average = filteredData.reduce((sum, d) => sum + d.value, 0) / filteredData.length;
+              const statEl = document.getElementById(`stat-${dataset.label}`);
+              if (statEl) {
+                statEl.textContent = `$${average.toLocaleString('en-US', { 
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2 
+                })}`;
+              }
+            });
+          });
         }
-      });
+      }
     } catch (error) {
-      console.error('Error creating chart:', error);
+      console.error('Error initializing ERCOT Houston chart:', error);
     }
   }
 
+  // Initialize everything
+  initChart();
+
   function downloadData() {
     const datasets = JSON.parse(document.getElementById('houstonChart')?.dataset?.datasets || '[]');
-    const csvRows = [['Date', ...datasets.map((d: { label: string }) => d.label)]];
-    
-    const dataByDate: Record<string, any> = {};
-    datasets.forEach((dataset: { label: string; data: Array<{ date: string; value: number }> }) => {
+    const csvRows = [['Date', ...datasets.map(d => d.label)]];
+
+    const dataByDate = {};
+    datasets.forEach(dataset => {
       dataset.data.forEach(point => {
         if (!dataByDate[point.date]) {
           dataByDate[point.date] = { date: point.date };
@@ -190,10 +236,10 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => ({
       });
     });
 
-    Object.values(dataByDate).forEach((row: { date: string; [key: string]: any }) => {
+    Object.values(dataByDate).forEach(row => {
       csvRows.push([
         new Date(row.date).getFullYear(),
-        ...datasets.map((d: { label: string }) => row[d.label] || '')
+        ...datasets.map(d => row[d.label] || '')
       ]);
     });
 
@@ -206,7 +252,7 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => ({
     a.click();
     window.URL.revokeObjectURL(url);
   }
-</script> 
+</script>
 
 <style>
   .chart-container {

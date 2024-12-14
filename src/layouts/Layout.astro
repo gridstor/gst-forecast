@@ -4,6 +4,9 @@ interface Props {
 }
 
 const { title } = Astro.props;
+const currentPath = Astro.url.pathname;
+const currentMarket = currentPath.includes('/markets/caiso') ? 'caiso' : 
+                     currentPath.includes('/markets/ercot') ? 'ercot' : '';
 ---
 
 <!DOCTYPE html>
@@ -26,12 +29,26 @@ const { title } = Astro.props;
 							<img src="/logo.svg" alt="GridStor" class="h-8 w-auto">
 						</div>
 						<div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-							<a href="/" class="border-b-2 border-gs-blue text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">
-								Forecasts
+							<a 
+								href="/" 
+								class={`border-b-2 ${!currentMarket ? 'border-gs-blue text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
+							>
+								Current Forecasts
 							</a>
-							<a href="/analysis" class="text-gray-500 hover:text-gray-900 inline-flex items-center px-1 pt-1 text-sm font-medium">
-								Analysis
-							</a>
+							<div class="flex space-x-4 items-center">
+								<a 
+									href="/markets/caiso" 
+									class={`border-b-2 ${currentMarket === 'caiso' ? 'border-gs-blue text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} px-3 py-2 text-sm font-medium`}
+								>
+									CAISO
+								</a>
+								<a 
+									href="/markets/ercot" 
+									class={`border-b-2 ${currentMarket === 'ercot' ? 'border-gs-blue text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} px-3 py-2 text-sm font-medium`}
+								>
+									ERCOT
+								</a>
+							</div>
 						</div>
 					</div>
 				</div>

@@ -85,18 +85,6 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
 ---
 
 <div class="viz-container">
-  <div class="flex justify-between items-center mb-4">
-    <div>
-      <h2 class="viz-title">SP-15 10-year 4-hour Battery Revenue</h2>
-      <p class="text-gray-600">Long-term revenue projections across scenarios</p>
-    </div>
-    <button 
-      onclick="downloadData()"
-      class="bg-gs-blue hover:bg-gs-dark text-white font-medium py-2 px-4 rounded transition-colors"
-    >
-      Download Data
-    </button>
-  </div>
   <div class="chart-container">
     <div id="chartData" style="display: none">{JSON.stringify(serializedForecasts)}</div>
     <canvas id="caisoChart"></canvas>
@@ -384,10 +372,7 @@ const datasets = Object.entries(groupedData).map(([key, data], index) => {
   .chart-container {
     position: relative;
     width: 100%;
-    max-width: 1200px;
     height: 600px;
     margin: 0 auto;
-    padding: 20px;
-    border: 1px solid #ccc;
   }
 </style> 

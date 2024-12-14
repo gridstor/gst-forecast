@@ -1,0 +1,63 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import MarketSubNav from '../../components/MarketSubNav.astro';
+import ErcotHoustonTenYearForecastChart from '../../components/ErcotHoustonTenYearForecastChart.astro';
+import ErcotSouthTenYearForecastChart from '../../components/ErcotSouthTenYearForecastChart.astro';
+---
+
+<Layout title="ERCOT Market Analysis">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-4">ERCOT Market Analysis</h1>
+      <p class="text-xl text-gray-600 mb-8">
+        Detailed revenue projections and market analysis for ERCOT locations
+      </p>
+    </div>
+
+    <div class="space-y-24">
+      <!-- Houston Section -->
+      <section id="houston" class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-semibold mb-6">Houston Zone</h2>
+        <div class="prose max-w-none mb-8">
+          <ul>
+            <li>Market dynamics and trends analysis</li>
+            <li>Revenue projection methodology</li>
+            <li>Key market drivers and assumptions</li>
+          </ul>
+        </div>
+        <ErcotHoustonTenYearForecastChart />
+      </section>
+
+      <!-- South Section -->
+      <section id="south" class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-2xl font-semibold mb-6">South Zone</h2>
+        <div class="prose max-w-none mb-8">
+          <ul>
+            <li>Market dynamics and trends analysis</li>
+            <li>Revenue projection methodology</li>
+            <li>Key market drivers and assumptions</li>
+          </ul>
+        </div>
+        <ErcotSouthTenYearForecastChart />
+      </section>
+
+      <!-- Additional analysis sections -->
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold mb-4">Market Drivers</h3>
+          <div class="prose">
+            <!-- Add your market drivers content here -->
+          </div>
+        </div>
+        
+        <div class="bg-white p-6 rounded-lg shadow">
+          <h3 class="text-xl font-semibold mb-4">Methodology</h3>
+          <div class="prose">
+            <!-- Add your methodology content here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <MarketSubNav market="ercot" />
+</Layout> 

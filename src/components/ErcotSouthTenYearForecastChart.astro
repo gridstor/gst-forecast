@@ -92,19 +92,7 @@ console.log('Years:', years);
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
 
 <div class="viz-container">
-  <div class="flex justify-between items-center mb-4">
-    <div>
-      <h2 class="viz-title">ERCOT South 10-year Battery Revenue</h2>
-      <p class="text-gray-600">Long-term revenue projections across scenarios</p>
-    </div>
-    <button 
-      onclick="downloadData()"
-      class="bg-gs-blue hover:bg-gs-dark text-white font-medium py-2 px-4 rounded transition-colors"
-    >
-      Download Data
-    </button>
-  </div>
-  <div class="chart-container" style="height: 500px;">
+  <div class="chart-container">
     <canvas id="southChart" data-datasets={JSON.stringify(datasets)}></canvas>
   </div>
   
@@ -265,7 +253,10 @@ console.log('Years:', years);
     @apply appearance-none w-4 h-4 bg-gs-blue rounded-full hover:bg-gs-dark transition-colors;
   }
   .chart-container {
-    @apply mb-8;
+    position: relative;
+    width: 100%;
+    height: 600px;
+    margin: 0 auto;
   }
   .noUi-connect {
     @apply bg-gs-blue;

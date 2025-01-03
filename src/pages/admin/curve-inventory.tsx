@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LocationSelector } from '../../components/common/LocationSelector';
 import type { CurveDefinition, LocationOption } from '../../lib/types';
-import { fetchCurvesByLocation, fetchLocations, setDefaultCurve } from '../../lib/api-client';
+import { fetchCurvesByLocation, fetchLocations, setDefaultCurve, fetchCurveData } from '../../lib/api-client';
 
 const DEFAULT_LOCATION = 'CAISO-Goleta';
 
@@ -131,6 +131,47 @@ export const CurveInventory: React.FC = () => {
     }
   };
 
+  const handleDownload = async (curve: CurveDefinition) => {
+    try {
+      setError(null);
+      const data = await fetchCurveData({
+        curveIds: [curve.curve_id],
+        aggregation: curve.granularity.toLowerCase() as 'monthly' | 'annual'
+      });
+      
+      if (!data || data.length === 0) {
+        setError('No data available for this curve');
+        return;
+      }
+
+      // Convert data to CSV format
+      const headers = ['Date', 'Value', 'Location', 'Mark Case', 'Creator'];
+      const csvContent = [
+        headers.join(','),
+        ...data.map(row => [
+          new Date(row.date).toLocaleDateString(),
+          row.value,
+          row.location,
+          row.mark_case,
+          row.curve_creator
+        ].join(','))
+      ].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `curve_${curve.curve_id}_${curve.mark_case}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Failed to download curve:', err);
+      setError('Failed to download curve data');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4">
@@ -163,6 +204,9 @@ export const CurveInventory: React.FC = () => {
                         Default
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ID
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Mark Type
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -174,18 +218,21 @@ export const CurveInventory: React.FC = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Mark Date
                       </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {loading ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                        <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                           Loading...
                         </td>
                       </tr>
                     ) : curves.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                        <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                           No curves found for this location
                         </td>
                       </tr>
@@ -202,6 +249,9 @@ export const CurveInventory: React.FC = () => {
                             />
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {curve.curve_id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {curve.mark_type}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -212,6 +262,14 @@ export const CurveInventory: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {new Date(curve.mark_date).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <button
+                              onClick={() => handleDownload(curve)}
+                              className="text-indigo-600 hover:text-indigo-900 font-medium"
+                            >
+                              Download CSV
+                            </button>
                           </td>
                         </tr>
                       ))

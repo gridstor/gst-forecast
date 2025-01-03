@@ -16,13 +16,37 @@ const formatDate = (dateStr: string) => {
   });
 };
 
+interface CurveStyle {
+  color: string;
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+}
+
 interface CurveSelectionProps {
   location: string;
   selectedCurves: number[];
-  onCurveToggle: (curveId: number) => void;
+  onCurveToggle: (curveId: number, style?: CurveStyle) => void;
   granularity: Granularity;
   availableCurves: CurveDefinition[];
 }
+
+const COLORS = [
+  '#2AB3CB',  // Bright turquoise
+  '#1D7874',  // Teal green
+  '#679289',  // Sage green
+  '#F4C095',  // Peach
+  '#E2231A',  // Red
+  '#4F46E5',  // Indigo
+  '#10B981',  // Emerald
+  '#F59E0B',  // Amber
+  '#EC4899',  // Pink
+  '#8B5CF6'   // Purple
+];
+
+const LINE_STYLES = [
+  { value: 'solid', label: 'Solid' },
+  { value: 'dashed', label: 'Dashed' },
+  { value: 'dotted', label: 'Dotted' }
+];
 
 const CurveSelection: React.FC<CurveSelectionProps> = ({ 
   location, 
@@ -34,7 +58,9 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
   const [filters, setFilters] = useState({
     mark_case: '',
     mark_date: '',
-    curve_creator: ''
+    curve_creator: '',
+    color: COLORS[0],
+    lineStyle: 'solid' as 'solid' | 'dashed' | 'dotted'
   });
 
   // Get unique values for dropdowns from all available curves
@@ -73,8 +99,17 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
     console.log('Matching curves not already selected:', matchingCurves);
     if (matchingCurves.length > 0) {
       console.log('Adding curve:', matchingCurves[0]);
-      onCurveToggle(matchingCurves[0].curve_id);
-      setFilters({ mark_case: '', mark_date: '', curve_creator: '' });
+      onCurveToggle(matchingCurves[0].curve_id, {
+        color: filters.color,
+        lineStyle: filters.lineStyle
+      });
+      setFilters(prev => ({
+        ...prev,
+        mark_case: '',
+        mark_date: '',
+        curve_creator: '',
+        color: COLORS[(COLORS.indexOf(prev.color) + 1) % COLORS.length]
+      }));
     }
   };
 
@@ -86,6 +121,7 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Case</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
@@ -97,6 +133,7 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
                 .filter(curve => selectedCurves.includes(curve.curve_id))
                 .map(curve => (
                   <tr key={curve.curve_id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2 text-sm">{curve.curve_id}</td>
                     <td className="px-3 py-2 text-sm">{curve.mark_case}</td>
                     <td className="px-3 py-2 text-sm">{formatDate(curve.mark_date.toString())}</td>
                     <td className="px-3 py-2 text-sm">{curve.curve_creator}</td>
@@ -116,7 +153,7 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
       </div>
 
       {/* Add New Curve */}
-      <div className="grid grid-cols-4 gap-4 bg-gray-50 p-4 rounded-lg">
+      <div className="grid grid-cols-6 gap-4 bg-gray-50 p-4 rounded-lg">
         <div>
           <label className="block text-xs font-medium text-gray-500 mb-1">Case</label>
           <select
@@ -161,6 +198,34 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
             ))}
           </select>
         </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
+          <select
+            value={filters.color}
+            onChange={(e) => setFilters(prev => ({ ...prev, color: e.target.value }))}
+            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            {COLORS.map(color => (
+              <option key={color} value={color} style={{ backgroundColor: color, color: '#FFF' }}>
+                {color}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">Line Style</label>
+          <select
+            value={filters.lineStyle}
+            onChange={(e) => setFilters(prev => ({ ...prev, lineStyle: e.target.value as 'solid' | 'dashed' | 'dotted' }))}
+            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            {LINE_STYLES.map(style => (
+              <option key={style.value} value={style.value}>
+                {style.label}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex items-end">
           <button
             onClick={handleAddCurve}
@@ -180,6 +245,7 @@ export const CurveViewer: React.FC = () => {
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [monthlyDefinitions, setMonthlyDefinitions] = useState<CurveDefinition[]>([]);
   const [annualDefinitions, setAnnualDefinitions] = useState<CurveDefinition[]>([]);
+  const [curveStyles, setCurveStyles] = useState<Record<number, CurveStyle>>({});
   const { 
     curves, 
     monthlyData, 
@@ -224,9 +290,12 @@ export const CurveViewer: React.FC = () => {
     }
   }, [location]);
 
-  const handleMonthlyCurveToggle = (curveId: number) => {
-    console.log('Toggling monthly curve:', curveId);
+  const handleMonthlyCurveToggle = (curveId: number, style?: CurveStyle) => {
+    console.log('Toggling monthly curve:', curveId, style);
     console.log('Current monthly curves:', monthlyCurves);
+    if (style) {
+      setCurveStyles(prev => ({ ...prev, [curveId]: style }));
+    }
     setMonthlyCurves(prev => {
       const newCurves = prev.includes(curveId) 
         ? prev.filter(id => id !== curveId)
@@ -236,9 +305,12 @@ export const CurveViewer: React.FC = () => {
     });
   };
 
-  const handleAnnualCurveToggle = (curveId: number) => {
-    console.log('Toggling annual curve:', curveId);
+  const handleAnnualCurveToggle = (curveId: number, style?: CurveStyle) => {
+    console.log('Toggling annual curve:', curveId, style);
     console.log('Current annual curves:', annualCurves);
+    if (style) {
+      setCurveStyles(prev => ({ ...prev, [curveId]: style }));
+    }
     setAnnualCurves(prev => {
       const newCurves = prev.includes(curveId) 
         ? prev.filter(id => id !== curveId)
@@ -246,6 +318,70 @@ export const CurveViewer: React.FC = () => {
       console.log('New annual curves:', newCurves);
       return newCurves;
     });
+  };
+
+  // Add styles to the data
+  const monthlyDataWithStyles = monthlyData.map(curve => ({
+    ...curve,
+    style: curveStyles[curve.curveId]
+  }));
+
+  const annualDataWithStyles = annualData.map(curve => ({
+    ...curve,
+    style: curveStyles[curve.curveId]
+  }));
+
+  const handleDownloadGraphData = async (data: (CurveData & { style?: { color: string; lineStyle: 'solid' | 'dashed' | 'dotted' } })[], granularity: 'monthly' | 'annual') => {
+    try {
+      if (!data || data.length === 0) {
+        return;
+      }
+
+      // Group data by curve
+      const groupedData = data.reduce((acc, row) => {
+        const key = `${row.curveId}`;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(row);
+        return acc;
+      }, {} as Record<string, typeof data>);
+
+      // Create CSV content with multiple curves
+      const headers = ['Date'];
+      const curveLabels = Object.entries(groupedData).map(([_, curves]) => {
+        const firstCurve = curves[0] as CurveData;
+        return `${firstCurve.curve_creator} - ${firstCurve.mark_case} (${formatDate(firstCurve.mark_date)})`;
+      });
+      headers.push(...curveLabels);
+
+      // Get all unique dates
+      const allDates = [...new Set(data.map(row => row.date))].sort();
+
+      // Create rows with all curves
+      const rows = allDates.map(date => {
+        const row = [new Date(date).toLocaleDateString()];
+        Object.values(groupedData).forEach(curves => {
+          const matchingPoint = (curves as CurveData[]).find(c => c.date === date);
+          row.push(matchingPoint ? matchingPoint.value.toString() : '');
+        });
+        return row.join(',');
+      });
+
+      const csvContent = [headers.join(','), ...rows].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `${location}_${granularity}_curves.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error('Failed to download graph data:', err);
+    }
   };
 
   if (error) {
@@ -266,14 +402,18 @@ export const CurveViewer: React.FC = () => {
   });
 
   return (
-    <div className="max-w-[1920px] mx-auto space-y-8">
+    <div className="max-w-[1920px] mx-auto space-y-6">
       <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold mb-6">Price Forecasts</h1>
-        <LocationSelector 
-          value={location} 
-          onChange={setLocation}
-          locations={locations}
-        />
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Price Forecasts</h1>
+          <div className="w-64">
+            <LocationSelector 
+              value={location} 
+              onChange={setLocation}
+              locations={locations}
+            />
+          </div>
+        </div>
       </div>
       
       {loading ? (
@@ -287,14 +427,23 @@ export const CurveViewer: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Monthly Prices</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Monthly Prices</h2>
+              <button
+                onClick={() => handleDownloadGraphData(monthlyDataWithStyles, 'monthly')}
+                disabled={monthlyDataWithStyles.length === 0}
+                className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Download Graph Data
+              </button>
+            </div>
             <DualChartSystem 
-              data={monthlyData} 
+              data={monthlyDataWithStyles} 
               title="Monthly Prices"
               granularity="monthly"
-              height={500}
+              height={400}
             />
             <CurveSelection
               location={location}
@@ -306,12 +455,21 @@ export const CurveViewer: React.FC = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4">Annual Prices</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Annual Prices</h2>
+              <button
+                onClick={() => handleDownloadGraphData(annualDataWithStyles, 'annual')}
+                disabled={annualDataWithStyles.length === 0}
+                className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Download Graph Data
+              </button>
+            </div>
             <DualChartSystem 
-              data={annualData}
+              data={annualDataWithStyles}
               title="Annual Prices"
               granularity="annual"
-              height={500}
+              height={400}
             />
             <CurveSelection
               location={location}

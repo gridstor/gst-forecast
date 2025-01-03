@@ -13,14 +13,12 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   locations
 }) => {
   return (
-    <div className="mb-6">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Select Location
-      </label>
+    <div>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full md:w-64 rounded-md border-gray-300"
+        className="w-full rounded-md border-gray-300 text-sm"
+        aria-label="Select Location"
       >
         <option value="">Select a location...</option>
         {locations.map(loc => (

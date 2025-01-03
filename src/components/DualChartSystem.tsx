@@ -13,7 +13,7 @@ const COLORS = {
 };
 
 interface DualChartSystemProps {
-  data: CurveData[];
+  data: (CurveData & { style?: { color: string; lineStyle: 'solid' | 'dashed' | 'dotted' } })[];
   title: string;
   granularity: Granularity;
   height?: number;
@@ -30,6 +30,17 @@ const formatMarkDate = (dateStr: string) => {
     day: '2-digit',
     year: '2-digit'
   });
+};
+
+const getStrokeDasharray = (lineStyle: 'solid' | 'dashed' | 'dotted') => {
+  switch (lineStyle) {
+    case 'dashed':
+      return '5 5';
+    case 'dotted':
+      return '1 5';
+    default:
+      return '0';
+  }
 };
 
 export const DualChartSystem: React.FC<DualChartSystemProps> = ({ 
@@ -73,13 +84,6 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
     points.sort((a, b) => a.date - b.date);
   });
 
-  // Calculate average value for each curve
-  const averages = Object.entries(groupedData).reduce((acc, [curveId, points]) => {
-    const sum = points.reduce((total, point) => total + point.value, 0);
-    acc[curveId] = sum / points.length;
-    return acc;
-  }, {} as Record<string, number>);
-
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     return granularity === 'monthly' 
@@ -103,154 +107,65 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
     return null;
   };
 
-  // Get unique values for dropdowns
-  const uniqueValues = React.useMemo(() => {
-    return uniqueCurves.reduce((acc, curve) => {
-      if (!acc.mark_cases.includes(curve.mark_case)) acc.mark_cases.push(curve.mark_case);
-      if (!acc.locations.includes(curve.location)) acc.locations.push(curve.location);
-      if (!acc.curve_creators.includes(curve.curve_creator)) acc.curve_creators.push(curve.curve_creator);
-      if (!acc.mark_dates.includes(curve.mark_date)) acc.mark_dates.push(curve.mark_date);
-      return acc;
-    }, {
-      mark_cases: [] as string[],
-      locations: [] as string[],
-      curve_creators: [] as string[],
-      mark_dates: [] as string[]
-    });
-  }, [uniqueCurves]);
-
   return (
-    <div>
-      <div style={{ width: '100%', height: `${height}px` }}>
-        <ResponsiveContainer>
-          <LineChart margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} />
-            <XAxis 
-              dataKey="date"
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              tickFormatter={formatDate}
-              tick={{ fontSize: 12 }}
-            />
-            <YAxis 
-              label={{ 
-                value: '$/kw-mn', 
-                angle: -90, 
-                position: 'insideLeft',
-                offset: 0,
-                fontSize: 14,
-                fontWeight: 500
-              }}
-              tick={{ fontSize: 12 }}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Legend 
-              verticalAlign="bottom" 
-              height={36}
-              wrapperStyle={{
-                paddingTop: '20px',
-                fontSize: '12px'
-              }}
-            />
-            {Object.entries(groupedData).map(([curveId, curveData], index) => {
-              const curve = uniqueCurves.find(d => d.curveId === Number(curveId));
-              const label = curve ? 
-                `${curve.location} - ${curve.mark_type} - ${curve.mark_case} (${curve.curve_creator})` :
-                `Curve ${curveId}`;
-              
-              return (
-                <Line 
-                  key={curveId}
-                  type="monotone" 
-                  data={curveData}
-                  dataKey="value" 
-                  name={label}
-                  stroke={Object.values(COLORS)[index % Object.keys(COLORS).length]}
-                  strokeWidth={3}
-                  dot={false}
-                  activeDot={{ r: 6 }}
-                />
-              );
-            })}
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-        {Object.entries(averages).map(([curveId, average]) => {
-          const curve = uniqueCurves.find(d => d.curveId === Number(curveId));
-          const label = curve ? 
-            `${curve.curve_creator}, ${curve.location}, ${curve.mark_case}, ${formatMarkDate(curve.mark_date)}` :
-            `Curve ${curveId}`;
-
-          return (
-            <div key={curveId} className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-sm font-medium text-gray-600">{label}</h3>
-              <p className="text-2xl font-bold mt-2">
-                ${average.toLocaleString('en-US', { 
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2 
-                })}
-              </p>
-              <p className="text-xs text-gray-500">Average $/kw-mn</p>
-            </div>
-          );
-        })}
-      </div>
-      {showNewRow && (
-        <div className="mt-4 grid grid-cols-4 gap-4">
-          <select
-            value={filters.mark_case}
-            onChange={(e) => setFilters(prev => ({ ...prev, mark_case: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select Case</option>
-            {uniqueValues.mark_cases.map(value => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </select>
-          <select
-            value={filters.mark_date}
-            onChange={(e) => setFilters(prev => ({ ...prev, mark_date: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select Date</option>
-            {uniqueValues.mark_dates.map(value => (
-              <option key={value} value={value}>{formatMarkDate(value)}</option>
-            ))}
-          </select>
-          <select
-            value={filters.location}
-            onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select Location</option>
-            {uniqueValues.locations.map(value => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </select>
-          <select
-            value={filters.curve_creator}
-            onChange={(e) => setFilters(prev => ({ ...prev, curve_creator: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select Creator</option>
-            {uniqueValues.curve_creators.map(value => (
-              <option key={value} value={value}>{value}</option>
-            ))}
-          </select>
-        </div>
-      )}
-      {!showNewRow && (
-        <button
-          onClick={() => setShowNewRow(true)}
-          className="mt-2 inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Add Curve
-        </button>
-      )}
+    <div style={{ width: '100%', height: `${height}px` }}>
+      <ResponsiveContainer>
+        <LineChart margin={{ top: 10, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} />
+          <XAxis 
+            dataKey="date"
+            type="number"
+            domain={['dataMin', 'dataMax']}
+            tickFormatter={formatDate}
+            tick={{ fontSize: 12 }}
+          />
+          <YAxis 
+            label={{ 
+              value: '$/kw-mn', 
+              angle: -90, 
+              position: 'insideLeft',
+              offset: 0,
+              fontSize: 14,
+              fontWeight: 500
+            }}
+            tick={{ fontSize: 12 }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend 
+            verticalAlign="bottom" 
+            height={36}
+            wrapperStyle={{
+              paddingTop: '20px',
+              fontSize: '12px'
+            }}
+          />
+          {Object.entries(groupedData).map(([curveId, curveData], index) => {
+            const curve = uniqueCurves.find(d => d.curveId === Number(curveId));
+            const label = curve ? 
+              `${curve.curve_creator} - ${curve.mark_case} (${formatDate(new Date(curve.mark_date).getTime())})` :
+              `Curve ${curveId}`;
+            const style = curve?.style || {
+              color: Object.values(COLORS)[index % Object.keys(COLORS).length],
+              lineStyle: 'solid' as const
+            };
+            
+            return (
+              <Line 
+                key={curveId}
+                type="monotone" 
+                data={curveData}
+                dataKey="value" 
+                name={label}
+                stroke={style.color}
+                strokeWidth={2}
+                strokeDasharray={getStrokeDasharray(style.lineStyle)}
+                dot={false}
+                activeDot={{ r: 6 }}
+              />
+            );
+          })}
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }; 

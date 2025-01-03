@@ -5,8 +5,6 @@ interface Props {
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
-const currentMarket = currentPath.includes('/markets/caiso') ? 'caiso' : 
-                     currentPath.includes('/markets/ercot') ? 'ercot' : '';
 ---
 
 <!DOCTYPE html>
@@ -17,7 +15,7 @@ const currentMarket = currentPath.includes('/markets/caiso') ? 'caiso' :
 		<title>{title} | GridStor Analytics</title>
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 	</head>
 	<body>
@@ -30,25 +28,17 @@ const currentMarket = currentPath.includes('/markets/caiso') ? 'caiso' :
 						</div>
 						<div class="hidden sm:ml-6 sm:flex sm:space-x-8">
 							<a 
-								href="/" 
-								class={`border-b-2 ${!currentMarket ? 'border-gs-blue text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
+								href="/curve-viewer" 
+								class={`border-b-2 ${currentPath === '/curve-viewer' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
 							>
-								Current Forecasts
+								Curve Viewer
 							</a>
-							<div class="flex space-x-4 items-center">
-								<a 
-									href="/markets/caiso" 
-									class={`border-b-2 ${currentMarket === 'caiso' ? 'border-gs-blue text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} px-3 py-2 text-sm font-medium`}
-								>
-									CAISO
-								</a>
-								<a 
-									href="/markets/ercot" 
-									class={`border-b-2 ${currentMarket === 'ercot' ? 'border-gs-blue text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} px-3 py-2 text-sm font-medium`}
-								>
-									ERCOT
-								</a>
-							</div>
+							<a 
+								href="/admin/curve-inventory" 
+								class={`border-b-2 ${currentPath === '/admin/curve-inventory' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
+							>
+								Curve Inventory
+							</a>
 						</div>
 					</div>
 				</div>
@@ -62,5 +52,12 @@ const currentMarket = currentPath.includes('/markets/caiso') ? 'caiso' :
 </html>
 
 <style is:global>
-	@import "../styles/theme.css";
+	:root {
+		--gs-blue: #4F46E5;
+	}
+	
+	html {
+		font-family: 'Inter', system-ui, sans-serif;
+		background: #f9fafb;
+	}
 </style>

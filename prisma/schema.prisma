@@ -12,8 +12,8 @@ model caiso_long_term_forecasts_annual {
   FlowDateStart                BigInt?
   Term                         String?
   MarkDate                     String?
-  MarkType                     String
-  MarkCase                     String
+  MarkType                     String?
+  MarkCase                     String?
   MarkFundamentalsDesc         String?
   MarkModelTypeDesc            String?
   MarkDispatchOptimizationDesc String?
@@ -27,23 +27,60 @@ model caiso_long_term_forecasts_annual {
   CurrentMark                  BigInt?
   valueType                    String?
 
-  @@unique([MarkType, MarkCase])
+  @@ignore
 }
 
-model Forecast {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  value     Float
-  date      DateTime
-  // Add other fields as needed
+model curve_definitions {
+  curve_id                        Int               @id @default(autoincrement())
+  mark_type                       String?           @db.VarChar
+  mark_case                       String?           @db.VarChar
+  mark_date                       DateTime?         @db.Timestamp(6)
+  location                        String?           @db.VarChar
+  market                          String?           @db.VarChar
+  curve_creator                   String?           @db.VarChar
+  mark_fundamentals_desc          String?           @db.VarChar
+  mark_model_type_desc            String?           @db.VarChar
+  mark_dispatch_optimization_desc String?           @db.VarChar
+  gridstor_purpose                String?           @db.VarChar
+  value_type                      String?           @db.VarChar
+  created_at                      DateTime?         @default(now()) @db.Timestamp(6)
+  curve_start_date                DateTime?         @db.Timestamp(6)
+  curve_end_date                  DateTime?         @db.Timestamp(6)
+  granularity                     String?           @db.VarChar
+  display_curves                  display_curves[]
+  price_forecasts                 price_forecasts[]
+
+  @@index([curve_start_date, curve_end_date], map: "idx_curve_dates")
+  @@index([location], map: "idx_curve_location")
+  @@index([mark_case], map: "idx_curve_mark_case")
+  @@index([mark_date], map: "idx_curve_mark_date")
+  @@index([mark_type], map: "idx_curve_mark_type")
+  @@index([market], map: "idx_curve_market")
+  @@index([market, location], map: "idx_curve_market_location")
 }
 
+model display_curves {
+  display_id        Int
+  curve_id          Int
+  display_order     Int?
+  display_color     String?           @db.VarChar(50)
+  display_label     String?           @db.VarChar(100)
+  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  curve_definitions curve_definitions @relation(fields: [curve_id], references: [curve_id], onDelete: NoAction, onUpdate: NoAction)
+  website_displays  website_displays  @relation(fields: [display_id], references: [display_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([display_id, curve_id])
+  @@index([curve_id], map: "idx_display_curves_curve_id")
+  @@index([display_id], map: "idx_display_curves_display_id")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ercot_long_term_forecasts_annual {
   FlowDateStart                BigInt?
   Term                         String?
   MarkDate                     String?
-  MarkType                     String
-  MarkCase                     String
+  MarkType                     String?
+  MarkCase                     String?
   MarkFundamentalsDesc         String?
   MarkModelTypeDesc            String?
   MarkDispatchOptimizationDesc String?
@@ -57,5 +94,46 @@ model ercot_long_term_forecasts_annual {
   CurrentMark                  BigInt?
   valueType                    String?
 
-  @@unique([MarkType, MarkCase])
+  @@ignore
+}
+
+model price_forecasts {
+  id                Int                         @id @default(autoincrement())
+  curve_id          Int?
+  flow_date_start   DateTime?                   @db.Timestamp(6)
+  granularity       Unsupported("granularity")?
+  value             Float?
+  units             String?                     @db.VarChar
+  location          String?                     @db.VarChar
+  mark_case         String?                     @db.VarChar
+  curve_creator     String?                     @db.VarChar
+  value_type        String?                     @db.VarChar
+  mark_date         DateTime?                   @db.Timestamp(6)
+  curve_definitions curve_definitions?          @relation(fields: [curve_id], references: [curve_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([curve_creator], map: "idx_price_creator")
+  @@index([curve_id, flow_date_start], map: "idx_price_curve_date")
+  @@index([curve_id], map: "idx_price_curve_id")
+  @@index([flow_date_start], map: "idx_price_flow_date")
+  @@index([location], map: "idx_price_location")
+  @@index([mark_case], map: "idx_price_mark_case")
+  @@index([mark_date], map: "idx_price_mark_date")
+  @@index([value_type], map: "idx_price_value_type")
+}
+
+model website_display {
+  display_id   Int       @id @default(autoincrement())
+  display_name String    @db.VarChar
+  description  String?   @db.VarChar
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  updated_at   DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model website_displays {
+  display_id     Int              @id @default(autoincrement())
+  display_name   String           @unique @db.VarChar(100)
+  description    String?          @db.VarChar
+  created_at     DateTime?        @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?        @default(now()) @db.Timestamp(6)
+  display_curves display_curves[]
 }

@@ -4,9 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        'gs-dark': '#2A2A2A',
         'gs-blue': '#34D5ED',
-        'gs-dark': '#107D87'
-      }
+        'gs-light': '#FFFFFF',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
     },
   },
   plugins: [],

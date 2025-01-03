@@ -5,24 +5,29 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "npx prisma generate && astro build",
+    "build": "prisma generate && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "postinstall": "prisma generate",
-    "favicon": "node scripts/generate-favicon.js"
+    "favicon": "node scripts/generate-favicon.js",
+    "update-curves": "tsx src/scripts/updateDefaultCurves.ts"
   },
   "dependencies": {
-    "@astrojs/tailwind": "^5.0.0",
-    "@prisma/client": "^5.0.0",
-    "astro": "^4.0.0",
-    "chart.js": "^4.4.7",
-    "chartjs-adapter-date-fns": "^3.0.0",
-    "date-fns": "^2.30.0",
-    "nouislider": "^15.7.1",
-    "tailwindcss": "^3.0.0"
+    "@astrojs/react": "^3.0.9",
+    "@astrojs/tailwind": "^5.1.0",
+    "@prisma/client": "^5.8.0",
+    "astro": "^4.1.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "recharts": "^2.10.3",
+    "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "prisma": "^5.0.0"
+    "@types/node": "^20.10.6",
+    "@types/react": "^18.2.47",
+    "@types/react-dom": "^18.2.18",
+    "prisma": "^5.8.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.3.3"
   }
 }

@@ -1,17 +1,20 @@
 [build]
   command = "npm run build"
-  publish = "dist"
-  functions = ".netlify/functions-internal"
+  publish = "dist/client"
+  functions = "dist/functions"
 
 [build.environment]
   NODE_VERSION = "18"
+  NETLIFY_USE_YARN = "false"
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
 
 [functions]
   external_node_modules = ["@prisma/client"]
   node_bundler = "esbuild"
+  included_files = ["prisma/**"]
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
+  to = "/.netlify/functions/entry"
   status = 200
   force = true

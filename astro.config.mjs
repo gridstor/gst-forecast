@@ -9,5 +9,10 @@ export default defineConfig({
     tailwind()
   ],
   output: 'server',
-  adapter: netlify()
+  adapter: netlify({
+    dist: {
+      client: 'dist/client',
+      functions: 'dist/functions'
+    }
+  })
 });

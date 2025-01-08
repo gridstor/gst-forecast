@@ -1,15 +1,18 @@
 [build]
+  base = "/"
   command = "npx prisma generate && astro build"
   publish = "dist"
   functions = ".netlify/functions-internal"
 
 [build.environment]
   NODE_VERSION = "18"
+  AWS_LAMBDA_JS_RUNTIME = "nodejs18.x"
 
 [functions]
   external_node_modules = ["@prisma/client"]
   node_bundler = "esbuild"
   included_files = ["prisma/**"]
+  runtime = "nodejs18.x"
 
 [[redirects]]
   from = "/*"

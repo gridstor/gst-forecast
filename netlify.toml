@@ -1,8 +1,6 @@
 [build]
-  base = "/"
-  command = "npx prisma generate && astro build"
+  command = "npm run build"
   publish = "dist"
-  functions = ".netlify/functions-internal"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -10,12 +8,6 @@
 [functions]
   external_node_modules = ["@prisma/client"]
   node_bundler = "esbuild"
-  included_files = ["prisma/**"]
-
-[functions.ssr]
-  included_files = ["prisma/**"]
-  node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client"]
 
 [[redirects]]
   from = "/*"

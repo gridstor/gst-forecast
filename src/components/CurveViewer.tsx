@@ -241,11 +241,17 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
 };
 
 export const CurveViewer: React.FC = () => {
+  const [mounted, setMounted] = useState(false);
   const [location, setLocation] = useState(DEFAULT_LOCATION);
   const [locations, setLocations] = useState<LocationOption[]>([]);
   const [monthlyDefinitions, setMonthlyDefinitions] = useState<CurveDefinition[]>([]);
   const [annualDefinitions, setAnnualDefinitions] = useState<CurveDefinition[]>([]);
   const [curveStyles, setCurveStyles] = useState<Record<number, CurveStyle>>({});
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { 
     curves, 
     monthlyData, 
@@ -383,6 +389,10 @@ export const CurveViewer: React.FC = () => {
       console.error('Failed to download graph data:', err);
     }
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   if (error) {
     return (

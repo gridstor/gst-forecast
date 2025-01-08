@@ -49,6 +49,12 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
   granularity,
   height = 400
 }) => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Get unique curves from data
   const uniqueCurves = React.useMemo(() => {
     const seen = new Set<number>();
@@ -106,6 +112,10 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
     }
     return null;
   };
+
+  if (!mounted) {
+    return <div style={{ width: '100%', height: `${height}px` }} />;
+  }
 
   return (
     <div style={{ width: '100%', height: `${height}px` }}>

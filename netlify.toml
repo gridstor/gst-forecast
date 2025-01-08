@@ -6,13 +6,16 @@
 
 [build.environment]
   NODE_VERSION = "18"
-  AWS_LAMBDA_JS_RUNTIME = "nodejs18.x"
 
 [functions]
   external_node_modules = ["@prisma/client"]
   node_bundler = "esbuild"
   included_files = ["prisma/**"]
-  runtime = "nodejs18.x"
+
+[functions.ssr]
+  included_files = ["prisma/**"]
+  node_bundler = "esbuild"
+  external_node_modules = ["@prisma/client"]
 
 [[redirects]]
   from = "/*"

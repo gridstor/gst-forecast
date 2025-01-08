@@ -1,5 +1,15 @@
 ---
-if (Astro.url.pathname === '/') {
-  return Astro.redirect('/curve-viewer', 302);
-}
---- 
+return Astro.redirect('/curve-viewer');
+---
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting...</title>
+    <meta http-equiv="refresh" content="0;url=/curve-viewer" />
+  </head>
+  <body>
+    <script>
+      window.location.href = "/curve-viewer";
+    </script>
+  </body>
+</html> 

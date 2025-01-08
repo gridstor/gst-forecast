@@ -1,3 +1,5 @@
 ---
----
-<meta http-equiv="refresh" content="0;url=/curve-viewer" /> 
+if (Astro.url.pathname === '/') {
+  return Astro.redirect('/curve-viewer', 302);
+}
+--- 

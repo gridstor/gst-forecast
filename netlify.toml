@@ -13,6 +13,12 @@
   node_bundler = "esbuild"
   included_files = ["prisma/**"]
 
+[dev]
+  command = "npm run dev"
+  port = 4321
+  targetPort = 4321
+  framework = "astro"
+
 [[redirects]]
   from = "/_astro/*"
   to = "/_astro/:splat"

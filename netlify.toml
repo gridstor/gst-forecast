@@ -24,12 +24,24 @@
 [[redirects]]
   from = "/"
   to = "/curve-viewer"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/_astro/*"
+  to = "/_astro/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
   status = 200
 
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/entry"
   status = 200
+  force = true
 
 [[headers]]
   for = "/*"

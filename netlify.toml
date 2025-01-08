@@ -15,25 +15,21 @@
 
 [dev]
   command = "npm run dev"
-  port = 4321
+  port = 8888
   targetPort = 4321
   framework = "astro"
+  publish = "dist"
+  autoLaunch = true
 
 [[redirects]]
-  from = "/_astro/*"
-  to = "/_astro/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/assets/*"
-  to = "/assets/:splat"
+  from = "/"
+  to = "/curve-viewer"
   status = 200
 
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/entry"
   status = 200
-  force = true
 
 [[headers]]
   for = "/*"

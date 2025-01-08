@@ -414,15 +414,13 @@ export const CurveViewer: React.FC = () => {
   return (
     <div className="max-w-[1920px] mx-auto space-y-6">
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Price Forecasts</h1>
-          <div className="w-64">
-            <LocationSelector 
-              value={location} 
-              onChange={setLocation}
-              locations={locations}
-            />
-          </div>
+        <div className="flex items-center space-x-4">
+          <h1 className="text-2xl font-bold whitespace-nowrap">Select a Location</h1>
+          <LocationSelector 
+            value={location} 
+            onChange={setLocation}
+            locations={locations}
+          />
         </div>
       </div>
       
@@ -440,7 +438,7 @@ export const CurveViewer: React.FC = () => {
         <div className="space-y-6">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Monthly Prices</h2>
+              <h2 className="text-xl font-semibold">Monthly Revenue ($/kw-month) - Front 24 Months</h2>
               <button
                 onClick={() => handleDownloadGraphData(monthlyDataWithStyles, 'monthly')}
                 disabled={monthlyDataWithStyles.length === 0}
@@ -466,7 +464,7 @@ export const CurveViewer: React.FC = () => {
 
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Annual Prices</h2>
+              <h2 className="text-xl font-semibold">Annual Revenue ($/kw-year) - Front 10 Years</h2>
               <button
                 onClick={() => handleDownloadGraphData(annualDataWithStyles, 'annual')}
                 disabled={annualDataWithStyles.length === 0}

@@ -87,13 +87,30 @@ export const CurveInventory: React.FC = () => {
     }
   }, [selectedLocation]);
 
-  const handleLocationChange = (location: string) => {
+  const handleLocationChange = async (location: string) => {
     console.log('Location selected:', location);
     setSelectedLocation(location);
-    if (location !== DEFAULT_LOCATION) {
-      setCurves([]);
-      setError(null);
-      refreshCurves();
+    setLoading(true);
+    setCurves([]);  // Clear existing curves
+    
+    try {
+      if (location === 'all') {
+        // Fetch curves for all locations
+        const allCurves = await Promise.all(
+          locations.map(loc => fetchCurvesByLocation(loc.id))
+        );
+        setCurves(allCurves.flat());
+      } else {
+        const data = await fetchCurvesByLocation(location);
+        if (Array.isArray(data)) {
+          setCurves(data);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching curves:', err);
+      setError('Failed to fetch curves');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -187,11 +204,22 @@ export const CurveInventory: React.FC = () => {
           {loadingLocations ? (
             <div className="mb-6">Loading locations...</div>
           ) : (
-            <LocationSelector
-              value={selectedLocation}
-              onChange={handleLocationChange}
-              locations={locations}
-            />
+            <div className="flex items-center gap-4">
+              <LocationSelector
+                value={selectedLocation}
+                onChange={handleLocationChange}
+                locations={[
+                  { id: 'all', name: 'All Locations', market: '', active: true },
+                  ...locations
+                ]}
+              />
+              <button
+                onClick={refreshCurves}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Refresh
+              </button>
+            </div>
           )}
 
           {selectedLocation && (

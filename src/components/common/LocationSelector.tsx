@@ -13,11 +13,11 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
   locations
 }) => {
   return (
-    <div>
+    <div className="min-w-[240px]">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md border-gray-300 text-sm"
+        className="block w-full rounded-md border border-gray-300 py-1.5 px-3 text-base focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600"
         aria-label="Select Location"
       >
         <option value="">Select a location...</option>

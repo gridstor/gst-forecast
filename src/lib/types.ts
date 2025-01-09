@@ -21,15 +21,22 @@ export interface CurveData {
 
 export interface CurveDefinition {
   curve_id: number;
-  market: Market;
-  location: string;
+  mark_type: string;
   mark_case: string;
   mark_date: Date;
-  mark_type: string;
-  granularity: Granularity;
-  is_default: boolean;
-  display_order?: number;
+  location: string;
+  market: string;
   curve_creator: string;
+  mark_fundamentals_desc?: string;
+  mark_model_type_desc?: string;
+  mark_dispatch_optimization_desc?: string;
+  gridstor_purpose?: string;
+  value_type?: string;
+  granularity: string;
+  curve_start_date?: Date;
+  curve_end_date?: Date;
+  created_at: Date;
+  is_default?: boolean;
 }
 
 export interface PriceForecast {

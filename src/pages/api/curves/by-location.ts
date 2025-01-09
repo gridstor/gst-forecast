@@ -37,6 +37,14 @@ export const GET: APIRoute = async ({ url }) => {
         mark_date: true,
         granularity: true,
         curve_creator: true,
+        mark_fundamentals_desc: true,
+        mark_model_type_desc: true,
+        mark_dispatch_optimization_desc: true,
+        gridstor_purpose: true,
+        value_type: true,
+        curve_start_date: true,
+        curve_end_date: true,
+        created_at: true,
         display_curves: {
           where: {
             website_displays: {

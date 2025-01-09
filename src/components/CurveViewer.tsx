@@ -63,13 +63,16 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
     lineStyle: 'solid' as 'solid' | 'dashed' | 'dotted'
   });
 
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+
   // Get unique values for dropdowns from all available curves
   const uniqueValues = React.useMemo(() => {
-    console.log('Getting unique values from curves:', availableCurves);
     return availableCurves.reduce((acc, curve) => {
       if (!acc.mark_cases.includes(curve.mark_case)) acc.mark_cases.push(curve.mark_case);
       if (!acc.curve_creators.includes(curve.curve_creator)) {
-        console.log('Adding curve creator:', curve.curve_creator);
         acc.curve_creators.push(curve.curve_creator);
       }
       if (curve.mark_date && !acc.mark_dates.includes(curve.mark_date.toString())) {
@@ -83,13 +86,43 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
     });
   }, [availableCurves]);
 
-  // Filter available curves based on selected filters
-  const filteredCurves = availableCurves.filter(curve => {
+  // Sort function
+  const sortedCurves = React.useMemo(() => {
+    let sortedData = [...availableCurves];
+    if (sortConfig) {
+      sortedData.sort((a: any, b: any) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortedData;
+  }, [availableCurves, sortConfig]);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Filter function
+  const filteredCurves = sortedCurves.filter(curve => {
     const matches = (!filters.mark_case || curve.mark_case === filters.mark_case) &&
            (!filters.mark_date || curve.mark_date?.toString() === filters.mark_date) &&
            (!filters.curve_creator || curve.curve_creator === filters.curve_creator);
     return matches;
   });
+
+  const getSortIndicator = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return '↕️';
+    return sortConfig.direction === 'asc' ? '↑' : '↓';
+  };
 
   // Handle adding a curve when filters are set
   const handleAddCurve = () => {
@@ -121,15 +154,23 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Case</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Creator</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('curve_id')}>
+                  ID {getSortIndicator('curve_id')}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('mark_case')}>
+                  Case {getSortIndicator('mark_case')}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('mark_date')}>
+                  Date {getSortIndicator('mark_date')}
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('curve_creator')}>
+                  Creator {getSortIndicator('curve_creator')}
+                </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-16"></th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {availableCurves
+              {filteredCurves
                 .filter(curve => selectedCurves.includes(curve.curve_id))
                 .map(curve => (
                   <tr key={curve.curve_id} className="hover:bg-gray-50">

@@ -3,7 +3,7 @@ import { LocationSelector } from '../../components/common/LocationSelector';
 import type { CurveDefinition, LocationOption } from '../../lib/types';
 import { fetchCurvesByLocation, fetchLocations, setDefaultCurve, fetchCurveData } from '../../lib/api-client';
 
-const DEFAULT_LOCATION = 'CAISO-Goleta';
+const DEFAULT_LOCATION = 'all';
 
 export const CurveInventory: React.FC = () => {
   const [locations, setLocations] = useState<LocationOption[]>([]);
@@ -13,6 +13,46 @@ export const CurveInventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadingLocations, setLoadingLocations] = useState(true);
   const [updatingCurve, setUpdatingCurve] = useState<number | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+
+  // Sort function
+  const sortedCurves = React.useMemo(() => {
+    let sortedData = [...curves];
+    if (sortConfig) {
+      sortedData.sort((a: any, b: any) => {
+        if (sortConfig.key === 'mark_date') {
+          return sortConfig.direction === 'asc' 
+            ? new Date(a[sortConfig.key]).getTime() - new Date(b[sortConfig.key]).getTime()
+            : new Date(b[sortConfig.key]).getTime() - new Date(a[sortConfig.key]).getTime();
+        }
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortedData;
+  }, [curves, sortConfig]);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return '▲▼';
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
+  };
 
   // Initial load of both locations and curves
   useEffect(() => {
@@ -30,17 +70,12 @@ export const CurveInventory: React.FC = () => {
         if (Array.isArray(locationsData) && locationsData.length > 0) {
           setLocations(locationsData);
           
-          // Then immediately fetch curves for Goleta
-          console.log('Fetching initial curves for:', DEFAULT_LOCATION);
-          const curvesData = await fetchCurvesByLocation(DEFAULT_LOCATION);
-          console.log('Initial curves received:', curvesData);
-          
-          if (Array.isArray(curvesData)) {
-            setCurves(curvesData);
-          } else {
-            console.warn('Invalid curves data received');
-            setError('Invalid curves data received');
-          }
+          // Fetch curves for all locations
+          console.log('Fetching initial curves for all locations');
+          const allCurves = await Promise.all(
+            locationsData.map(loc => fetchCurvesByLocation(loc.id))
+          );
+          setCurves(allCurves.flat());
         } else {
           console.warn('No locations received from API');
           setError('No locations available');
@@ -64,13 +99,24 @@ export const CurveInventory: React.FC = () => {
     setError(null);
     try {
       console.log('Fetching curves for location:', selectedLocation);
-      const data = await fetchCurvesByLocation(selectedLocation);
-      console.log('Curves refreshed:', data);
-      if (Array.isArray(data)) {
-        setCurves(data);
+      if (selectedLocation === 'all') {
+        const allCurves = await Promise.all(
+          locations.map(loc => fetchCurvesByLocation(loc.id))
+        );
+        const flattenedCurves = allCurves.flat();
+        console.log('All curves data:', flattenedCurves);
+        console.log('Sample curve details:', flattenedCurves[0]);
+        setCurves(flattenedCurves);
       } else {
-        console.warn('Invalid curves data received:', data);
-        setError('Invalid curves data received');
+        const data = await fetchCurvesByLocation(selectedLocation);
+        console.log('Location specific curves:', data);
+        if (Array.isArray(data)) {
+          console.log('Sample curve details:', data[0]);
+          setCurves(data);
+        } else {
+          console.warn('Invalid curves data received:', data);
+          setError('Invalid curves data received');
+        }
       }
     } catch (err) {
       console.error('Error refreshing curves:', err);
@@ -231,20 +277,20 @@ export const CurveInventory: React.FC = () => {
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Default
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        ID
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('curve_id')}>
+                        ID {getSortIndicator('curve_id')}
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mark Type
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('mark_type')}>
+                        Mark Type {getSortIndicator('mark_type')}
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mark Case
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('mark_case')}>
+                        Mark Case {getSortIndicator('mark_case')}
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Granularity
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('granularity')}>
+                        Granularity {getSortIndicator('granularity')}
                       </th>
-                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Mark Date
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('mark_date')}>
+                        Mark Date {getSortIndicator('mark_date')}
                       </th>
                       <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Actions
@@ -258,48 +304,80 @@ export const CurveInventory: React.FC = () => {
                           Loading...
                         </td>
                       </tr>
-                    ) : curves.length === 0 ? (
+                    ) : sortedCurves.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
                           No curves found for this location
                         </td>
                       </tr>
                     ) : (
-                      curves.map(curve => (
-                        <tr key={curve.curve_id} className={updatingCurve === curve.curve_id ? 'opacity-50' : ''}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <input
-                              type="checkbox"
-                              checked={curve.is_default}
-                              onChange={(e) => handleDefaultToggle(curve, e.target.checked)}
-                              disabled={updatingCurve === curve.curve_id}
-                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                            />
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {curve.curve_id}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {curve.mark_type}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {curve.mark_case}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {curve.granularity}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {new Date(curve.mark_date).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <button
-                              onClick={() => handleDownload(curve)}
-                              className="text-indigo-600 hover:text-indigo-900 font-medium"
-                            >
-                              Download CSV
-                            </button>
-                          </td>
-                        </tr>
+                      sortedCurves.map(curve => (
+                        <React.Fragment key={curve.curve_id}>
+                          <tr 
+                            className={`${updatingCurve === curve.curve_id ? 'opacity-50' : ''} hover:bg-gray-50 cursor-pointer`}
+                            onClick={() => setExpandedRow(expandedRow === curve.curve_id ? null : curve.curve_id)}
+                          >
+                            <td className="px-6 py-4 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                checked={curve.is_default}
+                                onChange={(e) => handleDefaultToggle(curve, e.target.checked)}
+                                disabled={updatingCurve === curve.curve_id}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {curve.curve_id}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {curve.mark_type}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {curve.mark_case}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {curve.granularity}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {new Date(curve.mark_date).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900" onClick={e => e.stopPropagation()}>
+                              <button
+                                onClick={() => handleDownload(curve)}
+                                className="text-indigo-600 hover:text-indigo-900 font-medium"
+                              >
+                                Download CSV
+                              </button>
+                            </td>
+                          </tr>
+                          {expandedRow === curve.curve_id && (
+                            <tr className="bg-gray-50">
+                              <td colSpan={7} className="px-6 py-4">
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-2">Location Details</h4>
+                                    <p className="text-gray-600">Market: {curve.market}</p>
+                                    <p className="text-gray-600">Location: {curve.location}</p>
+                                    <p className="text-gray-600">Value Type: {curve.value_type || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-2">Mark Details</h4>
+                                    <p className="text-gray-600">Fundamentals: {curve.mark_fundamentals_desc || 'N/A'}</p>
+                                    <p className="text-gray-600">Model Type: {curve.mark_model_type_desc || 'N/A'}</p>
+                                    <p className="text-gray-600">Dispatch Optimization: {curve.mark_dispatch_optimization_desc || 'N/A'}</p>
+                                    <p className="text-gray-600">GridStor Purpose: {curve.gridstor_purpose || 'N/A'}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium text-gray-900 mb-2">Curve Details</h4>
+                                    <p className="text-gray-600">Created: {new Date(curve.created_at).toLocaleString()}</p>
+                                    <p className="text-gray-600">Start Date: {curve.curve_start_date ? new Date(curve.curve_start_date).toLocaleDateString() : 'N/A'}</p>
+                                    <p className="text-gray-600">End Date: {curve.curve_end_date ? new Date(curve.curve_end_date).toLocaleDateString() : 'N/A'}</p>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))
                     )}
                   </tbody>

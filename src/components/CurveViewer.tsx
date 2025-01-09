@@ -120,8 +120,8 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
   });
 
   const getSortIndicator = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key) return '↕️';
-    return sortConfig.direction === 'asc' ? '↑' : '↓';
+    if (!sortConfig || sortConfig.key !== key) return '▲▼';
+    return sortConfig.direction === 'asc' ? '▲' : '▼';
   };
 
   // Handle adding a curve when filters are set

@@ -281,6 +281,69 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
   );
 };
 
+interface CurveStatCardProps {
+  data: (CurveData & { style?: { color: string; lineStyle: 'solid' | 'dashed' | 'dotted' } })[];
+  granularity: Granularity;
+}
+
+const CurveStatCard: React.FC<CurveStatCardProps> = ({ data, granularity }) => {
+  const groupedStats = React.useMemo(() => {
+    return data.reduce((acc, point) => {
+      if (!acc[point.curveId]) {
+        acc[point.curveId] = {
+          curveId: point.curveId,
+          curve_creator: point.curve_creator,
+          mark_case: point.mark_case,
+          mark_date: point.mark_date,
+          style: point.style,
+          values: [],
+        };
+      }
+      acc[point.curveId].values.push(point.value);
+      return acc;
+    }, {} as Record<number, {
+      curveId: number;
+      curve_creator: string;
+      mark_case: string;
+      mark_date: string;
+      style?: { color: string; lineStyle: 'solid' | 'dashed' | 'dotted' };
+      values: number[];
+    }>);
+  }, [data]);
+
+  const calculateAverage = (values: number[]) => {
+    if (values.length === 0) return 0;
+    const sum = values.reduce((a, b) => a + b, 0);
+    return sum / values.length;
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-3">
+      {Object.values(groupedStats).map(stat => (
+        <div 
+          key={stat.curveId}
+          className="bg-white rounded-lg shadow p-2 border-l-4 flex items-center"
+          style={{ borderLeftColor: stat.style?.color || '#2AB3CB' }}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-baseline">
+              <h3 className="text-sm font-semibold text-gray-900 truncate">{stat.mark_case}</h3>
+              <span className="text-xs text-gray-400 ml-1 shrink-0">{formatDate(stat.mark_date)}</span>
+            </div>
+            <p className="text-xs text-gray-500 truncate">{stat.curve_creator}</p>
+            <p className="text-xl font-bold text-gray-900 mt-0.5">
+              ${calculateAverage(stat.values).toFixed(2)}
+              <span className="text-xs font-normal text-gray-500 ml-1">
+                {granularity === 'monthly' ? '$/kw-mn' : '$/kw-yr'}
+              </span>
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export const CurveViewer: React.FC = () => {
   const [mounted, setMounted] = useState(false);
   const [location, setLocation] = useState(DEFAULT_LOCATION);
@@ -488,6 +551,9 @@ export const CurveViewer: React.FC = () => {
                 Download Graph Data
               </button>
             </div>
+            {monthlyDataWithStyles.length > 0 && (
+              <CurveStatCard data={monthlyDataWithStyles} granularity="monthly" />
+            )}
             <DualChartSystem 
               data={monthlyDataWithStyles} 
               title="Monthly Prices"
@@ -514,6 +580,9 @@ export const CurveViewer: React.FC = () => {
                 Download Graph Data
               </button>
             </div>
+            {annualDataWithStyles.length > 0 && (
+              <CurveStatCard data={annualDataWithStyles} granularity="annual" />
+            )}
             <DualChartSystem 
               data={annualDataWithStyles}
               title="Annual Prices"

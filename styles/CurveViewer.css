@@ -1,0 +1,123 @@
+.add-curve-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 2px solid red !important; /* Temporary debug */
+}
+
+.curve-type-select {
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+.parameter-inputs {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+}
+
+.parameter-row {
+  display: flex;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.parameter-row label {
+  width: 120px;
+  margin-right: 1rem;
+}
+
+.add-curve-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-curve-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.curve-selection-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+}
+
+.curve-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.curve-type-card {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.curve-type-card:hover {
+  border-color: #007bff;
+  transform: translateY(-2px);
+}
+
+.curve-type-card.selected {
+  border-color: #007bff;
+  background: #f8fbff;
+}
+
+.curve-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.curve-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.parameter-inputs {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.add-curve-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-curve-button:disabled {
+  background: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.add-curve-button span {
+  font-size: 1.5rem;
+} 

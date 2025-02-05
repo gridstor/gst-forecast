@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { DualChartSystem } from './DualChartSystem';
-import { LocationSelector } from './common/LocationSelector';
-import type { CurveData, LocationOption, Granularity, CurveDefinition } from '../lib/types';
-import { fetchLocations, fetchCurveDefinitions, fetchCurvesByLocation, fetchCurveData } from '../lib/api-client';
-import { useCurves } from '../lib/hooks/useCurves';
+import { LocationSelector } from '../common/LocationSelector';
+import type { CurveData, LocationOption, Granularity, CurveDefinition } from '../../lib/types';
+import { fetchLocations, fetchCurveDefinitions, fetchCurvesByLocation, fetchCurveData } from '../../lib/api-client';
+import { useCurves } from '../../lib/hooks/useCurves';
 
 const DEFAULT_LOCATION = 'CAISO-Goleta';
 
@@ -344,7 +344,7 @@ const CurveStatCard: React.FC<CurveStatCardProps> = ({ data, granularity }) => {
   );
 };
 
-export const CurveViewer: React.FC = () => {
+export default function CurveViewer() {
   const [mounted, setMounted] = useState(false);
   const [location, setLocation] = useState(DEFAULT_LOCATION);
   const [locations, setLocations] = useState<LocationOption[]>([]);
@@ -601,4 +601,4 @@ export const CurveViewer: React.FC = () => {
       )}
     </div>
   );
-}; 
+} 

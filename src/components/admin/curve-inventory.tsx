@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LocationSelector } from '../../components/common/LocationSelector';
+import { LocationSelector } from '../common/LocationSelector';
 import type { CurveDefinition, LocationOption } from '../../lib/types';
 import { fetchCurvesByLocation, fetchLocations, setDefaultCurve, fetchCurveData } from '../../lib/api-client';
 

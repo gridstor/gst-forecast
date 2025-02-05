@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import type { CurveData, Granularity } from '../lib/types';
+import type { CurveData, Granularity } from '../../lib/types';
 
 // Define brand colors
 const COLORS = {

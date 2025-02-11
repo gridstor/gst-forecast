@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "npx prisma generate && npm run build:slides && astro build",
-    "build:slides": "cd src\\presentations\\Goleta_Budget_Forecast && npx slidev build --base /presentations/Goleta_Budget_Forecast/ && mkdir ..\\..\\..\\public\\presentations\\Goleta_Budget_Forecast 2>nul & xcopy /E /I /Y dist\\* ..\\..\\..\\public\\presentations\\Goleta_Budget_Forecast\\",
+    "build:slides": "cd src/presentations/Goleta_Budget_Forecast && npx slidev build --base /presentations/Goleta_Budget_Forecast/ && mkdir -p ../../../public/presentations/Goleta_Budget_Forecast && cp -r dist/* ../../../public/presentations/Goleta_Budget_Forecast/",
     "preview": "astro preview",
     "astro": "astro",
     "postinstall": "prisma generate",

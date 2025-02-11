@@ -1,0 +1,27 @@
+{
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "slidev slides.md --open",
+    "build": "slidev build slides.md",
+    "export": "slidev export slides.md",
+    "preview": "slidev preview slides.md"
+  },
+  "dependencies": {
+    "@slidev/cli": "^0.47.5",
+    "@slidev/theme-default": "^0.21.2",
+    "@slidev/theme-seriph": "^0.21.3",
+    "chart.js": "^4.4.7",
+    "chartjs-plugin-annotation": "^3.1.0",
+    "chartjs-plugin-datalabels": "^2.2.0",
+    "chartjs-plugin-zoom": "^2.2.0",
+    "vue-chartjs": "^5.3.2"
+  },
+  "devDependencies": {
+    "@iconify-json/logos": "^1.1.42",
+    "playwright-chromium": "^1.40.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

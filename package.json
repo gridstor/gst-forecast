@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "npx prisma generate && astro build",
+    "build": "npx prisma generate && npm run build:slides && astro build",
+    "build:slides": "cd src\\presentations\\Goleta_Budget_Forecast && npx slidev build --base /presentations/Goleta_Budget_Forecast/ && mkdir ..\\..\\..\\public\\presentations\\Goleta_Budget_Forecast 2>nul & xcopy /E /I /Y dist\\* ..\\..\\..\\public\\presentations\\Goleta_Budget_Forecast\\",
     "preview": "astro preview",
     "astro": "astro",
     "postinstall": "prisma generate",
@@ -17,6 +18,8 @@
     "@astrojs/react": "^3.0.9",
     "@astrojs/tailwind": "^5.1.0",
     "@prisma/client": "^5.8.0",
+    "@slidev/cli": "^0.48.9",
+    "@slidev/theme-default": "^0.25.0",
     "astro": "^4.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

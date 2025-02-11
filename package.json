@@ -6,7 +6,7 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "npx prisma generate && npm run build:slides && astro build",
-    "build:slides": "cd src/presentations/Goleta_Budget_Forecast && npm install && npx slidev build --base /presentations/Goleta_Budget_Forecast/ && mkdir -p ../../../public/presentations/Goleta_Budget_Forecast && cp -r dist/* ../../../public/presentations/Goleta_Budget_Forecast/ || echo 'No dist directory found'",
+    "build:slides": "cd src/presentations/Goleta_Budget_Forecast && npm install && NODE_ENV=production npx slidev build --base /presentations/Goleta_Budget_Forecast/ && mkdir -p ../../../public/presentations/Goleta_Budget_Forecast && cp -r dist/* ../../../public/presentations/Goleta_Budget_Forecast/ || echo 'No dist directory found'",
     "preview": "astro preview",
     "astro": "astro",
     "postinstall": "prisma generate",

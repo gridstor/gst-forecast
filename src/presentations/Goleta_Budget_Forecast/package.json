@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "slidev slides.md --open",
-    "build": "slidev build slides.md",
+    "build": "NODE_ENV=production slidev build slides.md",
     "export": "slidev export slides.md",
     "preview": "slidev preview slides.md"
   },

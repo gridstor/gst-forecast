@@ -13,6 +13,7 @@ components:
   - ./components/HoustonProbChart.vue
   - ./components/ASChart.vue
   - ./components/ComparisonTable.vue
+download: true
 ---
 
 <div style="text-align: center; padding: 15px 40px;">
@@ -115,6 +116,12 @@ components:
 </Suspense>
 </div>
 
+<div class="fixed bottom-5 right-5">
+  <a href="/presentations/Hidden_Lakes_Budget_Forecast/slidev-exported.pdf" target="_blank" class="download-btn">
+    Download PDF
+  </a>
+</div>
+
 <style>
 .loading {
   height: 350px;
@@ -126,6 +133,21 @@ components:
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   color: #666;
   font-size: 16px;
+}
+
+.download-btn {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #0B2B5B;
+  color: white;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.download-btn:hover {
+  background-color: #1a4b8f;
 }
 </style>
 

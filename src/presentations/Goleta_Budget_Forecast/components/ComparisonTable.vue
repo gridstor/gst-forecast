@@ -1,13 +1,14 @@
 <script setup>
 const baseValue = 6.08; // Goleta P50 value
 const tableData = [
-  { source: 'Goleta P50 (1.0 cycle AS) - Recommended', value: 6.08, diff: 0 },
-  { source: 'Goleta Last Year', value: 4.49, diff: -1.59 },
-  { source: 'Goleta TB2 (0.86 cycles)', value: 4.10, diff: -1.98 },
-  { source: 'Aurora', value: 6.45, diff: 0.37 },
-  { source: 'Ascend', value: 10.31, diff: 4.23 },
-  { source: 'CQuant', value: 8.05, diff: 1.97 },
-  { source: 'Orienna', value: 7.54, diff: 1.46 }
+  { source: '2025 - Forecast Goleta P50 (TB2 0.86 cycles + 10% for AS)', value: 5.41, diff: 0 },
+  { source: '2025 - Forecast Goleta TB2 (TB2, 0.86 cycles)', value: 4.92, diff: -0.49 },
+  { source: '2024 - Actual Site Revenue', value: 4.49, diff: -0.92 },
+  { source: '2024 - Goleta TB2 (TB2)', value: 4.10, diff: -1.31 },
+  { source: 'Aurora', value: 6.45, diff: 0.94 },
+  { source: 'Ascend', value: 10.31, diff: 4.90 },
+  { source: 'CQuant', value: 7.05, diff: 1.64 },
+  { source: 'Orienna', value: 7.54, diff: 2.13 }
 ];
 </script>
 

@@ -52,7 +52,14 @@ components:
 <li style="font-size: 12px; color: #555555; margin-bottom: 12px; line-height: 1.4;">Price ranges: P25-P75 $3.90-$7.50/kw-mn, whiskers P5-P95 $2.80-$9.20/kw-mn</li>
 </ul>
 </div>
-<HoustonProbChart />
+<Suspense>
+  <template #default>
+    <HoustonProbChart />
+  </template>
+  <template #fallback>
+    <div class="loading-placeholder">Loading chart...</div>
+  </template>
+</Suspense>
 </div>
 
 ---
@@ -67,7 +74,26 @@ components:
 <li style="font-size: 12px; color: #555555; margin-bottom: 8px; line-height: 1.3;">Recommendation: Consider moderate de-biasing of the forecast. The P45 average suggests good calibration, but with high monthly variability.</li>
 </ul>
 </div>
-<HoustonCalibrationChart />
+<Suspense>
+  <template #default>
+    <HoustonCalibrationChart />
+  </template>
+  <template #fallback>
+    <div class="loading-placeholder">Loading chart...</div>
+  </template>
+</Suspense>
 </div>
 
---- 
+<style>
+.loading-placeholder {
+  height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  color: #666;
+  font-size: 16px;
+}
+</style> 

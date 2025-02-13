@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { Line } from 'vue-chartjs'
 import { 
   Chart as ChartJS, 
@@ -29,13 +29,6 @@ ChartJS.register(
   Legend,
   ChartDataLabels
 )
-
-// Ensure Vue is in production mode
-if (process.env.NODE_ENV === 'production') {
-  const vue = await import('vue')
-  vue.config.productionTip = false
-  vue.config.devtools = false
-}
 
 // Define box-whisker plugin
 const boxWhiskerPlugin = {
@@ -101,11 +94,6 @@ ChartJS.register(boxWhiskerPlugin)
 
 const chartData = ref(houstonCalibrationData)
 const options = ref(calibrationChartOptions)
-
-onMounted(() => {
-  // Force a redraw after mounting
-  chartData.value = { ...houstonCalibrationData }
-})
 
 const handleDownload = () => {
   const csvContent = 'data:text/csv;charset=utf-8,' + 
@@ -175,5 +163,14 @@ const handleDownload = () => {
 
 .download-btn:hover {
   background-color: #1a4b8f;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 16px;
+  color: #666;
 }
 </style> 

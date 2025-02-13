@@ -4,7 +4,10 @@ const tableData = [
   { source: 'Hidden Lakes P50 (1.0 cycle w/AS) - Recommended', value: 6.88, diff: 0 },
   { source: 'Hidden Lakes P50 (1.2 cycle w/AS)', value: 8.20, diff: 1.32 },
   { source: 'Hidden Lakes TB2 (0.86 cycles)', value: 5.73, diff: -1.15 },
-  { source: 'Aurora (1.0 cycle)', value: 11.40, diff: 4.52 }
+  { source: '2025 - Aurora (1.0 cycle)', value: 11.40, diff: 4.52 },
+  { source: '2024 - Hidden Lakes TB2 (0.86 cycles)', value: 4.20, diff: N/A },
+  { source: '2024 - Hidden Lakes TB2 1.0 cycles)', value: 5.04, diff: N/A},
+  { source: '2024 - Hidden Lakes TB2 1.2 cycles)', value: 5.88, diff: N/A},
 ];
 </script>
 

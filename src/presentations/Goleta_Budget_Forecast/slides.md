@@ -52,7 +52,12 @@ components:
 <li style="font-size: 12px; color: #555555; margin-bottom: 12px; line-height: 1.4;">Price ranges: P25-P75 $3.50-$6.80/kw-mn, whiskers P5-P95 $2.50-$8.20/kw-mn</li>
 </ul>
 </div>
-<GoletaProbChart />
+<Suspense>
+  <GoletaProbChart />
+  <template #fallback>
+    <div class="loading">Loading chart...</div>
+  </template>
+</Suspense>
 </div>
 
 ---
@@ -67,7 +72,26 @@ components:
 <li style="font-size: 12px; color: #555555; margin-bottom: 8px; line-height: 1.3;">Recommendation: No de-biasing of the forecast. Averaging a P45 forecast, is in line with expectations of forecast error, about 9% above actuals.</li>
 </ul>
 </div>
-<GoletaCalibrationChart />
+<Suspense>
+  <GoletaCalibrationChart />
+  <template #fallback>
+    <div class="loading">Loading chart...</div>
+  </template>
+</Suspense>
 </div>
+
+<style>
+.loading {
+  height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  color: #666;
+  font-size: 16px;
+}
+</style>
 
 ---

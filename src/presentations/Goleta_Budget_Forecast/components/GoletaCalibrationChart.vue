@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { Line } from 'vue-chartjs'
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement } from 'chart.js'
+import { Line, Bar } from 'vue-chartjs'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, BarController } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 
 // Register Chart.js components
@@ -10,10 +10,11 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
+  BarController,
   Title,
   Tooltip,
   Legend,
-  BarElement,
   ChartDataLabels
 )
 
@@ -268,7 +269,7 @@ const getAverages = () => {
       Download Data
     </button>
     <div class="chart-content">
-      <Line :data="chartData" :options="chartOptions" />
+      <Bar :data="chartData" :options="chartOptions" />
     </div>
   </div>
 </template>

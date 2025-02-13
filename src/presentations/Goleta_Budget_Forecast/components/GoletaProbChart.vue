@@ -1,18 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Line } from 'vue-chartjs'
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  BarElement,
-  BarController,
-  Title, 
-  Tooltip, 
-  Legend 
-} from 'chart.js'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, BarController, ScatterController } from 'chart.js'
 import { goletaChartData, chartOptions } from '../utils/charts/probabilityComparison'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 
@@ -22,20 +11,14 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
-  BarController,
   Title,
   Tooltip,
   Legend,
+  BarElement,
+  BarController,
+  ScatterController,
   ChartDataLabels
 )
-
-// Ensure Vue is in production mode
-if (process.env.NODE_ENV === 'production') {
-  const vue = await import('vue')
-  vue.config.productionTip = false
-  vue.config.devtools = false
-}
 
 const chartData = ref(goletaChartData)
 const options = ref({

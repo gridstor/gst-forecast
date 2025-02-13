@@ -11,6 +11,41 @@ components:
   - ./components/ErrorBoundary.vue
   - ./components/HoustonCalibrationChart.vue
   - ./components/HoustonProbChart.vue
+  - ./components/ASChart.vue
+  - ./components/ComparisonTable.vue
+---
+
+<div style="text-align: center; padding: 15px 40px;">
+<h1 style="font-size: 28px; color: #444444; font-weight: 500; margin-bottom: 15px; line-height: 1.2;">Hidden Lakes 2025 Revenue Forecast Comparison</h1>
+
+<Suspense>
+  <ComparisonTable />
+  <template #fallback>
+    <div class="loading">Loading table...</div>
+  </template>
+</Suspense>
+</div>
+
+---
+
+<div style="text-align: center; padding: 15px 40px;">
+<h1 style="font-size: 28px; color: #444444; font-weight: 500; margin-bottom: 15px; line-height: 1.2;">Hidden Lakes 2025 Revenue Components</h1>
+
+<div style="max-width: 1200px; margin: 0 auto; text-align: left; padding: 0 20px;">
+<ul style="margin: 0 0 10px 0; padding-left: 25px;">
+<li style="font-size: 12px; color: #555555; margin-bottom: 12px; line-height: 1.4;">Energy arbitrage revenue with 0.86 cycles averages $5.73/kw-mn.</li>
+<li style="font-size: 12px; color: #555555; margin-bottom: 12px; line-height: 1.4;">AS revenue with 0.14 cycles adds $1.15/kw-mn for a total of $6.88/kw-mn at 1 cycle per day.</li>
+<li style="font-size: 12px; color: #555555; margin-bottom: 12px; line-height: 1.4;">AS revenue with 0.3 cycles adds $2.47/kw-mn for a total of $8.20/kw-mn at 1.2 cycles per day.</li>
+</ul>
+</div>
+<Suspense>
+  <ASChart />
+  <template #fallback>
+    <div class="loading">Loading chart...</div>
+  </template>
+</Suspense>
+</div>
+
 ---
 
 <div style="text-align: center; padding: 15px 60px;">

@@ -11,6 +11,19 @@ components:
   - ./components/ErrorBoundary.vue
   - ./components/GoletaCalibrationChart.vue
   - ./components/GoletaProbChart.vue
+  - ./components/ComparisonTable.vue
+---
+
+<div style="text-align: center; padding: 15px 40px;">
+<h1 style="font-size: 28px; color: #444444; font-weight: 500; margin-bottom: 15px; line-height: 1.2;">Goleta 2025 Revenue Forecast Comparison</h1>
+<Suspense>
+  <ComparisonTable />
+  <template #fallback>
+    <div class="loading">Loading table...</div>
+  </template>
+</Suspense>
+</div>
+
 ---
 
 <div style="text-align: center; padding: 15px 60px;">

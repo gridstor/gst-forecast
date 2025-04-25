@@ -25,18 +25,26 @@ const CurveManager: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingPoint, setEditingPoint] = useState<PricePoint | null>(null);
+  const [deletingCurve, setDeletingCurve] = useState<CurveDefinition | null>(null);
 
   // Fetch curves
   const fetchCurves = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/curves/list');
-      if (!response.ok) throw new Error('Failed to fetch curves');
+      const response = await fetch('/api/curves/list.json', {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to fetch curves');
+      }
       const data = await response.json();
       setCurves(data);
     } catch (error) {
+      console.error('Error fetching curves:', error);
       toast.error('Failed to load curves');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -46,13 +54,20 @@ const CurveManager: React.FC = () => {
   const fetchPricePoints = async (curveId: number) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/curves/${curveId}/prices`);
-      if (!response.ok) throw new Error('Failed to fetch price points');
+      const response = await fetch(`/api/curves/${curveId}/prices.json`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to fetch price points');
+      }
       const data = await response.json();
       setPricePoints(data);
     } catch (error) {
+      console.error('Error fetching price points:', error);
       toast.error('Failed to load price points');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -60,17 +75,19 @@ const CurveManager: React.FC = () => {
 
   // Delete curve
   const handleDeleteCurve = async (curve: CurveDefinition) => {
-    if (!confirm(`Are you sure you want to delete curve "${curve.mark_type}"?`)) {
-      return;
-    }
-
     try {
       setLoading(true);
-      const response = await fetch(`/api/curves/${curve.curve_id}`, {
+      const response = await fetch(`/api/curves/${curve.curve_id}.json`, {
         method: 'DELETE',
+        headers: {
+          'Accept': 'application/json'
+        }
       });
       
-      if (!response.ok) throw new Error('Failed to delete curve');
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to delete curve');
+      }
       
       toast.success('Curve deleted successfully');
       fetchCurves();
@@ -78,9 +95,10 @@ const CurveManager: React.FC = () => {
         setSelectedCurve(null);
         setPricePoints([]);
       }
+      setDeletingCurve(null);
     } catch (error) {
+      console.error('Error deleting curve:', error);
       toast.error('Failed to delete curve');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -90,22 +108,26 @@ const CurveManager: React.FC = () => {
   const handleUpdatePricePoint = async (point: PricePoint) => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/curves/${point.curve_id}/prices/${point.id}`, {
+      const response = await fetch(`/api/curves/${point.curve_id}/prices/${point.id}.json`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(point),
+        body: JSON.stringify({ value: point.value })
       });
       
-      if (!response.ok) throw new Error('Failed to update price point');
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Failed to update price point');
+      }
       
       toast.success('Price point updated successfully');
       setEditingPoint(null);
       fetchPricePoints(point.curve_id);
     } catch (error) {
+      console.error('Error updating price point:', error);
       toast.error('Failed to update price point');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -133,6 +155,41 @@ const CurveManager: React.FC = () => {
         />
       </div>
 
+      {/* Delete Confirmation Modal */}
+      {deletingCurve && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-red-600 mb-4">Confirm Curve Deletion</h3>
+            <div className="space-y-3 mb-6">
+              <p className="text-gray-700">Are you sure you want to delete this curve?</p>
+              <div className="bg-gray-50 p-4 rounded-md space-y-2">
+                <p><span className="font-medium">Curve ID:</span> {deletingCurve.curve_id}</p>
+                <p><span className="font-medium">Mark Type:</span> {deletingCurve.mark_type}</p>
+                <p><span className="font-medium">Location:</span> {deletingCurve.location}</p>
+                <p><span className="font-medium">Market:</span> {deletingCurve.market}</p>
+                <p><span className="font-medium">Mark Date:</span> {format(new Date(deletingCurve.mark_date), 'yyyy-MM-dd')}</p>
+                <p><span className="font-medium">Price Points:</span> {deletingCurve.price_points}</p>
+              </div>
+              <p className="text-red-600 text-sm">This action cannot be undone. All associated price points will also be deleted.</p>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setDeletingCurve(null)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteCurve(deletingCurve)}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Delete Curve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Curves List */}
         <div className="border rounded-md p-4">
@@ -158,11 +215,14 @@ const CurveManager: React.FC = () => {
                     <div className="text-xs text-gray-400">
                       Mark Date: {format(new Date(curve.mark_date), 'yyyy-MM-dd')}
                     </div>
+                    <div className="text-xs text-gray-400">
+                      Curve ID: {curve.curve_id}
+                    </div>
                   </div>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteCurve(curve);
+                      setDeletingCurve(curve);
                     }}
                     className="text-red-600 hover:text-red-800"
                   >

@@ -3,153 +3,170 @@ import { format, parse, isValid } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
 interface PricePoint {
-  flow_date_start: Date;
+  flow_date_start: string;
   value: number;
 }
 
 interface CurveDetails {
   location: string;
   market: string;
-  mark_case: string;
-  mark_type: string;
-  granularity: 'MONTHLY' | 'ANNUAL';
-  curve_creator: string;
-  mark_date: string;
-  mark_fundamentals_desc?: string;
-  mark_model_type_desc?: string;
-  mark_dispatch_optimization_desc?: string;
-  gridstor_purpose?: string;
-  value_type: string;
+  markCase: string;
+  markType: string;
+  granularity: string;
+  curveCreator: string;
+  markDate: string;
+  valueType: string;
+  curveStartDate: string;
+  curveEndDate: string;
+  markFundamentalsDesc: string;
+  markModelTypeDesc: string;
+  markDispatchOptimizationDesc: string;
+  gridstorPurpose: string;
 }
+
+interface PreviewPoint {
+  flow_date_start: string;
+  value: number;
+}
+
+interface PreviewData {
+  curveDetails: CurveDetails & {
+    curve_start_date: string;
+    curve_end_date: string;
+  };
+  pricePoints: PreviewPoint[];
+  totalPoints: number;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  priceRange: {
+    min: number;
+    max: number;
+  };
+}
+
+// Predefined options for dropdowns
+const MARK_CASES = ['P50', 'P25', 'P75'];
+const LOCATIONS = ['SP15', 'Goleta', 'Hidden Lakes', 'Houston'];
+const MARKETS = ['CAISO', 'ERCOT'];
+const VALUE_TYPES = ['Revenue', 'TB2', 'TB4', 'Energy Arb', 'AS'];
+const CURVE_CREATORS = ['Gridstor', 'Aurora', 'Actual'];
+const MODEL_TYPES = ['Gridstor Forwards Regressions', 'Aurora', 'Gridstor Stochastics', 'Actual'];
+const DISPATCH_OPTIMIZATIONS = ['TB Regression', 'Aurora', 'Actual - Target', 'Actual - Revenue'];
 
 const StepByStepUploader: React.FC = () => {
   const [step, setStep] = useState(1);
   const [curveDetails, setCurveDetails] = useState<CurveDetails>({
     location: '',
     market: '',
-    mark_case: 'Base',
-    mark_type: '',
+    markCase: 'P50',
+    markType: '',
     granularity: 'ANNUAL',
-    curve_creator: '',
-    mark_date: format(new Date(), 'yyyy-MM-dd'),
-    value_type: 'Price'
+    curveCreator: '',
+    markDate: format(new Date(), 'yyyy-MM-dd'),
+    valueType: 'Revenue',
+    curveStartDate: '',
+    curveEndDate: '',
+    markFundamentalsDesc: '',
+    markModelTypeDesc: '',
+    markDispatchOptimizationDesc: '',
+    gridstorPurpose: ''
   });
   const [priceData, setPriceData] = useState<PricePoint[]>([]);
   const [rawPriceInput, setRawPriceInput] = useState('');
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
+  const [useCustomInput, setUseCustomInput] = useState({
+    markType: false,
+    location: false,
+    market: false,
+    markCase: false,
+    valueType: false,
+    modelType: false,
+    dispatchOptimization: false
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingMarkType, setEditingMarkType] = useState(false);
+  const [tempMarkType, setTempMarkType] = useState('');
 
   // Validation functions
-  const validatePriceData = (prices: PricePoint[]): { isValid: boolean; message: string } => {
-    if (!prices.length) {
-      return { isValid: false, message: 'No price data provided' };
-    }
+  const validatePriceData = (data: string): PricePoint[] => {
+    const lines = data.trim().split('\n');
+    const points: PricePoint[] = [];
+    const errors: string[] = [];
 
-    const MIN_PRICE = -1000;
-    const MAX_PRICE = 1000;
-
-    // Sort prices by date
-    prices.sort((a, b) => a.flow_date_start.getTime() - b.flow_date_start.getTime());
-
-    // Date range check
-    const dateRange = (prices[prices.length - 1].flow_date_start.getTime() - 
-                      prices[0].flow_date_start.getTime()) / (1000 * 60 * 60 * 24 * 365);
-    if (dateRange > 50) {
-      return { isValid: false, message: `Date range too large: ${dateRange.toFixed(1)} years` };
-    }
-
-    // Price range and jump checks
-    let warnings: string[] = [];
-    for (let i = 0; i < prices.length; i++) {
-      const value = prices[i].value;
-      if (value < MIN_PRICE || value > MAX_PRICE) {
-        return { isValid: false, message: `Price value out of reasonable range at position ${i + 1}: ${value}` };
-      }
-
-      if (i > 0) {
-        const prevValue = prices[i - 1].value;
-        const ratio = prevValue !== 0 ? Math.abs(value / prevValue) : Math.abs(value) > 0 ? Infinity : 1;
-        if (ratio > 5) {
-          warnings.push(`Large price jump detected between ${format(prices[i - 1].flow_date_start, 'yyyy-MM-dd')} and ${format(prices[i].flow_date_start, 'yyyy-MM-dd')}: ${prevValue} -> ${value}`);
-        }
-      }
-    }
-
-    if (warnings.length > 0) {
-      toast.warning(warnings.join('\n'));
-    }
-
-    return { isValid: true, message: 'Validation passed' };
-  };
-
-  const parsePriceData = (input: string): PricePoint[] => {
-    const lines = input.trim().split('\n');
-    const prices: PricePoint[] = [];
-    const dateFormats = ['MM/dd/yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy', 'yyyy/MM/dd'];
-
-    for (let i = 1; i < lines.length; i++) { // Skip header row
-      const line = lines[i].trim();
-      if (!line) continue;
-
-      const parts = line.split(/[\s,]+/).filter(Boolean);
-      if (parts.length < 2) continue;
-
-      let date: Date | null = null;
-      const dateStr = parts[0];
-      
-      // Try different date formats
-      for (const format of dateFormats) {
-        const parsedDate = parse(dateStr, format, new Date());
-        if (isValid(parsedDate)) {
-          date = parsedDate;
-          break;
-        }
-      }
-
-      if (!date) {
-        toast.error(`Could not parse date: ${dateStr}`);
-        continue;
-      }
-
-      const valueStr = parts[parts.length - 1].replace(/,/g, '');
+    lines.forEach((line, index) => {
+      const [dateStr, valueStr] = line.split(',').map(s => s.trim());
       const value = parseFloat(valueStr);
-      
-      if (isNaN(value)) {
-        toast.error(`Could not parse value: ${valueStr}`);
-        continue;
+
+      if (!dateStr || isNaN(value)) {
+        errors.push(`Line ${index + 1}: Invalid format`);
+        return;
       }
 
-      prices.push({
-        flow_date_start: date,
-        value: value
-      });
+      if (value < 0 || value > 1000) {
+        toast.error(`Line ${index + 1}: Price must be between 0 and 1000`);
+        return;
+      }
+
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          errors.push(`Line ${index + 1}: Invalid date`);
+          return;
+        }
+        points.push({
+          flow_date_start: format(date, 'yyyy-MM-dd'),
+          value
+        });
+      } catch (e) {
+        errors.push(`Line ${index + 1}: Invalid date format`);
+      }
+    });
+
+    if (errors.length > 0) {
+      toast.error(errors.join('\n'));
+      return [];
     }
 
-    return prices;
+    return points;
   };
 
   const handlePriceDataInput = () => {
+    // Parse the raw input first
     const prices = parsePriceData(rawPriceInput);
-    const validation = validatePriceData(prices);
     
-    if (!validation.isValid) {
-      toast.error(validation.message);
+    if (prices.length === 0) {
+      toast.error('No valid price data found');
       return;
     }
 
     setPriceData(prices);
     
+    // Format mark_date to just include the date part
+    const markDateOnly = curveDetails.markDate.split('T')[0];
+    
+    // Create default mark_type by concatenating required fields
+    const defaultMarkType = `${curveDetails.curveCreator}_${curveDetails.location}_${curveDetails.granularity}_${curveDetails.valueType}_${markDateOnly}`;
+    
+    // Update curveDetails with the default mark_type
+    setCurveDetails(prev => ({
+      ...prev,
+      markType: defaultMarkType
+    }));
+    
     // Create preview data
-    const preview = {
+    const preview: PreviewData = {
       curveDetails: {
         ...curveDetails,
-        curve_start_date: format(prices[0].flow_date_start, 'yyyy-MM-dd'),
-        curve_end_date: format(prices[prices.length - 1].flow_date_start, 'yyyy-MM-dd')
+        curve_start_date: prices[0].flow_date_start,
+        curve_end_date: prices[prices.length - 1].flow_date_start
       },
       pricePoints: prices.slice(0, 5),
       totalPoints: prices.length,
       dateRange: {
-        start: format(prices[0].flow_date_start, 'yyyy-MM-dd'),
-        end: format(prices[prices.length - 1].flow_date_start, 'yyyy-MM-dd')
+        start: prices[0].flow_date_start,
+        end: prices[prices.length - 1].flow_date_start
       },
       priceRange: {
         min: Math.min(...prices.map(p => p.value)),
@@ -161,68 +178,155 @@ const StepByStepUploader: React.FC = () => {
     setStep(4);
   };
 
-  const handleSubmit = async () => {
-    try {
-      // Create CSV content
-      const headers = [
-        'flow_start_date',
-        'granularity',
-        'mark_date',
-        'mark_type',
-        'mark_case',
-        'value',
-        'units',
-        'location',
-        'market'
-      ].join(',');
+  const parsePriceData = (input: string): PricePoint[] => {
+    const lines = input.trim().split('\n');
+    const prices: PricePoint[] = [];
+    const dateFormats = ['MM/dd/yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy', 'yyyy/MM/dd'];
 
-      const rows = priceData.map(point => [
-        format(point.flow_date_start, 'yyyy-MM-dd'),
-        curveDetails.granularity,
-        curveDetails.mark_date,
-        curveDetails.mark_type,
-        curveDetails.mark_case,
-        point.value.toString(),
-        '$/kw-mn',
-        curveDetails.location,
-        curveDetails.market
-      ].join(','));
+    // Skip first line if it looks like a header
+    const startIndex = lines[0].toLowerCase().includes('date') || lines[0].toLowerCase().includes('price') ? 1 : 0;
 
-      const csvContent = [headers, ...rows].join('\n');
-      
-      // Create FormData and upload
-      const formData = new FormData();
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      formData.append('file', blob, 'curve_data.csv');
+    for (let i = startIndex; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
 
-      const response = await fetch('/api/curves/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Split by comma or whitespace
+      const parts = line.split(/[,\s]+/).filter(Boolean);
+      if (parts.length < 2) continue;
 
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || 'Upload failed');
+      const dateStr = parts[0];
+      const valueStr = parts[parts.length - 1].replace(/[$,]/g, '');
+      const value = parseFloat(valueStr);
+
+      if (isNaN(value)) {
+        toast.error(`Invalid price value on line ${i + 1}: ${valueStr}`);
+        continue;
       }
 
-      const result = await response.json();
-      toast.success('Curve uploaded successfully');
-      setStep(1);
-      setCurveDetails({
-        location: '',
-        market: '',
-        mark_case: 'Base',
-        mark_type: '',
-        granularity: 'ANNUAL',
-        curve_creator: '',
-        mark_date: format(new Date(), 'yyyy-MM-dd'),
-        value_type: 'Price'
+      // Try parsing the date
+      const date = new Date(dateStr);
+      if (isValid(date)) {
+        prices.push({
+          flow_date_start: format(date, 'yyyy-MM-dd'),
+          value
+        });
+      } else {
+        toast.error(`Invalid date format on line ${i + 1}: ${dateStr}`);
+      }
+    }
+
+    if (prices.length === 0) {
+      toast.error('No valid price data found. Please check the format.');
+      return [];
+    }
+
+    // Sort prices by date
+    return prices.sort((a, b) => 
+      new Date(a.flow_date_start).getTime() - new Date(b.flow_date_start).getTime()
+    );
+  };
+
+  const handleSubmit = async () => {
+    if (!isValid()) {
+      toast.error('Please complete all required fields and ensure price data is valid');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Get the first and last dates from price data for curve start/end dates
+      const sortedPrices = [...priceData].sort((a, b) => 
+        new Date(a.flow_date_start).getTime() - new Date(b.flow_date_start).getTime()
+      );
+      
+      const requestData = {
+        curveDetails: {
+          mark_type: curveDetails.markType,
+          mark_case: curveDetails.markCase,
+          mark_date: curveDetails.markDate,
+          location: curveDetails.location,
+          market: curveDetails.market,
+          granularity: curveDetails.granularity,
+          curve_start_date: sortedPrices[0].flow_date_start,
+          curve_end_date: sortedPrices[sortedPrices.length - 1].flow_date_start,
+          curve_creator: curveDetails.curveCreator,
+          mark_fundamentals_desc: curveDetails.markFundamentalsDesc,
+          mark_model_type_desc: curveDetails.markModelTypeDesc,
+          mark_dispatch_optimization_desc: curveDetails.markDispatchOptimizationDesc,
+          gridstor_purpose: curveDetails.gridstorPurpose,
+          value_type: curveDetails.valueType
+        },
+        pricePoints: priceData
+      };
+
+      const response = await fetch('/api/curves/upload.json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestData)
       });
-      setPriceData([]);
-      setRawPriceInput('');
-      setPreviewData(null);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload curve');
+      }
+
+      toast.success(
+        <div>
+          <p>Curve uploaded successfully!</p>
+          <p className="text-sm mt-1">Mark Type: {curveDetails.markType}</p>
+          <p className="text-sm">Curve ID: {data.curveId}</p>
+        </div>,
+        { duration: 5000 }
+      );
+      resetForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Upload failed');
+      console.error('Upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload curve');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isValid = () => {
+    // Implement your validation logic here
+    return true; // Placeholder, actual implementation needed
+  };
+
+  const resetForm = () => {
+    setCurveDetails({
+      location: '',
+      market: '',
+      markCase: 'P50',
+      markType: '',
+      granularity: 'ANNUAL',
+      curveCreator: '',
+      markDate: format(new Date(), 'yyyy-MM-dd'),
+      valueType: 'Revenue',
+      curveStartDate: '',
+      curveEndDate: '',
+      markFundamentalsDesc: '',
+      markModelTypeDesc: '',
+      markDispatchOptimizationDesc: '',
+      gridstorPurpose: ''
+    });
+    setPriceData([]);
+    setRawPriceInput('');
+    setStep(1);
+  };
+
+  // Add a function to handle mark type updates
+  const handleMarkTypeUpdate = () => {
+    if (tempMarkType.trim()) {
+      setCurveDetails(prev => ({
+        ...prev,
+        markType: tempMarkType.trim()
+      }));
+      setEditingMarkType(false);
     }
   };
 
@@ -235,56 +339,146 @@ const StepByStepUploader: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Location</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g., SP15, Houston"
-                  value={curveDetails.location}
-                  onChange={(e) => {
-                    const location = e.target.value;
-                    setCurveDetails(prev => ({
-                      ...prev,
-                      location,
-                      mark_type: `${location}_${prev.mark_case}`
-                    }));
-                  }}
-                />
+                <div className="space-y-2">
+                  <select
+                    className={`w-full px-3 py-2 border rounded-md ${!useCustomInput.location ? 'bg-white' : 'bg-gray-100'}`}
+                    value={useCustomInput.location ? '' : curveDetails.location}
+                    onChange={(e) => {
+                      const location = e.target.value;
+                      setCurveDetails(prev => ({
+                        ...prev,
+                        location,
+                        markType: `${location}_${prev.markCase}`
+                      }));
+                    }}
+                    disabled={useCustomInput.location}
+                  >
+                    <option value="">Select Location</option>
+                    {LOCATIONS.map(loc => (
+                      <option key={loc} value={loc}>{loc}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="customLocation"
+                      checked={useCustomInput.location}
+                      onChange={(e) => setUseCustomInput({ ...useCustomInput, location: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="customLocation" className="text-sm text-gray-600">
+                      Enter custom location
+                    </label>
+                  </div>
+                  {useCustomInput.location && (
+                    <input
+                      type="text"
+                      value={curveDetails.location}
+                      onChange={(e) => setCurveDetails({ ...curveDetails, location: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Enter custom location"
+                    />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Market</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g., CAISO, ERCOT"
-                  value={curveDetails.market}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, market: e.target.value }))}
-                />
+                <div className="space-y-2">
+                  <select
+                    className={`w-full px-3 py-2 border rounded-md ${!useCustomInput.market ? 'bg-white' : 'bg-gray-100'}`}
+                    value={useCustomInput.market ? '' : curveDetails.market}
+                    onChange={(e) => setCurveDetails(prev => ({ ...prev, market: e.target.value }))}
+                    disabled={useCustomInput.market}
+                  >
+                    <option value="">Select Market</option>
+                    {MARKETS.map(mkt => (
+                      <option key={mkt} value={mkt}>{mkt}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="customMarket"
+                      checked={useCustomInput.market}
+                      onChange={(e) => setUseCustomInput({ ...useCustomInput, market: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="customMarket" className="text-sm text-gray-600">
+                      Enter custom market
+                    </label>
+                  </div>
+                  {useCustomInput.market && (
+                    <input
+                      type="text"
+                      value={curveDetails.market}
+                      onChange={(e) => setCurveDetails({ ...curveDetails, market: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Enter custom market"
+                    />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Mark Case</label>
-                <select
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  value={curveDetails.mark_case}
-                  onChange={(e) => {
-                    const markCase = e.target.value;
-                    setCurveDetails(prev => ({
-                      ...prev,
-                      mark_case: markCase,
-                      mark_type: `${prev.location}_${markCase}`
-                    }));
-                  }}
-                >
-                  <option value="Base">Base</option>
-                  <option value="High">High</option>
-                  <option value="Low">Low</option>
-                </select>
+                <div className="space-y-2">
+                  <select
+                    className={`w-full px-3 py-2 border rounded-md ${!useCustomInput.markCase ? 'bg-white' : 'bg-gray-100'}`}
+                    value={useCustomInput.markCase ? '' : curveDetails.markCase}
+                    onChange={(e) => {
+                      const markCase = e.target.value;
+                      setCurveDetails(prev => ({
+                        ...prev,
+                        markCase: markCase,
+                        markType: `${prev.location}_${markCase}`
+                      }));
+                    }}
+                    disabled={useCustomInput.markCase}
+                  >
+                    <option value="">Select Mark Case</option>
+                    {MARK_CASES.map(markCase => (
+                      <option key={markCase} value={markCase}>{markCase}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="customMarkCase"
+                      checked={useCustomInput.markCase}
+                      onChange={(e) => setUseCustomInput({ ...useCustomInput, markCase: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="customMarkCase" className="text-sm text-gray-600">
+                      Enter custom mark case
+                    </label>
+                  </div>
+                  {useCustomInput.markCase && (
+                    <input
+                      type="text"
+                      value={curveDetails.markCase}
+                      onChange={(e) => {
+                        const markCase = e.target.value;
+                        setCurveDetails(prev => ({
+                          ...prev,
+                          markCase: markCase,
+                          markType: `${prev.location}_${markCase}`
+                        }));
+                      }}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Enter custom mark case"
+                    />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Granularity</label>
                 <select
+                  id="granularity"
+                  name="granularity"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   value={curveDetails.granularity}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, granularity: e.target.value as 'MONTHLY' | 'ANNUAL' }))}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                    setCurveDetails(prev => ({ ...prev, granularity: e.target.value }));
+                  }}
                 >
                   <option value="MONTHLY">Monthly</option>
                   <option value="ANNUAL">Annual</option>
@@ -313,57 +507,162 @@ const StepByStepUploader: React.FC = () => {
                 <input
                   type="date"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  value={curveDetails.mark_date}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, mark_date: e.target.value }))}
+                  value={curveDetails.markDate}
+                  onChange={(e) => setCurveDetails(prev => ({ ...prev, markDate: e.target.value }))}
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Curve Creator</label>
-                <input
-                  type="text"
+                <select
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  value={curveDetails.curve_creator}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, curve_creator: e.target.value }))}
-                />
+                  value={curveDetails.curveCreator}
+                  onChange={(e) => setCurveDetails(prev => ({ ...prev, curveCreator: e.target.value }))}
+                >
+                  <option value="">Select Curve Creator</option>
+                  {CURVE_CREATORS.map(creator => (
+                    <option key={creator} value={creator}>{creator}</option>
+                  ))}
+                </select>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Value Type</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="e.g., Price, Revenue"
-                  value={curveDetails.value_type}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, value_type: e.target.value }))}
-                />
+                <div className="space-y-2">
+                  <select
+                    className={`w-full px-3 py-2 border rounded-md ${!useCustomInput.valueType ? 'bg-white' : 'bg-gray-100'}`}
+                    value={useCustomInput.valueType ? '' : curveDetails.valueType}
+                    onChange={(e) => setCurveDetails(prev => ({ ...prev, valueType: e.target.value }))}
+                    disabled={useCustomInput.valueType}
+                  >
+                    <option value="">Select Value Type</option>
+                    {VALUE_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="customValueType"
+                      checked={useCustomInput.valueType}
+                      onChange={(e) => setUseCustomInput({ ...useCustomInput, valueType: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="customValueType" className="text-sm text-gray-600">
+                      Enter custom value type
+                    </label>
+                  </div>
+                  {useCustomInput.valueType && (
+                    <input
+                      type="text"
+                      value={curveDetails.valueType}
+                      onChange={(e) => setCurveDetails({ ...curveDetails, valueType: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Enter custom value type"
+                    />
+                  )}
+                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Fundamentals Description</label>
                 <input
                   type="text"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  value={curveDetails.mark_fundamentals_desc || ''}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, mark_fundamentals_desc: e.target.value }))}
+                  value={curveDetails.markFundamentalsDesc || ''}
+                  onChange={(e) => setCurveDetails(prev => ({ ...prev, markFundamentalsDesc: e.target.value }))}
+                  placeholder="Enter fundamentals description"
                 />
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">Model Type Description</label>
-                <input
-                  type="text"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  value={curveDetails.mark_model_type_desc || ''}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, mark_model_type_desc: e.target.value }))}
-                />
+                <div className="space-y-2">
+                  <select
+                    className={`w-full px-3 py-2 border rounded-md ${!useCustomInput.modelType ? 'bg-white' : 'bg-gray-100'}`}
+                    value={useCustomInput.modelType ? '' : curveDetails.markModelTypeDesc}
+                    onChange={(e) => setCurveDetails(prev => ({ ...prev, markModelTypeDesc: e.target.value }))}
+                    disabled={useCustomInput.modelType}
+                  >
+                    <option value="">Select Model Type</option>
+                    {MODEL_TYPES.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="customModelType"
+                      checked={useCustomInput.modelType}
+                      onChange={(e) => setUseCustomInput({ ...useCustomInput, modelType: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="customModelType" className="text-sm text-gray-600">
+                      Enter custom model type
+                    </label>
+                  </div>
+                  {useCustomInput.modelType && (
+                    <input
+                      type="text"
+                      value={curveDetails.markModelTypeDesc}
+                      onChange={(e) => setCurveDetails({ ...curveDetails, markModelTypeDesc: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Enter custom model type"
+                    />
+                  )}
+                </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">GridStor Purpose</label>
                 <input
                   type="text"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  value={curveDetails.gridstor_purpose || ''}
-                  onChange={(e) => setCurveDetails(prev => ({ ...prev, gridstor_purpose: e.target.value }))}
+                  value={curveDetails.gridstorPurpose || ''}
+                  onChange={(e) => setCurveDetails(prev => ({ ...prev, gridstorPurpose: e.target.value }))}
+                  placeholder="Enter GridStor purpose"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Dispatch Optimization Description</label>
+                <div className="space-y-2">
+                  <select
+                    className={`w-full px-3 py-2 border rounded-md ${!useCustomInput.dispatchOptimization ? 'bg-white' : 'bg-gray-100'}`}
+                    value={useCustomInput.dispatchOptimization ? '' : curveDetails.markDispatchOptimizationDesc}
+                    onChange={(e) => setCurveDetails(prev => ({ ...prev, markDispatchOptimizationDesc: e.target.value }))}
+                    disabled={useCustomInput.dispatchOptimization}
+                  >
+                    <option value="">Select Dispatch Optimization</option>
+                    {DISPATCH_OPTIMIZATIONS.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="customDispatchOpt"
+                      checked={useCustomInput.dispatchOptimization}
+                      onChange={(e) => setUseCustomInput({ ...useCustomInput, dispatchOptimization: e.target.checked })}
+                      className="mr-2"
+                    />
+                    <label htmlFor="customDispatchOpt" className="text-sm text-gray-600">
+                      Enter custom dispatch optimization
+                    </label>
+                  </div>
+                  {useCustomInput.dispatchOptimization && (
+                    <input
+                      type="text"
+                      value={curveDetails.markDispatchOptimizationDesc}
+                      onChange={(e) => setCurveDetails({ ...curveDetails, markDispatchOptimizationDesc: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="Enter custom dispatch optimization"
+                    />
+                  )}
+                </div>
+              </div>
             </div>
+
             <div className="mt-4 space-x-4">
               <button
                 onClick={() => setStep(1)}
@@ -435,11 +734,51 @@ const StepByStepUploader: React.FC = () => {
                 </div>
                 <div>
                   <dt className="font-medium text-gray-500">Mark Type:</dt>
-                  <dd>{curveDetails.mark_type}</dd>
+                  <dd className="flex items-center space-x-2">
+                    {editingMarkType ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={tempMarkType}
+                          onChange={(e) => setTempMarkType(e.target.value)}
+                          className="px-2 py-1 border rounded w-full"
+                          placeholder="Enter mark type"
+                        />
+                        <button
+                          onClick={handleMarkTypeUpdate}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingMarkType(false);
+                            setTempMarkType('');
+                          }}
+                          className="text-gray-600 hover:text-gray-800"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span>{curveDetails.markType}</span>
+                        <button
+                          onClick={() => {
+                            setEditingMarkType(true);
+                            setTempMarkType(curveDetails.markType);
+                          }}
+                          className="text-blue-600 hover:text-blue-800 ml-2"
+                        >
+                          Edit
+                        </button>
+                      </>
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt className="font-medium text-gray-500">Mark Case:</dt>
-                  <dd>{curveDetails.mark_case}</dd>
+                  <dd>{curveDetails.markCase}</dd>
                 </div>
                 <div>
                   <dt className="font-medium text-gray-500">Granularity:</dt>
@@ -447,7 +786,11 @@ const StepByStepUploader: React.FC = () => {
                 </div>
                 <div>
                   <dt className="font-medium text-gray-500">Mark Date:</dt>
-                  <dd>{curveDetails.mark_date}</dd>
+                  <dd>{curveDetails.markDate}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-gray-500">Market Dispatch Optimization:</dt>
+                  <dd>{curveDetails.markDispatchOptimizationDesc || 'N/A'}</dd>
                 </div>
               </dl>
 
@@ -478,7 +821,7 @@ const StepByStepUploader: React.FC = () => {
                 <tbody>
                   {previewData.pricePoints.map((point, index) => (
                     <tr key={index}>
-                      <td>{format(point.flow_date_start, 'yyyy-MM-dd')}</td>
+                      <td>{point.flow_date_start}</td>
                       <td>${point.value.toFixed(2)}</td>
                     </tr>
                   ))}
@@ -495,9 +838,10 @@ const StepByStepUploader: React.FC = () => {
               </button>
               <button
                 onClick={handleSubmit}
-                className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                disabled={isSubmitting}
+                className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50"
               >
-                Upload Curve
+                {isSubmitting ? 'Uploading...' : 'Upload Curve'}
               </button>
             </div>
           </div>

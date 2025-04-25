@@ -126,12 +126,8 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
 
   // Handle adding a curve when filters are set
   const handleAddCurve = () => {
-    console.log('Handling add curve with filters:', filters);
-    console.log('Filtered curves:', filteredCurves);
     const matchingCurves = filteredCurves.filter(curve => !selectedCurves.includes(curve.curve_id));
-    console.log('Matching curves not already selected:', matchingCurves);
     if (matchingCurves.length > 0) {
-      console.log('Adding curve:', matchingCurves[0]);
       onCurveToggle(matchingCurves[0].curve_id, {
         color: filters.color,
         lineStyle: filters.lineStyle
@@ -387,12 +383,9 @@ export default function CurveViewer() {
       // Fetch all curves for this location
       fetchCurvesByLocation(location)
         .then(data => {
-          console.log('All curves for location:', data);
           // Split into monthly and annual
           const monthly = data.filter(curve => curve.granularity?.toLowerCase() === 'monthly');
           const annual = data.filter(curve => curve.granularity?.toLowerCase() === 'annual');
-          console.log('Monthly definitions:', monthly);
-          console.log('Annual definitions:', annual);
           setMonthlyDefinitions(monthly);
           setAnnualDefinitions(annual);
         })
@@ -401,8 +394,6 @@ export default function CurveViewer() {
   }, [location]);
 
   const handleMonthlyCurveToggle = (curveId: number, style?: CurveStyle) => {
-    console.log('Toggling monthly curve:', curveId, style);
-    console.log('Current monthly curves:', monthlyCurves);
     if (style) {
       setCurveStyles(prev => ({ ...prev, [curveId]: style }));
     }
@@ -410,14 +401,11 @@ export default function CurveViewer() {
       const newCurves = prev.includes(curveId) 
         ? prev.filter(id => id !== curveId)
         : [...prev, curveId];
-      console.log('New monthly curves:', newCurves);
       return newCurves;
     });
   };
 
   const handleAnnualCurveToggle = (curveId: number, style?: CurveStyle) => {
-    console.log('Toggling annual curve:', curveId, style);
-    console.log('Current annual curves:', annualCurves);
     if (style) {
       setCurveStyles(prev => ({ ...prev, [curveId]: style }));
     }
@@ -425,7 +413,6 @@ export default function CurveViewer() {
       const newCurves = prev.includes(curveId) 
         ? prev.filter(id => id !== curveId)
         : [...prev, curveId];
-      console.log('New annual curves:', newCurves);
       return newCurves;
     });
   };
@@ -444,6 +431,7 @@ export default function CurveViewer() {
   const handleDownloadGraphData = async (data: (CurveData & { style?: { color: string; lineStyle: 'solid' | 'dashed' | 'dotted' } })[], granularity: 'monthly' | 'annual') => {
     try {
       if (!data || data.length === 0) {
+        alert('No data available to download.');
         return;
       }
 
@@ -489,8 +477,14 @@ export default function CurveViewer() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up the URL object
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
     } catch (err) {
       console.error('Failed to download graph data:', err);
+      alert('Failed to download data. Please try again later.');
     }
   };
 
@@ -556,7 +550,6 @@ export default function CurveViewer() {
             )}
             <DualChartSystem 
               data={monthlyDataWithStyles} 
-              title="Monthly Prices"
               granularity="monthly"
               height={400}
             />
@@ -585,7 +578,6 @@ export default function CurveViewer() {
             )}
             <DualChartSystem 
               data={annualDataWithStyles}
-              title="Annual Prices"
               granularity="annual"
               height={400}
             />

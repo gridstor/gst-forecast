@@ -14,7 +14,6 @@ const COLORS = {
 
 interface DualChartSystemProps {
   data: (CurveData & { style?: { color: string; lineStyle: 'solid' | 'dashed' | 'dotted' } })[];
-  title: string;
   granularity: Granularity;
   height?: number;
 }
@@ -43,9 +42,19 @@ const getStrokeDasharray = (lineStyle: 'solid' | 'dashed' | 'dotted') => {
   }
 };
 
+// Define proper types for the tooltip props
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+  label?: number;
+}
+
 export const DualChartSystem: React.FC<DualChartSystemProps> = ({ 
   data, 
-  title,
   granularity,
   height = 400
 }) => {
@@ -65,30 +74,26 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
     });
   }, [data]);
 
-  const [showNewRow, setShowNewRow] = useState(false);
-  const [filters, setFilters] = useState({
-    mark_case: '',
-    mark_date: '',
-    location: '',
-    curve_creator: ''
-  });
-
   // Group data by curve ID and sort dates
-  const groupedData = data.reduce((acc, point) => {
-    if (!acc[point.curveId]) {
-      acc[point.curveId] = [];
-    }
-    acc[point.curveId].push({
-      ...point,
-      date: new Date(point.date).getTime() // Convert to timestamp for proper sorting
-    });
-    return acc;
-  }, {} as Record<number, ExtendedCurveData[]>);
+  const groupedData = React.useMemo(() => {
+    const result = data.reduce((acc, point) => {
+      if (!acc[point.curveId]) {
+        acc[point.curveId] = [];
+      }
+      acc[point.curveId].push({
+        ...point,
+        date: new Date(point.date).getTime() // Convert to timestamp for proper sorting
+      });
+      return acc;
+    }, {} as Record<number, ExtendedCurveData[]>);
 
-  // Sort each curve's data by date
-  Object.values(groupedData).forEach(points => {
-    points.sort((a, b) => a.date - b.date);
-  });
+    // Sort each curve's data by date
+    Object.values(result).forEach(points => {
+      points.sort((a, b) => a.date - b.date);
+    });
+
+    return result;
+  }, [data]);
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -97,12 +102,12 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
       : date.getFullYear().toString();
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg">
-          <p className="text-sm font-medium text-gray-900">{formatDate(label)}</p>
-          {payload.map((entry: any, index: number) => (
+          <p className="text-sm font-medium text-gray-900">{label ? formatDate(label) : ''}</p>
+          {payload.map((entry, index) => (
             <p key={`${entry.name}-${index}`} className="text-sm" style={{ color: entry.color }}>
               {`${entry.name}: $${entry.value.toFixed(2)}/kw-mn`}
             </p>
@@ -162,7 +167,7 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
             return (
               <Line 
                 key={curveId}
-                type="monotone" 
+                type="linear" 
                 data={curveData}
                 dataKey="value" 
                 name={label}

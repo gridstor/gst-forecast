@@ -31,7 +31,7 @@ export function useCurves(location: string) {
       })
       .catch(err => {
         console.error('Error loading curves:', err);
-        setError(err.message);
+        setError(`Failed to load curves: ${err.message}`);
       })
       .finally(() => setLoading(false));
   }, [location]);
@@ -45,12 +45,11 @@ export function useCurves(location: string) {
         aggregation: 'monthly'
       })
       .then(data => {
-        console.log('Received monthly data:', data);
         setMonthlyData(data);
       })
       .catch(err => {
         console.error('Error loading monthly data:', err);
-        setError(err.message);
+        setError(`Failed to load monthly data: ${err.message}`);
       })
       .finally(() => setLoading(false));
     } else {
@@ -67,12 +66,11 @@ export function useCurves(location: string) {
         aggregation: 'annual'
       })
       .then(data => {
-        console.log('Received annual data:', data);
         setAnnualData(data);
       })
       .catch(err => {
         console.error('Error loading annual data:', err);
-        setError(err.message);
+        setError(`Failed to load annual data: ${err.message}`);
       })
       .finally(() => setLoading(false));
     } else {

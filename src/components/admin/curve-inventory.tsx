@@ -63,21 +63,17 @@ export const CurveInventory: React.FC = () => {
 
       try {
         // First fetch locations
-        console.log('Fetching locations...');
         const locationsData = await fetchLocations();
-        console.log('Locations received:', locationsData);
         
         if (Array.isArray(locationsData) && locationsData.length > 0) {
           setLocations(locationsData);
           
           // Fetch curves for all locations
-          console.log('Fetching initial curves for all locations');
           const allCurves = await Promise.all(
             locationsData.map(loc => fetchCurvesByLocation(loc.id))
           );
           setCurves(allCurves.flat());
         } else {
-          console.warn('No locations received from API');
           setError('No locations available');
         }
       } catch (err) {
@@ -98,23 +94,17 @@ export const CurveInventory: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching curves for location:', selectedLocation);
       if (selectedLocation === 'all') {
         const allCurves = await Promise.all(
           locations.map(loc => fetchCurvesByLocation(loc.id))
         );
         const flattenedCurves = allCurves.flat();
-        console.log('All curves data:', flattenedCurves);
-        console.log('Sample curve details:', flattenedCurves[0]);
         setCurves(flattenedCurves);
       } else {
         const data = await fetchCurvesByLocation(selectedLocation);
-        console.log('Location specific curves:', data);
         if (Array.isArray(data)) {
-          console.log('Sample curve details:', data[0]);
           setCurves(data);
         } else {
-          console.warn('Invalid curves data received:', data);
           setError('Invalid curves data received');
         }
       }
@@ -134,7 +124,6 @@ export const CurveInventory: React.FC = () => {
   }, [selectedLocation]);
 
   const handleLocationChange = async (location: string) => {
-    console.log('Location selected:', location);
     setSelectedLocation(location);
     setLoading(true);
     setCurves([]);  // Clear existing curves
@@ -164,7 +153,6 @@ export const CurveInventory: React.FC = () => {
     try {
       setError(null);
       setUpdatingCurve(curve.curve_id);
-      console.log('Toggling default status:', { curveId: curve.curve_id, isDefault });
       
       // Optimistically update the UI
       setCurves(prevCurves => 
@@ -180,7 +168,6 @@ export const CurveInventory: React.FC = () => {
         isDefault,
         isDefault ? (curves.filter(c => c.is_default).length + 1) : undefined
       );
-      console.log('Toggle response:', response);
 
       // Refresh to ensure we have the latest state
       await refreshCurves();

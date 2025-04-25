@@ -1,0 +1,66 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import CSVUploader from '../../components/admin/CSVUploader';
+import CSVTemplateGenerator from '../../components/admin/CSVTemplateGenerator';
+import StepByStepUploader from '../../components/admin/StepByStepUploader';
+import CurveManager from '../../components/admin/CurveManager';
+---
+
+<Layout title="Upload Price Curves">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">Price Curves Management</h1>
+    
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold mb-4">Step-by-Step Upload</h2>
+      <StepByStepUploader client:load />
+    </div>
+
+    <div class="border-t border-gray-200 my-8"></div>
+
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold mb-4">Manage Existing Curves</h2>
+      <CurveManager client:load />
+    </div>
+
+    <div class="border-t border-gray-200 my-8"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div>
+        <h2 class="text-xl font-semibold mb-4">Quick Upload</h2>
+        <CSVTemplateGenerator client:load />
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-lg font-semibold mb-4">Upload CSV File</h2>
+        <CSVUploader client:load />
+      </div>
+    </div>
+
+    {/* Instructions */}
+    <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+      <h2 class="text-lg font-semibold mb-4">CSV Format Instructions</h2>
+      <div class="prose">
+        <p>The CSV file must contain the following columns:</p>
+        <ul class="list-disc ml-6">
+          <li><code>flow_start_date</code> - Date for the forecast (e.g., "2025-01-01")</li>
+          <li><code>granularity</code> - Either "MONTHLY" or "ANNUAL"</li>
+          <li><code>mark_date</code> - Date curve was created (e.g., "2024-01-01")</li>
+          <li><code>mark_type</code> - Type of curve (e.g., "GST_SP15_Revenue_4h")</li>
+          <li><code>mark_case</code> - Scenario (e.g., "Base", "High", "Low")</li>
+          <li><code>value</code> - The actual price value</li>
+          <li><code>units</code> - Units for the value (e.g., "$/kw-mn")</li>
+          <li><code>location</code> - Geographic location (e.g., "SP15", "Goleta")</li>
+          <li><code>market</code> - Market identifier (e.g., "CAISO")</li>
+        </ul>
+        <p class="mt-4">Tips:</p>
+        <ul class="list-disc ml-6">
+          <li>Use the template generator to create a properly formatted CSV file</li>
+          <li>Dates should be in YYYY-MM-DD format</li>
+          <li>Values should be numeric without currency symbols</li>
+          <li>Make sure there are no empty rows or columns</li>
+          <li>For step-by-step upload, you can paste price data in any common format (Excel columns, space/tab separated, etc.)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</Layout> 

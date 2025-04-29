@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { format, parse, isValid } from 'date-fns';
+import { format, parse, isValid, parseISO } from 'date-fns';
 import { toast } from 'react-hot-toast';
 
 interface PricePoint {
@@ -22,6 +22,7 @@ interface CurveDetails {
   markModelTypeDesc: string;
   markDispatchOptimizationDesc: string;
   gridstorPurpose: string;
+  curve_bess_duration: number | null;
 }
 
 interface PreviewPoint {
@@ -71,7 +72,8 @@ const StepByStepUploader: React.FC = () => {
     markFundamentalsDesc: '',
     markModelTypeDesc: '',
     markDispatchOptimizationDesc: '',
-    gridstorPurpose: ''
+    gridstorPurpose: '',
+    curve_bess_duration: null
   });
   const [priceData, setPriceData] = useState<PricePoint[]>([]);
   const [rawPriceInput, setRawPriceInput] = useState('');
@@ -132,6 +134,12 @@ const StepByStepUploader: React.FC = () => {
     return points;
   };
 
+  const validateDate = (dateStr: string): boolean => {
+    if (!dateStr) return false;
+    const date = parseISO(dateStr);
+    return !isNaN(date.getTime());
+  };
+
   const handlePriceDataInput = () => {
     // Parse the raw input first
     const prices = parsePriceData(rawPriceInput);
@@ -179,22 +187,24 @@ const StepByStepUploader: React.FC = () => {
   };
 
   const parsePriceData = (input: string): PricePoint[] => {
-    const lines = input.trim().split('\n');
+    if (!input.trim()) {
+      return [];
+    }
+
     const prices: PricePoint[] = [];
-    const dateFormats = ['MM/dd/yyyy', 'yyyy-MM-dd', 'dd/MM/yyyy', 'yyyy/MM/dd'];
+    const lines = input.split('\n');
 
-    // Skip first line if it looks like a header
-    const startIndex = lines[0].toLowerCase().includes('date') || lines[0].toLowerCase().includes('price') ? 1 : 0;
-
-    for (let i = startIndex; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
 
-      // Split by comma or whitespace
-      const parts = line.split(/[,\s]+/).filter(Boolean);
-      if (parts.length < 2) continue;
+      const parts = line.split(/[,\t]/);
+      if (parts.length < 2) {
+        toast.error(`Invalid format on line ${i + 1}: ${line}`);
+        continue;
+      }
 
-      const dateStr = parts[0];
+      const dateStr = parts[0].trim();
       const valueStr = parts[parts.length - 1].replace(/[$,]/g, '');
       const value = parseFloat(valueStr);
 
@@ -204,14 +214,18 @@ const StepByStepUploader: React.FC = () => {
       }
 
       // Try parsing the date
-      const date = new Date(dateStr);
-      if (isValid(date)) {
-        prices.push({
-          flow_date_start: format(date, 'yyyy-MM-dd'),
-          value
-        });
-      } else {
-        toast.error(`Invalid date format on line ${i + 1}: ${dateStr}`);
+      try {
+        const date = parseISO(dateStr);
+        if (date instanceof Date && !isNaN(date.getTime())) {
+          prices.push({
+            flow_date_start: format(date, 'yyyy-MM-dd'),
+            value
+          });
+        } else {
+          toast.error(`Invalid date format on line ${i + 1}: ${dateStr}. Please use YYYY-MM-DD format.`);
+        }
+      } catch (error) {
+        toast.error(`Invalid date format on line ${i + 1}: ${dateStr}. Please use YYYY-MM-DD format.`);
       }
     }
 
@@ -255,7 +269,8 @@ const StepByStepUploader: React.FC = () => {
           mark_model_type_desc: curveDetails.markModelTypeDesc,
           mark_dispatch_optimization_desc: curveDetails.markDispatchOptimizationDesc,
           gridstor_purpose: curveDetails.gridstorPurpose,
-          value_type: curveDetails.valueType
+          value_type: curveDetails.valueType,
+          curve_bess_duration: curveDetails.curve_bess_duration
         },
         pricePoints: priceData
       };
@@ -312,7 +327,8 @@ const StepByStepUploader: React.FC = () => {
       markFundamentalsDesc: '',
       markModelTypeDesc: '',
       markDispatchOptimizationDesc: '',
-      gridstorPurpose: ''
+      gridstorPurpose: '',
+      curve_bess_duration: null
     });
     setPriceData([]);
     setRawPriceInput('');
@@ -661,6 +677,22 @@ const StepByStepUploader: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">BESS Duration (hours)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  value={curveDetails.curve_bess_duration || ''}
+                  onChange={(e) => setCurveDetails(prev => ({ 
+                    ...prev, 
+                    curve_bess_duration: e.target.value ? parseFloat(e.target.value) : null 
+                  }))}
+                  placeholder="Enter BESS duration in hours"
+                />
+              </div>
             </div>
 
             <div className="mt-4 space-x-4">
@@ -792,6 +824,10 @@ const StepByStepUploader: React.FC = () => {
                   <dt className="font-medium text-gray-500">Market Dispatch Optimization:</dt>
                   <dd>{curveDetails.markDispatchOptimizationDesc || 'N/A'}</dd>
                 </div>
+                <div>
+                  <dt className="font-medium text-gray-500">BESS Duration:</dt>
+                  <dd>{curveDetails.curve_bess_duration ? `${curveDetails.curve_bess_duration} hours` : 'Not specified'}</dd>
+                </div>
               </dl>
 
               <h4 className="font-medium mt-4 mb-2">Price Data Summary</h4>
@@ -877,10 +913,10 @@ const StepByStepUploader: React.FC = () => {
             </React.Fragment>
           ))}
         </div>
+        {renderStep()}
       </div>
-      {renderStep()}
     </div>
   );
 };
 
-export default StepByStepUploader; 
+export default StepByStepUploader;

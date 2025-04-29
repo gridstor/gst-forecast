@@ -34,10 +34,10 @@ const currentPath = Astro.url.pathname;
 								Curve Viewer
 							</a>
 							<a 
-								href="/admin/curve-inventory" 
-								class={`border-b-2 ${currentPath === '/admin/curve-inventory' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
+								href="/curve-schedule" 
+								class={`border-b-2 ${currentPath.startsWith('/curve-schedule') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
 							>
-								Curve Inventory
+								Curve Schedule
 							</a>
 							<a 
 								href="/admin/upload" 
@@ -65,5 +65,10 @@ const currentPath = Astro.url.pathname;
 	html {
 		font-family: 'Inter', system-ui, sans-serif;
 		background: #f9fafb;
+	}
+
+	/* Add dropdown menu hover styles */
+	.group:hover .group-hover\:block {
+		display: block;
 	}
 </style>

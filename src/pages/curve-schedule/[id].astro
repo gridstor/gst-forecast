@@ -1,0 +1,239 @@
+import Layout from '../../layouts/Layout.astro';
+import { prisma } from '../../lib/prisma';
+
+const { id } = Astro.params;
+const curveId = parseInt(id as string);
+
+const curve = await prisma.curveSchedule.findUnique({
+  where: { id: curveId },
+  include: {
+    updateHistory: {
+      orderBy: {
+        updateDate: 'desc'
+      },
+      take: 5
+    },
+    receipts: {
+      orderBy: {
+        receivedDate: 'desc'
+      },
+      take: 5
+    },
+    comments: {
+      orderBy: {
+        commentDate: 'desc'
+      }
+    }
+  }
+});
+
+if (!curve) {
+  return Astro.redirect('/curve-schedule');
+}
+
+const formatDate = (date: Date | null) => {
+  if (!date) return '-';
+  return new Date(date).toLocaleDateString();
+};
+
+const getStatusColor = (curve: typeof curve) => {
+  if (!curve.nextUpdateDue) return 'bg-gray-100';
+  
+  const now = new Date();
+  const dueDate = new Date(curve.nextUpdateDue);
+  const daysDiff = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+
+  if (daysDiff < 0) return 'bg-red-100';
+  if (daysDiff <= 7) return 'bg-yellow-100';
+  return 'bg-green-100';
+};
+
+const getImportanceLabel = (importance: number) => {
+  switch (importance) {
+    case 1: return 'High Priority';
+    case 2: return 'Medium Priority';
+    case 3: return 'Low Priority';
+    default: return 'Unknown Priority';
+  }
+};
+
+<Layout title={`Curve Schedule - ${curve.curvePattern}`}>
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold">{curve.curvePattern}</h1>
+        <p class="mt-2 text-gray-600">Curve Schedule Details</p>
+      </div>
+      <div class="space-x-4">
+        <a
+          href="/curve-schedule"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Back to List
+        </a>
+        <a
+          href={`/curve-schedule/${curve.id}/edit`}
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Edit Curve
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">Curve Details</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Location</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.location}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Source Type</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.sourceType}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Provider</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.provider || '-'}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Granularity</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.granularity}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Model Type</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.modelType || '-'}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Update Frequency</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.updateFrequency}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Responsible Team</label>
+              <p class="mt-1 text-sm text-gray-900">{curve.responsibleTeam}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Importance</label>
+              <p class="mt-1 text-sm text-gray-900">{getImportanceLabel(curve.importance)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">Update History</h2>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Updated By</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {curve.updateHistory.map(history => (
+                  <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {formatDate(history.updateDate)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {history.updatedBy}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {history.status}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                      {history.notes || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">Comments</h2>
+          <div class="space-y-4">
+            {curve.comments.map(comment => (
+              <div class={`p-4 rounded-lg border ${comment.isResolved ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{comment.userName}</p>
+                    <p class="text-xs text-gray-500">{formatDate(comment.commentDate)}</p>
+                  </div>
+                  {comment.isResolved && (
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Resolved
+                    </span>
+                  )}
+                </div>
+                <p class="mt-2 text-sm text-gray-700">{comment.commentText}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class={`bg-white rounded-lg shadow-md p-6 ${getStatusColor(curve)}`}>
+          <h2 class="text-xl font-semibold mb-4">Schedule Status</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Updated</label>
+              <p class="mt-1 text-sm text-gray-900">{formatDate(curve.lastUpdatedDate)}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Next Update Due</label>
+              <p class="mt-1 text-sm text-gray-900">{formatDate(curve.nextUpdateDue)}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Last Received</label>
+              <p class="mt-1 text-sm text-gray-900">{formatDate(curve.lastReceivedDate)}</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Next Expected</label>
+              <p class="mt-1 text-sm text-gray-900">{formatDate(curve.nextExpectedDate)}</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">Recent Receipts</h2>
+          <div class="space-y-4">
+            {curve.receipts.map(receipt => (
+              <div class="border rounded-lg p-4">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">
+                      Received by {receipt.receivedBy}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                      {formatDate(receipt.receivedDate)}
+                    </p>
+                  </div>
+                  <span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    receipt.processingStatus === 'Completed'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {receipt.processingStatus}
+                  </span>
+                </div>
+                {receipt.notes && (
+                  <p class="mt-2 text-sm text-gray-700">{receipt.notes}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Add any custom styles here */
+</style> 

@@ -1,0 +1,343 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { prisma } from '../../../lib/prisma';
+
+const { id } = Astro.params;
+const curveId = parseInt(id as string);
+
+// Handle form submission
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  
+  const updateData = {
+    curvePattern: formData.get('curvePattern') as string,
+    location: formData.get('location') as string,
+    sourceType: formData.get('sourceType') as string,
+    provider: formData.get('provider') as string || null,
+    granularity: formData.get('granularity') as string,
+    modelType: formData.get('modelType') as string || null,
+    updateFrequency: formData.get('updateFrequency') as string,
+    updateDay: parseInt(formData.get('updateDay') as string) || null,
+    responsibleTeam: formData.get('responsibleTeam') as string,
+    description: formData.get('description') as string || null,
+    importance: parseInt(formData.get('importance') as string),
+    lastReceivedDate: formData.get('lastReceivedDate') ? new Date(formData.get('lastReceivedDate') as string) : null,
+    nextExpectedDate: formData.get('nextExpectedDate') ? new Date(formData.get('nextExpectedDate') as string) : null,
+    providerContact: formData.get('providerContact') as string || null,
+    lastUpdatedDate: formData.get('lastUpdatedDate') ? new Date(formData.get('lastUpdatedDate') as string) : null,
+    nextUpdateDue: formData.get('nextUpdateDue') ? new Date(formData.get('nextUpdateDue') as string) : null
+  };
+
+  await prisma.curveSchedule.update({
+    where: { id: curveId },
+    data: updateData
+  });
+
+  // Add update history entry
+  await prisma.curveUpdateHistory.create({
+    data: {
+      scheduleId: curveId,
+      updateDate: new Date(),
+      updatedBy: 'System', // TODO: Replace with actual user
+      status: 'Updated',
+      notes: 'Curve details updated'
+    }
+  });
+
+  return Astro.redirect(`/curve-schedule/${curveId}`);
+}
+
+const curve = await prisma.curveSchedule.findUnique({
+  where: { id: curveId }
+});
+
+if (!curve) {
+  return Astro.redirect('/curve-schedule');
+}
+
+const formatDate = (date: Date | null) => {
+  if (!date) return '';
+  return new Date(date).toISOString().split('T')[0];
+};
+---
+
+<Layout title={`Edit Curve - ${curve.curvePattern}`}>
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold">Edit Curve</h1>
+        <p class="mt-2 text-gray-600">{curve.curvePattern}</p>
+      </div>
+      <div class="space-x-4">
+        <a
+          href={`/curve-schedule/${curve.id}`}
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Cancel
+        </a>
+      </div>
+    </div>
+
+    <form method="POST" class="space-y-8">
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-6">Basic Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="curvePattern" class="block text-sm font-medium text-gray-700">
+              Curve Pattern
+            </label>
+            <input
+              type="text"
+              name="curvePattern"
+              id="curvePattern"
+              value={curve.curvePattern}
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="location" class="block text-sm font-medium text-gray-700">
+              Location
+            </label>
+            <input
+              type="text"
+              name="location"
+              id="location"
+              value={curve.location}
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="sourceType" class="block text-sm font-medium text-gray-700">
+              Source Type
+            </label>
+            <select
+              name="sourceType"
+              id="sourceType"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="Internal" selected={curve.sourceType === 'Internal'}>Internal</option>
+              <option value="External" selected={curve.sourceType === 'External'}>External</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="provider" class="block text-sm font-medium text-gray-700">
+              Provider
+            </label>
+            <input
+              type="text"
+              name="provider"
+              id="provider"
+              value={curve.provider || ''}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="granularity" class="block text-sm font-medium text-gray-700">
+              Granularity
+            </label>
+            <select
+              name="granularity"
+              id="granularity"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="Annual" selected={curve.granularity === 'Annual'}>Annual</option>
+              <option value="Monthly" selected={curve.granularity === 'Monthly'}>Monthly</option>
+              <option value="Daily" selected={curve.granularity === 'Daily'}>Daily</option>
+              <option value="Hourly" selected={curve.granularity === 'Hourly'}>Hourly</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="modelType" class="block text-sm font-medium text-gray-700">
+              Model Type
+            </label>
+            <input
+              type="text"
+              name="modelType"
+              id="modelType"
+              value={curve.modelType || ''}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-6">Update Schedule</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="updateFrequency" class="block text-sm font-medium text-gray-700">
+              Update Frequency
+            </label>
+            <select
+              name="updateFrequency"
+              id="updateFrequency"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="Daily" selected={curve.updateFrequency === 'Daily'}>Daily</option>
+              <option value="Weekly" selected={curve.updateFrequency === 'Weekly'}>Weekly</option>
+              <option value="Monthly" selected={curve.updateFrequency === 'Monthly'}>Monthly</option>
+              <option value="Quarterly" selected={curve.updateFrequency === 'Quarterly'}>Quarterly</option>
+              <option value="Annually" selected={curve.updateFrequency === 'Annually'}>Annually</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="updateDay" class="block text-sm font-medium text-gray-700">
+              Update Day
+            </label>
+            <input
+              type="number"
+              name="updateDay"
+              id="updateDay"
+              value={curve.updateDay || ''}
+              min="1"
+              max="31"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="responsibleTeam" class="block text-sm font-medium text-gray-700">
+              Responsible Team
+            </label>
+            <input
+              type="text"
+              name="responsibleTeam"
+              id="responsibleTeam"
+              value={curve.responsibleTeam}
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="importance" class="block text-sm font-medium text-gray-700">
+              Importance
+            </label>
+            <select
+              name="importance"
+              id="importance"
+              required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >
+              <option value="1" selected={curve.importance === 1}>High Priority</option>
+              <option value="2" selected={curve.importance === 2}>Medium Priority</option>
+              <option value="3" selected={curve.importance === 3}>Low Priority</option>
+            </select>
+          </div>
+
+          <div class="md:col-span-2">
+            <label for="description" class="block text-sm font-medium text-gray-700">
+              Description
+            </label>
+            <textarea
+              name="description"
+              id="description"
+              rows="3"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            >{curve.description || ''}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white shadow-md rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-6">Dates and Contacts</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label for="lastReceivedDate" class="block text-sm font-medium text-gray-700">
+              Last Received Date
+            </label>
+            <input
+              type="date"
+              name="lastReceivedDate"
+              id="lastReceivedDate"
+              value={formatDate(curve.lastReceivedDate)}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="nextExpectedDate" class="block text-sm font-medium text-gray-700">
+              Next Expected Date
+            </label>
+            <input
+              type="date"
+              name="nextExpectedDate"
+              id="nextExpectedDate"
+              value={formatDate(curve.nextExpectedDate)}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="lastUpdatedDate" class="block text-sm font-medium text-gray-700">
+              Last Updated Date
+            </label>
+            <input
+              type="date"
+              name="lastUpdatedDate"
+              id="lastUpdatedDate"
+              value={formatDate(curve.lastUpdatedDate)}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="nextUpdateDue" class="block text-sm font-medium text-gray-700">
+              Next Update Due
+            </label>
+            <input
+              type="date"
+              name="nextUpdateDue"
+              id="nextUpdateDue"
+              value={formatDate(curve.nextUpdateDue)}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+
+          <div>
+            <label for="providerContact" class="block text-sm font-medium text-gray-700">
+              Provider Contact
+            </label>
+            <input
+              type="text"
+              name="providerContact"
+              id="providerContact"
+              value={curve.providerContact || ''}
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-4">
+        <a
+          href={`/curve-schedule/${curve.id}`}
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Cancel
+        </a>
+        <button
+          type="submit"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</Layout>
+
+<style>
+  /* Add any custom styles here */
+</style> 

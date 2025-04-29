@@ -1,0 +1,94 @@
+import Layout from '../../layouts/Layout.astro';
+import CurveInventoryFilter from '../../components/curve-tracker/CurveInventoryFilter';
+import CurveInventoryTable from '../../components/curve-tracker/CurveInventoryTable';
+import CurveInventoryStats from '../../components/curve-tracker/CurveInventoryStats';
+import { prisma } from '../../lib/prisma';
+
+// Fetch all curves with their relationships
+const curves = await prisma.curveSchedule.findMany({
+  include: {
+    updateHistory: {
+      orderBy: {
+        updateDate: 'desc'
+      },
+      take: 1
+    },
+    receipts: {
+      orderBy: {
+        receivedDate: 'desc'
+      },
+      take: 1
+    },
+    _count: {
+      select: {
+        comments: true
+      }
+    }
+  },
+  orderBy: [
+    { sourceType: 'asc' },
+    { provider: 'asc' },
+    { location: 'asc' },
+    { curvePattern: 'asc' }
+  ]
+});
+
+// Calculate statistics
+const stats = {
+  total: curves.length,
+  bySource: curves.reduce((acc, curve) => {
+    acc[curve.sourceType] = (acc[curve.sourceType] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>),
+  byMarket: curves.reduce((acc, curve) => {
+    const market = curve.location.split('-')[0];
+    acc[market] = (acc[market] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>),
+  byGranularity: curves.reduce((acc, curve) => {
+    acc[curve.granularity] = (acc[curve.granularity] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>)
+};
+
+<Layout title="Curve Inventory">
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-3xl font-bold">Curve Inventory</h1>
+      <div class="space-x-4">
+        <button
+          class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          onclick="window.location.href='/curve-tracker/inventory/import'"
+        >
+          Import Curves
+        </button>
+        <button
+          class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          onclick="window.location.href='/curve-tracker/inventory/export'"
+        >
+          Export Curves
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+      <div class="lg:col-span-3">
+        <div class="bg-white rounded-lg shadow-md">
+          <CurveInventoryFilter client:load />
+          <CurveInventoryTable
+            client:load
+            initialCurves={curves}
+          />
+        </div>
+      </div>
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <CurveInventoryStats
+            client:load
+            stats={stats}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout> 

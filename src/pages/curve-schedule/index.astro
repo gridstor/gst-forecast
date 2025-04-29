@@ -1,0 +1,106 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FilterPanel from '../../components/curve-tracker/FilterPanel';
+import CurveTable from '../../components/curve-tracker/CurveTable';
+import StatusSummary from '../../components/curve-tracker/StatusSummary';
+import MarketSummary from '../../components/curve-tracker/MarketSummary';
+import { prisma } from '../../lib/prisma';
+
+// Fetch initial data
+const curves = await prisma.curveSchedule.findMany({
+  include: {
+    updateHistory: {
+      orderBy: {
+        updateDate: 'desc'
+      },
+      take: 1
+    },
+    receipts: {
+      orderBy: {
+        receivedDate: 'desc'
+      },
+      take: 1
+    },
+    _count: {
+      select: {
+        comments: true
+      }
+    }
+  }
+});
+
+// Calculate summary statistics
+const totalCurves = curves.length;
+
+const overdueCurves = curves.filter(function(curve) {
+  if (!curve.nextUpdateDue) return false;
+  return new Date(curve.nextUpdateDue) < new Date();
+}).length;
+
+const dueSoonCurves = curves.filter(function(curve) {
+  if (!curve.nextUpdateDue) return false;
+  const dueDate = new Date(curve.nextUpdateDue);
+  const now = new Date();
+  const daysDiff = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+  return daysDiff > 0 && daysDiff <= 7;
+}).length;
+
+// Calculate market distribution
+const marketDistribution = curves.reduce(function(acc, curve) {
+  const market = curve.location.split('-')[0];
+  acc[market] = (acc[market] || 0) + 1;
+  return acc;
+}, {} as Record<string, number>);
+---
+
+<Layout title="Curve Schedule">
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold">Curve Schedule</h1>
+        <p class="mt-2 text-gray-600">Track and manage your curve updates and schedules</p>
+      </div>
+      <div class="space-x-4">
+        <a
+          href="/curve-schedule/calendar"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          View Calendar
+        </a>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <StatusSummary
+        client:load
+        totalCurves={totalCurves}
+        overdueCurves={overdueCurves}
+        dueSoonCurves={dueSoonCurves}
+      />
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+      <div class="lg:col-span-3">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <FilterPanel client:load />
+          <CurveTable
+            client:load
+            initialCurves={curves}
+          />
+        </div>
+      </div>
+      <div class="lg:col-span-1">
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <MarketSummary
+            client:load
+            marketDistribution={marketDistribution}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Add any custom styles here */
+</style> 

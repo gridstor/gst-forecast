@@ -137,3 +137,84 @@ model website_displays {
   updated_at     DateTime?        @default(now()) @db.Timestamp(6)
   display_curves display_curves[]
 }
+
+// Curve Schedule Model
+model CurveSchedule {
+  id                Int                @id @default(autoincrement()) @map("schedule_id")
+  curvePattern      String             @map("curve_pattern") @db.VarChar(100)
+  location          String             @db.VarChar(100)
+  sourceType        String             @map("source_type") @db.VarChar(50)
+  provider          String?            @db.VarChar(100)
+  granularity       String             @db.VarChar(20)
+  modelType         String?            @map("model_type") @db.VarChar(50)
+  updateFrequency   String             @map("update_frequency") @db.VarChar(50)
+  updateDay         Int?               @map("update_day")
+  responsibleTeam   String             @map("responsible_team") @db.VarChar(100)
+  description       String?            @db.Text
+  importance        Int
+  lastReceivedDate  DateTime?          @map("last_received_date") @db.Date
+  nextExpectedDate  DateTime?          @map("next_expected_date") @db.Date
+  providerContact   String?            @map("provider_contact") @db.VarChar(100)
+  lastUpdatedDate   DateTime?          @map("last_updated_date") @db.Date
+  nextUpdateDue     DateTime?          @map("next_update_due") @db.Date
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  
+  // Relations
+  updateHistory     CurveUpdateHistory[]
+  receipts          CurveReceipt[]
+  comments          CurveComment[]
+
+  @@map("curve_schedule")
+}
+
+// Curve Update History Model
+model CurveUpdateHistory {
+  id          Int           @id @default(autoincrement()) @map("history_id")
+  scheduleId  Int           @map("schedule_id")
+  updateDate  DateTime      @map("update_date")
+  updatedBy   String        @map("updated_by") @db.VarChar(100)
+  notes       String?       @db.Text
+  status      String        @db.VarChar(50)
+  fileReference String?     @map("file_reference") @db.VarChar(255)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  
+  // Relations
+  schedule    CurveSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@map("curve_update_history")
+}
+
+// Curve Receipt Model
+model CurveReceipt {
+  id              Int           @id @default(autoincrement()) @map("receipt_id")
+  scheduleId      Int           @map("schedule_id")
+  receivedDate    DateTime      @map("received_date") @db.Date
+  receivedBy      String        @map("received_by") @db.VarChar(100)
+  providerContact String?       @map("provider_contact") @db.VarChar(100)
+  fileReference   String?       @map("file_reference") @db.VarChar(255)
+  processingStatus String       @map("processing_status") @db.VarChar(50)
+  notes           String?       @db.Text
+  createdAt       DateTime      @default(now()) @map("created_at")
+  
+  // Relations
+  schedule        CurveSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@map("curve_receipt")
+}
+
+// Curve Comment Model
+model CurveComment {
+  id          Int           @id @default(autoincrement()) @map("comment_id")
+  scheduleId  Int           @map("schedule_id")
+  userName    String        @map("user_name") @db.VarChar(100)
+  commentText String        @map("comment_text") @db.Text
+  commentDate DateTime      @default(now()) @map("comment_date")
+  isResolved  Boolean       @default(false) @map("is_resolved")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  
+  // Relations
+  schedule    CurveSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@map("curve_comment")
+}

@@ -1,0 +1,144 @@
+import Layout from '../../layouts/Layout.astro';
+import { prisma } from '../../lib/prisma';
+import type { CurveSchedule } from '@prisma/client';
+
+interface CurveWithDetails {
+  id: number;
+  curvePattern: string;
+  location: string;
+  sourceType: string;
+  nextUpdateDue: Date | null;
+  importance: number;
+}
+
+// Fetch all curves with their next update dates
+const curves = await prisma.curveSchedule.findMany({
+  select: {
+    id: true,
+    curvePattern: true,
+    location: true,
+    sourceType: true,
+    nextUpdateDue: true,
+    importance: true
+  }
+}) as CurveWithDetails[];
+
+// Group curves by date
+const curvesByDate = curves.reduce<Record<string, CurveWithDetails[]>>((acc, curve) => {
+  if (!curve.nextUpdateDue) return acc;
+  
+  const dateKey = curve.nextUpdateDue.toISOString().split('T')[0];
+  if (!acc[dateKey]) {
+    acc[dateKey] = [];
+  }
+  acc[dateKey].push(curve);
+  return acc;
+}, {});
+
+// Get the current month's start and end dates
+const today = new Date();
+const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+// Get all dates in the current month
+const datesInMonth = Array.from(
+  { length: lastDayOfMonth.getDate() },
+  (_, i) => new Date(today.getFullYear(), today.getMonth(), i + 1)
+);
+
+// Get the day of week for the first day (0 = Sunday)
+const firstDayOfWeek = firstDayOfMonth.getDay();
+
+// Add empty cells for days before the first day of the month
+const calendarDays = Array(firstDayOfWeek).fill(null).concat(datesInMonth);
+
+// Function to get the importance class
+const getImportanceClass = (importance: number): string => {
+  switch (importance) {
+    case 1: return 'bg-red-100 border-red-200';
+    case 2: return 'bg-orange-100 border-orange-200';
+    case 3: return 'bg-yellow-100 border-yellow-200';
+    default: return 'bg-gray-100 border-gray-200';
+  }
+};
+
+<Layout title="Curve Schedule Calendar">
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold">Curve Schedule Calendar</h1>
+        <p class="mt-2 text-gray-600">View upcoming curve updates by date</p>
+      </div>
+      <div class="space-x-4">
+        <a
+          href="/curve-schedule"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          View List
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="grid grid-cols-7 gap-px bg-gray-200 border-b">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div class="bg-gray-50 p-2 text-center text-sm font-medium text-gray-700">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      <div class="grid grid-cols-7 gap-px bg-gray-200">
+        {calendarDays.map((date: Date | null) => (
+          <div class={`bg-white min-h-[120px] p-2 ${
+            date && date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+              ? 'ring-2 ring-indigo-500'
+              : ''
+          }`}>
+            {date && (
+              <div>
+                <div class="font-medium text-sm text-gray-900">
+                  {date.getDate()}
+                </div>
+                <div class="mt-2 space-y-1">
+                  {curvesByDate[date.toISOString().split('T')[0]]?.map(curve => (
+                    <a
+                      href={`/curve-schedule/${curve.id}`}
+                      class={`block text-xs p-1 rounded border ${getImportanceClass(curve.importance)} hover:opacity-75`}
+                    >
+                      {curve.curvePattern}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="p-4 bg-white rounded-lg shadow-md">
+        <h3 class="font-medium text-gray-900">Importance Levels</h3>
+        <div class="mt-2 space-y-2">
+          <div class="flex items-center">
+            <div class="w-4 h-4 rounded bg-red-100 border border-red-200"></div>
+            <span class="ml-2 text-sm text-gray-700">High Priority</span>
+          </div>
+          <div class="flex items-center">
+            <div class="w-4 h-4 rounded bg-orange-100 border border-orange-200"></div>
+            <span class="ml-2 text-sm text-gray-700">Medium Priority</span>
+          </div>
+          <div class="flex items-center">
+            <div class="w-4 h-4 rounded bg-yellow-100 border border-yellow-200"></div>
+            <span class="ml-2 text-sm text-gray-700">Low Priority</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  /* Add any custom styles here */
+</style> 

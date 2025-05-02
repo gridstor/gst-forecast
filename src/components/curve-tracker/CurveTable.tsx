@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { CurveSchedule, CurveUpdateHistory, CurveReceipt } from '@prisma/client';
+import type { FilterState } from './FilterPanel';
 
 interface CurveTableProps {
   initialCurves: (CurveSchedule & {
@@ -18,23 +19,65 @@ interface SortConfig {
 
 export default function CurveTable({ initialCurves }: CurveTableProps) {
   const [curves, setCurves] = useState(initialCurves);
+  const [filteredCurves, setFilteredCurves] = useState(initialCurves);
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'curvePattern',
     direction: 'asc'
   });
 
+  // Subscribe to filter changes from FilterPanel
+  useEffect(() => {
+    const handleFilterChange = (event: CustomEvent<FilterState>) => {
+      const filters = event.detail;
+      
+      const filtered = curves.filter(curve => {
+        if (filters.market !== 'All' && !curve.location.startsWith(filters.market)) return false;
+        if (filters.location !== 'All' && curve.location !== filters.location) return false;
+        if (filters.sourceType !== 'All' && curve.sourceType !== filters.sourceType) return false;
+        if (filters.granularity !== 'All' && curve.granularity !== filters.granularity) return false;
+        
+        if (filters.status !== 'All') {
+          const now = new Date();
+          const dueDate = curve.nextUpdateDue;
+          if (!dueDate) return false;
+          
+          const daysDiff = Math.ceil((new Date(dueDate).getTime() - now.getTime()) / (1000 * 3600 * 24));
+          
+          switch (filters.status) {
+            case 'Overdue':
+              if (daysDiff >= 0) return false;
+              break;
+            case 'Due Soon':
+              if (daysDiff < 0 || daysDiff > 7) return false;
+              break;
+            case 'On Track':
+              if (daysDiff <= 7) return false;
+              break;
+          }
+        }
+        
+        return true;
+      });
+      
+      setFilteredCurves(filtered);
+    };
+
+    window.addEventListener('filterchange', handleFilterChange as EventListener);
+    return () => window.removeEventListener('filterchange', handleFilterChange as EventListener);
+  }, [curves]);
+
   const handleSort = (key: keyof CurveSchedule) => {
     const direction = 
       sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
     
-    const sortedCurves = [...curves].sort((a, b) => {
+    const sortedCurves = [...filteredCurves].sort((a, b) => {
       if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
       if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
       return 0;
     });
 
     setSortConfig({ key, direction });
-    setCurves(sortedCurves);
+    setFilteredCurves(sortedCurves);
   };
 
   const getStatusColor = (curve: CurveSchedule) => {
@@ -126,7 +169,7 @@ export default function CurveTable({ initialCurves }: CurveTableProps) {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {curves.map((curve) => (
+          {filteredCurves.map((curve) => (
             <tr
               key={curve.id}
               className={`${getStatusColor(curve)} hover:bg-gray-50 transition-colors`}

@@ -1,0 +1,134 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import CurveCalendarView from '../../components/curve-tracker/CurveCalendarView';
+import HealthScoreIndicator from '../../components/curve-tracker/HealthScoreIndicator';
+import { calculateHealthScore } from '../../lib/utils/healthScore';
+import { Pool } from 'pg';
+import { config } from '../../config/database';
+
+const pool = new Pool(config);
+
+// Fetch curve data from database
+const result = await pool.query(`
+  SELECT 
+    cd.curve_id,
+    cd.mark_type,
+    cd.mark_case,
+    cd.location,
+    cd.market,
+    cd.last_received_date,
+    cd.next_expected_date,
+    (
+      SELECT json_agg(json_build_object(
+        'expectedDate', expected_date,
+        'actualDate', actual_date
+      ))
+      FROM Forecasts.curve_update_history cuh
+      WHERE cuh.curve_id = cd.curve_id
+      ORDER BY expected_date DESC
+      LIMIT 10
+    ) as update_history
+  FROM Forecasts.curve_definitions cd
+  WHERE cd.next_expected_date IS NOT NULL
+`);
+
+// Calculate health scores and prepare data for the calendar
+const curveUpdates = result.rows.map(row => {
+  const healthMetrics = {
+    lastReceivedDate: row.last_received_date,
+    nextExpectedDate: row.next_expected_date,
+    updateHistory: row.update_history || []
+  };
+
+  const healthScore = calculateHealthScore(healthMetrics);
+
+  return {
+    curveId: row.curve_id,
+    markType: row.mark_type,
+    markCase: row.mark_case,
+    location: row.location,
+    market: row.market,
+    expectedDate: row.next_expected_date,
+    lastReceivedDate: row.last_received_date,
+    healthScore: healthScore.totalScore
+  };
+});
+
+// Close the database connection
+await pool.end();
+---
+
+<Layout title="Curve Calendar">
+  <div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold mb-4">Curve Update Calendar</h1>
+      <p class="text-gray-600">
+        View and manage upcoming curve updates, track health scores, and identify potential scheduling conflicts.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div class="lg:col-span-3">
+        <CurveCalendarView 
+          client:load 
+          updates={curveUpdates}
+          onUpdateSchedule={async (curveId: number, newDate: Date) => {
+            // This will be handled by the client-side component
+          }}
+        />
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-white rounded-lg shadow p-4">
+          <h2 class="text-xl font-semibold mb-4">Health Score Summary</h2>
+          <div class="space-y-4">
+            {curveUpdates.map(curve => (
+              <div key={curve.curveId} class="border-b pb-4 last:border-0">
+                <h3 class="font-medium mb-2">{curve.markType} - {curve.location}</h3>
+                <HealthScoreIndicator
+                  client:load
+                  score={{
+                    totalScore: curve.healthScore,
+                    freshnessScore: 0, // These would need to be calculated
+                    complianceScore: 0,
+                    qualityScore: 0
+                  }}
+                  showDetails={false}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4">
+          <h2 class="text-xl font-semibold mb-4">Legend</h2>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-green-500" />
+              <span>Healthy (80-100%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-yellow-500" />
+              <span>Warning (60-79%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-orange-500" />
+              <span>At Risk (40-59%)</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded-full bg-red-500" />
+              <span>Critical (0-39%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Handle client-side calendar interactions
+  document.addEventListener('astro:page-load', () => {
+    // Any additional client-side setup can go here
+  });
+</script> 

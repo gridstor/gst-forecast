@@ -49,6 +49,7 @@ model curve_definitions {
   granularity                     String?           @db.VarChar
   display_curves                  display_curves[]
   price_forecasts                 price_forecasts[]
+  schedules                       CurveSchedule[]
 
   @@index([curve_start_date, curve_end_date], map: "idx_curve_dates")
   @@index([location], map: "idx_curve_location")
@@ -157,14 +158,19 @@ model CurveSchedule {
   providerContact   String?            @map("provider_contact") @db.VarChar(100)
   lastUpdatedDate   DateTime?          @map("last_updated_date") @db.Date
   nextUpdateDue     DateTime?          @map("next_update_due") @db.Date
+  freshnessStartDate DateTime?         @map("freshness_start_date") @db.Date
+  freshnessEndDate   DateTime?         @map("freshness_end_date") @db.Date
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
+  curveId           Int?               @map("curve_id")
   
   // Relations
+  curve            curve_definitions?  @relation(fields: [curveId], references: [curve_id], onDelete: SetNull, onUpdate: Cascade)
   updateHistory     CurveUpdateHistory[]
   receipts          CurveReceipt[]
   comments          CurveComment[]
 
+  @@index([curveId], map: "idx_curve_schedule_curve_id")
   @@map("curve_schedule")
 }
 

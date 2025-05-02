@@ -1,15 +1,16 @@
 import Layout from '../../layouts/Layout.astro';
 import { prisma } from '../../lib/prisma';
 import type { CurveSchedule } from '@prisma/client';
+import { Fragment } from 'astro/components';
 
-interface CurveWithDetails {
+type CurveWithDetails = {
   id: number;
   curvePattern: string;
   location: string;
   sourceType: string;
   nextUpdateDue: Date | null;
   importance: number;
-}
+};
 
 // Fetch all curves with their next update dates
 const curves = await prisma.curveSchedule.findMany({
@@ -24,7 +25,7 @@ const curves = await prisma.curveSchedule.findMany({
 }) as CurveWithDetails[];
 
 // Group curves by date
-const curvesByDate = curves.reduce<Record<string, CurveWithDetails[]>>((acc, curve) => {
+const curvesByDate = curves.reduce((acc: Record<string, CurveWithDetails[]>, curve) => {
   if (!curve.nextUpdateDue) return acc;
   
   const dateKey = curve.nextUpdateDue.toISOString().split('T')[0];
@@ -33,7 +34,7 @@ const curvesByDate = curves.reduce<Record<string, CurveWithDetails[]>>((acc, cur
   }
   acc[dateKey].push(curve);
   return acc;
-}, {});
+}, {} as Record<string, CurveWithDetails[]>);
 
 // Get the current month's start and end dates
 const today = new Date();
@@ -53,14 +54,14 @@ const firstDayOfWeek = firstDayOfMonth.getDay();
 const calendarDays = Array(firstDayOfWeek).fill(null).concat(datesInMonth);
 
 // Function to get the importance class
-const getImportanceClass = (importance: number): string => {
+function getImportanceClass(importance: number): string {
   switch (importance) {
     case 1: return 'bg-red-100 border-red-200';
     case 2: return 'bg-orange-100 border-orange-200';
     case 3: return 'bg-yellow-100 border-yellow-200';
     default: return 'bg-gray-100 border-gray-200';
   }
-};
+}
 
 <Layout title="Curve Schedule Calendar">
   <div class="container mx-auto px-4 py-8">
@@ -81,38 +82,44 @@ const getImportanceClass = (importance: number): string => {
 
     <div class="bg-white rounded-lg shadow-md overflow-hidden">
       <div class="grid grid-cols-7 gap-px bg-gray-200 border-b">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div class="bg-gray-50 p-2 text-center text-sm font-medium text-gray-700">
-            {day}
-          </div>
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+          <Fragment>
+            <div class="bg-gray-50 p-2 text-center text-sm font-medium text-gray-700">
+              {day}
+            </div>
+          </Fragment>
         ))}
       </div>
 
       <div class="grid grid-cols-7 gap-px bg-gray-200">
         {calendarDays.map((date: Date | null) => (
-          <div class={`bg-white min-h-[120px] p-2 ${
-            date && date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
-              ? 'ring-2 ring-indigo-500'
-              : ''
-          }`}>
-            {date && (
-              <div>
-                <div class="font-medium text-sm text-gray-900">
-                  {date.getDate()}
+          <Fragment>
+            <div class={`bg-white min-h-[120px] p-2 ${
+              date && date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+                ? 'ring-2 ring-indigo-500'
+                : ''
+            }`}>
+              {date && (
+                <div>
+                  <div class="font-medium text-sm text-gray-900">
+                    {date.getDate()}
+                  </div>
+                  <div class="mt-2 space-y-1">
+                    {curvesByDate[date.toISOString().split('T')[0]]?.map((curve) => (
+                      <Fragment>
+                        <a
+                          href={`/curve-schedule/${curve.id}`}
+                          class={`block text-xs p-1 rounded border ${getImportanceClass(curve.importance)} hover:opacity-75`}
+                        >
+                          {curve.curvePattern}
+                        </a>
+                      </Fragment>
+                    ))}
+                  </div>
                 </div>
-                <div class="mt-2 space-y-1">
-                  {curvesByDate[date.toISOString().split('T')[0]]?.map(curve => (
-                    <a
-                      href={`/curve-schedule/${curve.id}`}
-                      class={`block text-xs p-1 rounded border ${getImportanceClass(curve.importance)} hover:opacity-75`}
-                    >
-                      {curve.curvePattern}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          </Fragment>
         ))}
       </div>
     </div>

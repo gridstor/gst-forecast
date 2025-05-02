@@ -1,16 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-interface FilterPanelProps {
-  onFilterChange?: (filters: FilterState) => void;
-}
-
-interface FilterState {
+export interface FilterState {
   market: string;
   location: string;
   sourceType: string;
   granularity: string;
   modelType: string;
   status: string;
+}
+
+interface FilterPanelProps {
+  onFilterChange?: (filters: FilterState) => void;
 }
 
 const MARKETS = ['All', 'ERCOT', 'CAISO'];
@@ -29,6 +29,11 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     modelType: 'All',
     status: 'All'
   });
+
+  useEffect(() => {
+    const event = new CustomEvent('filterchange', { detail: filters });
+    window.dispatchEvent(event);
+  }, [filters]);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value };

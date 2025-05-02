@@ -1,119 +1,108 @@
-# GST Forecast Analytics Platform
+# GST-Forecast
 
-A modern web application for analyzing and visualizing energy storage and forecasting data, built with Astro, React, and TypeScript.
+A forecasting application for tracking and managing curve schedules and updates.
 
-## Tech Stack
+## Features
 
-### Frontend
-- **Astro** - Modern static site builder and web framework
-- **React** - UI component library
-- **TypeScript** - Type-safe JavaScript
-- **TailwindCSS** - Utility-first CSS framework
-- **Chart.js/Recharts** - Data visualization libraries
+### Calendar Views
+- **Curve Schedule Calendar** (`/curve-schedule/calendar`)
+  - Monthly view of curve update schedules
+  - Color-coded importance levels
+  - Quick access to curve details
+  - Visual indicators for update status
 
-### Backend & Data
-- **Prisma** - Next-generation ORM
-- **PostgreSQL** - Primary database
-- **Netlify** - Deployment and hosting platform
+- **Curve Tracker Calendar** (`/curve-tracker/calendar`)
+  - FullCalendar integration for advanced calendar features
+  - Health score tracking and visualization
+  - Drag-and-drop schedule updates
+  - Detailed curve information on click
 
-## Project Structure
+### Components
+- **CurveCalendarView**: Main calendar component using FullCalendar
+  - Supports day and month views
+  - Event color coding based on health scores
+  - Interactive event handling
+  - Tooltip information display
 
+- **DateFilter**: Date selection component
+  - Optional date filtering
+  - Clear date selection
+  - Error handling for invalid dates
+
+### Curve Details Page (`/curve-schedule/[id]`)
+- Detailed view of individual curves
+- Update history tracking
+- Comment system with resolution status
+- Receipt tracking
+- Status indicators
+  - Red: Overdue
+  - Yellow: Due within 7 days
+  - Green: Healthy
+
+## Current Issues
+
+### TypeScript/Linter Errors
+1. Fragment Syntax Issues (Fixed)
+   - Resolved issues with JSX fragment syntax in Astro files
+   - Implemented proper conditional logic to avoid syntax conflicts
+
+2. Remaining TypeScript Errors
+   - Variable scope issues in Astro templates
+   - Type definitions needed for curve data
+   - Implicit any types in map callbacks
+   - Missing type declarations for utility functions
+
+### Known Issues to Address
+1. Type Safety
+   - Need to add proper TypeScript interfaces for curve data
+   - Add type definitions for component props
+   - Implement proper error boundaries
+
+2. Data Fetching
+   - Add error handling for database queries
+   - Implement loading states
+   - Add retry logic for failed requests
+
+3. Component Structure
+   - Consider splitting large components
+   - Add proper prop validation
+   - Implement proper state management
+
+## Setup
+
+1. Install dependencies:
+```bash
+npm install
 ```
-src/
-├── components/     # Reusable UI components
-│   ├── common/     # Shared components
-│   ├── CurveViewer/ # Curve visualization components
-│   └── admin/      # Admin-specific components
-├── pages/          # Astro pages and routes
-├── layouts/        # Page layout components
-├── presentations/  # Presentation-specific components
-├── lib/           # Utility functions and helpers
-├── types/         # TypeScript type definitions
-├── config/        # Configuration files
-└── scripts/       # Utility scripts and data processing
+
+2. Set up environment variables:
+```bash
+cp .env.example .env
 ```
 
-## Key Features
+3. Run database migrations:
+```bash
+npx prisma migrate dev
+```
 
-1. **Curve Visualization**
-   - Interactive time-series data visualization
-   - Multiple curve comparison
-   - Real-time data updates
-   - Hover interactions and tooltips
+4. Start the development server:
+```bash
+npm run dev
+```
 
-2. **Admin Interface**
-   - Curve inventory management
-   - Data import/export capabilities
-   - User management
-
-3. **Presentation System**
-   - Custom presentation components
-   - Dynamic data binding
-   - Responsive layouts
-
-## Data Flow
-
-1. **Data Sources**
-   - PostgreSQL database via Prisma
-   - External API integrations
-   - Local data processing scripts
-
-2. **Processing Pipeline**
-   - Data ingestion through scripts
-   - Transformation and normalization
-   - Storage in PostgreSQL
-   - Real-time updates via API
-
-3. **Frontend Integration**
-   - Data fetching via Prisma client
-   - State management in React components
-   - Real-time updates and caching
-   - Visualization rendering with Chart.js/Recharts
-
-## Development
-
-### Prerequisites
-- Node.js (v18 or higher)
-- PostgreSQL
-- pnpm (recommended)
-
-### Setup
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
-3. Set up environment variables
-4. Run database migrations:
-   ```bash
-   pnpm prisma migrate dev
-   ```
-5. Start development server:
-   ```bash
-   pnpm dev
-   ```
-
-### Available Scripts
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm preview` - Preview production build
-- `pnpm update-curves` - Update default curves data
-
-## Deployment
-
-The application is deployed on Netlify with automatic deployments from the main branch. The build process includes:
-1. Prisma schema generation
-2. Astro static site generation
-3. Asset optimization
-4. Netlify deployment
+## Technologies Used
+- Astro
+- React
+- TypeScript
+- Prisma
+- FullCalendar
+- Tailwind CSS
 
 ## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Submit a pull request
-4. Ensure all tests pass
-5. Update documentation as needed
+1. Branch naming: `feature/description` or `fix/description`
+2. Commit messages should be clear and descriptive
+3. Add tests for new features
+4. Update documentation as needed
 
 ## License
 

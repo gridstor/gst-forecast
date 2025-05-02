@@ -1,9 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import FilterPanel from '../../components/curve-tracker/FilterPanel';
-import CurveTable from '../../components/curve-tracker/CurveTable';
+import CurveGrid from '../../components/curve-tracker/CurveGrid';
 import StatusSummary from '../../components/curve-tracker/StatusSummary';
-import MarketSummary from '../../components/curve-tracker/MarketSummary';
+import DateFilter from '../../components/curve-tracker/DateFilter';
 import { prisma } from '../../lib/prisma';
 
 // Fetch initial data
@@ -45,12 +45,7 @@ const dueSoonCurves = curves.filter(function(curve) {
   return daysDiff > 0 && daysDiff <= 7;
 }).length;
 
-// Calculate market distribution
-const marketDistribution = curves.reduce(function(acc, curve) {
-  const market = curve.location.split('-')[0];
-  acc[market] = (acc[market] || 0) + 1;
-  return acc;
-}, {} as Record<string, number>);
+const initialDate = null;
 ---
 
 <Layout title="Curve Schedule">
@@ -70,7 +65,7 @@ const marketDistribution = curves.reduce(function(acc, curve) {
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="mb-8">
       <StatusSummary
         client:load
         totalCurves={totalCurves}
@@ -79,27 +74,51 @@ const marketDistribution = curves.reduce(function(acc, curve) {
       />
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-      <div class="lg:col-span-3">
-        <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="mb-8">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="space-y-6">
           <FilterPanel client:load />
-          <CurveTable
-            client:load
-            initialCurves={curves}
-          />
-        </div>
-      </div>
-      <div class="lg:col-span-1">
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <MarketSummary
-            client:load
-            marketDistribution={marketDistribution}
-          />
+          <div id="date-filter-container">
+            <DateFilter
+              client:only="react"
+              selectedDate={initialDate}
+              onDateChange={(date) => {
+                const event = new CustomEvent('dateChange', { 
+                  detail: date,
+                  bubbles: true,
+                  composed: true
+                });
+                document.dispatchEvent(event);
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
+
+    <div class="mb-8">
+      <CurveGrid
+        client:load
+        curves={curves}
+        selectedDate={initialDate}
+      />
+    </div>
   </div>
 </Layout>
+
+<script>
+  let selectedDate = null;
+  const curves = JSON.parse(document.querySelector('#__ASTRO_DATA__')?.textContent || '[]');
+
+  document.addEventListener('dateChange', ((e: CustomEvent) => {
+    selectedDate = e.detail;
+    const curveGrid = document.querySelector('astro-island[component-url*="CurveGrid"]');
+    if (curveGrid) {
+      // @ts-ignore - Astro component prop update
+      curveGrid.setAttribute('props', JSON.stringify({ curves, selectedDate }));
+    }
+  }) as EventListener);
+</script>
 
 <style>
   /* Add any custom styles here */

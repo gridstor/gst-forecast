@@ -1,9 +1,11 @@
 import React from 'react';
 import type {
   CurveScheduleWithRelations,
-  CurveStatus
-} from '../../types/curve-schedule';
-import type { CurveDefinition } from '../../types/curve-types';
+  CurveStatus,
+  CurveDefinition,
+  CamelCaseCurveDefinition
+} from '../../types/curve';
+import { toCamelCase } from '../../types/curve';
 
 interface CurveDetailsProps {
   schedule: CurveScheduleWithRelations;

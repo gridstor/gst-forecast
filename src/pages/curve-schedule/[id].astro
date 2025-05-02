@@ -2,8 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { prisma } from '../../lib/prisma';
 import CurveDetails from '../../components/curve-tracker/CurveDetails';
-import type { CurveScheduleWithRelations } from '../../types/curve-schedule';
-import type { CurveDefinition } from '../../types/curve-types';
+import type { CurveScheduleWithRelations, CurveDefinition } from '../../types/curve';
 
 interface PageData {
   schedule: CurveScheduleWithRelations | null;
@@ -31,17 +30,66 @@ try {
     include: {
       updateHistory: {
         orderBy: { updateDate: 'desc' },
-        take: 5
+        take: 5,
+        select: {
+          id: true,
+          updateDate: true,
+          updatedBy: true,
+          notes: true,
+          status: true,
+          fileReference: true
+        }
       },
       comments: {
-        orderBy: { commentDate: 'desc' }
+        orderBy: { commentDate: 'desc' },
+        select: {
+          id: true,
+          userName: true,
+          commentText: true,
+          commentDate: true,
+          isResolved: true,
+          createdBy: true
+        }
       },
-      receipts: true,
+      receipts: {
+        select: {
+          id: true,
+          receivedBy: true,
+          providerContact: true,
+          fileReference: true,
+          processingStatus: true,
+          notes: true,
+          receivedDate: true
+        }
+      },
       curve: {
         include: {
           price_forecasts: {
-            orderBy: { mark_date: 'desc' },
-            take: 1
+            orderBy: { markDate: 'desc' },
+            take: 1,
+            select: {
+              id: true,
+              curveId: true,
+              markDate: true,
+              flowDateStart: true,
+              value: true,
+              units: true,
+              location: true,
+              markCase: true,
+              curveCreator: true,
+              valueType: true,
+              createdAt: true
+            }
+          },
+          display_curves: {
+            select: {
+              displayId: true,
+              curveId: true,
+              displayOrder: true,
+              displayColor: true,
+              displayLabel: true,
+              createdAt: true
+            }
           }
         }
       }
@@ -53,7 +101,7 @@ try {
   }
 
   pageData.schedule = schedule as CurveScheduleWithRelations;
-  pageData.associatedCurve = schedule.curve || null;
+  pageData.associatedCurve = schedule.curve as CurveDefinition || null;
 
 } catch (e) {
   console.error('Error fetching curve data:', e);

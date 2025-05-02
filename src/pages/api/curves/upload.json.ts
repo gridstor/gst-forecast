@@ -88,36 +88,32 @@ export const post: APIRoute = async ({ request }) => {
     // Create curve definition and price forecasts
     const curveDefinition = await prisma.curve_definitions.create({
       data: {
-        mark_type: data.curveDetails.markType,
-        mark_case: data.curveDetails.markCase,
-        mark_date: new Date(data.curveDetails.markDate),
+        markType: data.curveDetails.markType,
+        markCase: data.curveDetails.markCase,
+        markDate: new Date(data.curveDetails.markDate),
         location: data.curveDetails.location,
         market: data.curveDetails.market,
-        curve_creator: data.curveDetails.curveCreator,
-        mark_fundamentals_desc: data.curveDetails.markFundamentalsDesc,
-        mark_model_type_desc: data.curveDetails.markModelTypeDesc,
-        mark_dispatch_optimization_desc: data.curveDetails.markDispatchOptimizationDesc,
-        gridstor_purpose: data.curveDetails.gridstorPurpose,
-        value_type: data.curveDetails.valueType,
-        curve_start_date: new Date(data.curveDetails.curveStartDate),
-        curve_end_date: new Date(data.curveDetails.curveEndDate),
+        curveCreator: data.curveDetails.curveCreator,
         granularity: data.curveDetails.granularity,
+        curveStartDate: new Date(data.curveDetails.curveStartDate),
+        curveEndDate: new Date(data.curveDetails.curveEndDate),
       }
     });
 
     // Create price forecasts
+    const priceForecastsData = data.pricePoints.map(point => ({
+      curveId: curveDefinition.curve_id,
+      markCase: data.curveDetails.markCase,
+      flowDateStart: new Date(point.flow_date_start),
+      value: point.value,
+      location: data.curveDetails.location,
+      curveCreator: data.curveDetails.curveCreator,
+      valueType: data.curveDetails.valueType,
+      markDate: new Date(data.curveDetails.markDate)
+    }));
+
     await prisma.price_forecasts.createMany({
-      data: data.pricePoints.map(point => ({
-        curve_id: curveDefinition.curve_id,
-        flow_date_start: new Date(point.flow_date_start),
-        value: point.value,
-        location: data.curveDetails.location,
-        mark_case: data.curveDetails.markCase,
-        curve_creator: data.curveDetails.curveCreator,
-        value_type: data.curveDetails.valueType,
-        mark_date: new Date(data.curveDetails.markDate),
-        granularity: data.curveDetails.granularity,
-      }))
+      data: priceForecastsData
     });
 
     return new Response(JSON.stringify({ 

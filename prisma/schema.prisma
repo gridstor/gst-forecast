@@ -165,7 +165,7 @@ model CurveSchedule {
   curveId           Int?               @map("curve_id")
   
   // Relations
-  curve            curve_definitions?  @relation(fields: [curveId], references: [curve_id], onDelete: SetNull, onUpdate: Cascade)
+  curve             curve_definitions? @relation(fields: [curveId], references: [curve_id], onDelete: SetNull, onUpdate: Cascade)
   updateHistory     CurveUpdateHistory[]
   receipts          CurveReceipt[]
   comments          CurveComment[]

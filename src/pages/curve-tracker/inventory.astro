@@ -39,16 +39,16 @@ const stats = {
   bySource: curves.reduce((acc, curve) => {
     acc[curve.sourceType] = (acc[curve.sourceType] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>),
+  }, {}),
   byMarket: curves.reduce((acc, curve) => {
     const market = curve.location.split('-')[0];
     acc[market] = (acc[market] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>),
+  }, {}),
   byGranularity: curves.reduce((acc, curve) => {
     acc[curve.granularity] = (acc[curve.granularity] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>)
+  }, {})
 };
 
 <Layout title="Curve Inventory">

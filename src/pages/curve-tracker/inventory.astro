@@ -1,3 +1,4 @@
+---
 import Layout from '../../layouts/Layout.astro';
 import CurveInventoryFilter from '../../components/curve-tracker/CurveInventoryFilter';
 import CurveInventoryTable from '../../components/curve-tracker/CurveInventoryTable';
@@ -50,6 +51,7 @@ const stats = {
     return acc;
   }, {})
 };
+---
 
 <Layout title="Curve Inventory">
   <div class="container mx-auto px-4 py-8">

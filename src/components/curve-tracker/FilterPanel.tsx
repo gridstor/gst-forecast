@@ -30,15 +30,16 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     status: 'All'
   });
 
-  useEffect(() => {
-    const event = new CustomEvent('filterchange', { detail: filters });
-    window.dispatchEvent(event);
-  }, [filters]);
-
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    onFilterChange?.(newFilters);
+  };
+
+  const applyFilters = () => {
+    const event = new CustomEvent('filterchange', { detail: filters });
+    window.dispatchEvent(event);
+    
+    onFilterChange?.(filters);
   };
 
   const renderSelect = (
@@ -74,6 +75,14 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
         {renderSelect('Granularity', 'granularity', GRANULARITIES)}
         {renderSelect('Model Type', 'modelType', MODEL_TYPES)}
         {renderSelect('Status', 'status', STATUSES)}
+      </div>
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={applyFilters}
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
+          Apply Filters
+        </button>
       </div>
     </div>
   );

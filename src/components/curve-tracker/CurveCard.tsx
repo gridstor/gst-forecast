@@ -76,9 +76,9 @@ export default function CurveCard({ curve }: CurveCardProps) {
               {curve.modelType}
             </span>
           )}
-          {curve._count.comments > 0 && (
+          {curve.comments?.length > 0 && (
             <span className="px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-xs">
-              {curve._count.comments} comments
+              {curve.comments.length} comments
             </span>
           )}
         </div>

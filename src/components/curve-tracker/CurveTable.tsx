@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { CurveSchedule, CurveUpdateHistory, CurveReceipt } from '@prisma/client';
+import type { CurveScheduleWithRelations, CurveUpdateHistory, CurveReceipt } from '../../types/curve';
 import type { FilterState } from './FilterPanel';
 
 interface CurveTableProps {
-  initialCurves: (CurveSchedule & {
+  initialCurves: (CurveScheduleWithRelations & {
     updateHistory: CurveUpdateHistory[];
     receipts: CurveReceipt[];
     _count: {
@@ -13,7 +13,7 @@ interface CurveTableProps {
 }
 
 interface SortConfig {
-  key: keyof CurveSchedule;
+  key: keyof CurveScheduleWithRelations;
   direction: 'asc' | 'desc';
 }
 
@@ -66,13 +66,15 @@ export default function CurveTable({ initialCurves }: CurveTableProps) {
     return () => window.removeEventListener('filterchange', handleFilterChange as EventListener);
   }, [curves]);
 
-  const handleSort = (key: keyof CurveSchedule) => {
+  const handleSort = (key: keyof CurveScheduleWithRelations) => {
     const direction = 
       sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
     
     const sortedCurves = [...filteredCurves].sort((a, b) => {
-      if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
-      if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+      const aValue = a[key] ?? '';
+      const bValue = b[key] ?? '';
+      if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return direction === 'asc' ? 1 : -1;
       return 0;
     });
 
@@ -80,22 +82,14 @@ export default function CurveTable({ initialCurves }: CurveTableProps) {
     setFilteredCurves(sortedCurves);
   };
 
-  const getStatusColor = (curve: CurveSchedule) => {
+  const getStatusColor = (curve: CurveScheduleWithRelations) => {
     const dueDate = curve.nextUpdateDue;
-    if (!dueDate) return 'bg-gray-100';
-    
-    try {
-      const now = new Date();
-      const daysDiff = Math.ceil(
-        (dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24)
-      );
-
-      if (daysDiff < 0) return 'bg-red-100';
-      if (daysDiff <= 7) return 'bg-yellow-100';
-      return 'bg-green-100';
-    } catch {
-      return 'bg-gray-100';
-    }
+    if (!dueDate || !(dueDate instanceof Date)) return 'bg-gray-100';
+    const now = new Date();
+    const daysDiff = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+    if (daysDiff < 0) return 'bg-red-100';
+    if (daysDiff <= 7) return 'bg-yellow-100';
+    return 'bg-green-100';
   };
 
   const formatDate = (date: Date | null) => {

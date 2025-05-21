@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { EventInput } from '@fullcalendar/core';
+import type { EventInput } from '@fullcalendar/core';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 

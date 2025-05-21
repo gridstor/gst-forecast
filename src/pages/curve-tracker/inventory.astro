@@ -37,16 +37,16 @@ const curves = await prisma.curveSchedule.findMany({
 // Calculate statistics
 const stats = {
   total: curves.length,
-  bySource: curves.reduce((acc, curve) => {
+  bySource: curves.reduce((acc: { [key: string]: number }, curve) => {
     acc[curve.sourceType] = (acc[curve.sourceType] || 0) + 1;
     return acc;
   }, {}),
-  byMarket: curves.reduce((acc, curve) => {
+  byMarket: curves.reduce((acc: { [key: string]: number }, curve) => {
     const market = curve.location.split('-')[0];
     acc[market] = (acc[market] || 0) + 1;
     return acc;
   }, {}),
-  byGranularity: curves.reduce((acc, curve) => {
+  byGranularity: curves.reduce((acc: { [key: string]: number }, curve) => {
     acc[curve.granularity] = (acc[curve.granularity] || 0) + 1;
     return acc;
   }, {})

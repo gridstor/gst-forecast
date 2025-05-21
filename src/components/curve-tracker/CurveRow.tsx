@@ -27,19 +27,33 @@ export const CurveRow: React.FC<CurveRowProps> = ({ curve, streaks, onMarkUpdate
   return (
     <div className="flex items-center p-4 border-b hover:bg-gray-50">
       <div className="flex-1">
-        <h3 className="font-medium group flex items-center">
+        <h3 className="font-medium group flex items-center whitespace-normal break-words text-base md:text-lg">
           <button 
             onClick={handleViewCurve}
-            className="hover:text-blue-600 focus:outline-none focus:text-blue-600"
+            className="hover:text-blue-600 focus:outline-none focus:text-blue-600 text-left w-full"
+            title={curve.description}
           >
-            {curve.description}
+            {curve.description
+              ? curve.description
+                  .split('_')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                  .join(' ')
+              : ''}
             <span className="ml-2 opacity-0 group-hover:opacity-100 text-blue-500">
               View →
             </span>
           </button>
         </h3>
-        <div className="text-sm text-gray-500">
-          {curve.mark_type} • {curve.location} • {curve.granularity}
+        <div className="text-sm text-gray-500 whitespace-normal break-words">
+          <span title={curve.mark_type}>
+            {curve.mark_type
+              ? curve.mark_type
+                  .split('_')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                  .join(' ')
+              : ''}
+          </span>
+          {' • '}{curve.location} • {curve.granularity}
         </div>
         <div className="text-xs text-gray-400 mt-1">
           Last updated: {new Date(curve.last_received_date).toLocaleDateString()}

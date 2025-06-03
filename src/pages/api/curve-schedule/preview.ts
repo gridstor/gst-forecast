@@ -15,7 +15,6 @@ export const POST: APIRoute = async ({ request }) => {
       curveType,
       batteryDuration = 'UNKNOWN',
       scenario = 'BASE',
-      degradationType = 'NONE',
       
       // Instance Template fields
       deliveryPeriodStart,
@@ -56,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
         ${deliveryPeriodEnd}::TIMESTAMPTZ,
         ${batteryDuration}::VARCHAR,
         ${scenario}::VARCHAR,
-        ${degradationType}::VARCHAR,
+        ${'NONE'}::VARCHAR,
         ${degradationStartDate}::DATE,
         ${granularity}::VARCHAR,
         ${instanceVersion}::VARCHAR,

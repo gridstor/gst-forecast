@@ -31,7 +31,7 @@ class EnhancedScheduleForm {
     
     // Custom input elements
     this.customDropdowns = [
-      'market', 'curveType', 'batteryDuration', 'scenario', 'degradationType'
+      'market', 'curveType', 'batteryDuration', 'scenario'
     ];
     
     // Frequency and date elements
@@ -62,6 +62,12 @@ class EnhancedScheduleForm {
     this.deliveryStart.addEventListener('change', () => this.validateDeliveryPeriod());
     this.deliveryEnd.addEventListener('change', () => this.validateDeliveryPeriod());
     this.degradationDate.addEventListener('change', () => this.validateDegradationDate());
+    
+    // Degradation option handlers
+    const degradationRadios = document.getElementsByName('degradationOption');
+    degradationRadios.forEach(radio => {
+      radio.addEventListener('change', () => this.handleDegradationOptionChange());
+    });
     
     // Button handlers
     this.previewBtn.addEventListener('click', () => this.handlePreview());
@@ -191,6 +197,7 @@ class EnhancedScheduleForm {
     // Standard form fields
     for (const [key, value] of formData.entries()) {
       if (key.endsWith('Custom')) continue; // Skip custom input fields
+      if (key === 'degradationOption') continue; // Skip radio button field
       
       if (key === 'notificationEmails' && value) {
         data[key] = value.split(',').map(email => email.trim()).filter(email => email);
@@ -201,8 +208,22 @@ class EnhancedScheduleForm {
       }
     }
     
+    // Handle degradation option
+    const degradationOption = document.querySelector('input[name="degradationOption"]:checked').value;
+    if (degradationOption === 'date' && data.degradationStartDate) {
+      // Keep the degradationStartDate as is
+    } else {
+      // No degradation selected, clear the date
+      data.degradationStartDate = null;
+    }
+    
+    // Remove degradationType since we're not using it anymore
+    delete data.degradationType;
+    
     // Handle custom dropdown values
     this.customDropdowns.forEach(field => {
+      if (field === 'degradationType') return; // Skip degradationType
+      
       const select = document.getElementById(field);
       const customInput = document.getElementById(field + 'Custom');
       
@@ -322,7 +343,6 @@ class EnhancedScheduleForm {
           <div><strong>Type:</strong> ${curveDefinition.curveType} ${curveDefinition.customFields?.curveType ? '(Custom)' : ''}</div>
           <div><strong>Battery:</strong> ${curveDefinition.batteryDuration} ${curveDefinition.customFields?.batteryDuration ? '(Custom)' : ''}</div>
           <div><strong>Scenario:</strong> ${curveDefinition.scenario} ${curveDefinition.customFields?.scenario ? '(Custom)' : ''}</div>
-          <div><strong>Degradation:</strong> ${curveDefinition.degradationType} ${curveDefinition.customFields?.degradationType ? '(Custom)' : ''}</div>
         </div>
       </div>
 
@@ -451,6 +471,22 @@ class EnhancedScheduleForm {
 
   hideError() {
     this.errorMessage.classList.add('hidden');
+  }
+
+  handleDegradationOptionChange() {
+    const degradationOption = document.querySelector('input[name="degradationOption"]:checked').value;
+    const degradationDateContainer = document.getElementById('degradationDateContainer');
+    const degradationDateInput = document.getElementById('degradationStartDate');
+    
+    if (degradationOption === 'date') {
+      degradationDateContainer.classList.remove('hidden');
+      degradationDateInput.required = false; // Optional but encouraged when selected
+    } else {
+      degradationDateContainer.classList.add('hidden');
+      degradationDateInput.required = false;
+      degradationDateInput.value = ''; // Clear the date when "No degradation" is selected
+      this.validateDegradationDate(); // Revalidate to hide any error messages
+    }
   }
 }
 

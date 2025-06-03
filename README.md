@@ -107,3 +107,65 @@ npm run dev
 ## License
 
 [Add your license information here] 
+
+## Code Architecture
+
+### Key File Structure
+
+```
+src/
+├── pages/
+│   ├── curve-schedule/
+│   │   ├── index.astro      # Main schedule list
+│   │   ├── calendar.astro   # Basic calendar view
+│   │   └── [id].astro       # Individual curve details
+│   ├── curve-tracker/
+│   │   ├── inventory.astro  # Curve inventory management
+│   │   └── calendar.astro   # Advanced calendar
+│   └── api/curves/          # API endpoints
+├── components/curve-tracker/
+│   ├── CurveCalendarView.tsx # FullCalendar component
+│   ├── CurveDetails.tsx      # Detailed curve view
+│   ├── CurveGrid.tsx         # Grid layout
+│   └── [other components]
+└── types/
+    └── curve.ts              # TypeScript definitions
+```
+
+### Data Model (Prisma Schema)
+
+```typescript
+// Main entities:
+- CurveSchedule         # Schedule tracking
+- CurveDefinition       # Curve metadata
+- CurveUpdateHistory    # Update logs
+- CurveReceipt         # Receipt tracking
+- CurveComment         # Comments/notes
+- PriceForecast        # Actual price data
+```
+
+### Key Integration Points
+
+1. **Database Layer**: Prisma ORM connects to PostgreSQL
+2. **API Routes**: Astro pages in `/api` handle data operations
+3. **Component Communication**: Custom events and props
+4. **State Management**: Local component state with React hooks
+5. **Calendar Integration**: FullCalendar for advanced scheduling UI
+
+### Current Implementation Status
+
+**Fully Functional:**
+- Basic CRUD operations for schedules
+- Calendar views (both basic and advanced)
+- Status tracking and health scores
+- Comment system
+- Update history
+
+**Needs Work:**
+- Complete TypeScript type coverage
+- Error boundaries and loading states
+- Data import/export functionality (buttons exist but routes missing)
+- Comprehensive testing
+- Better state management solution
+
+The curve scheduler appears to be the central feature of your application, providing a comprehensive system for tracking when market curve data needs updating and managing the workflow around those updates. 

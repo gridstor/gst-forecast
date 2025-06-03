@@ -76,7 +76,14 @@ const stats = {
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
       <div class="lg:col-span-3">
         <div class="bg-white rounded-lg shadow-md">
-          <CurveInventoryFilter client:load />
+          <CurveInventoryFilter client:load 
+            onFilterChange={(filters) => {
+              // This function is handled via custom events now
+            }}
+            onGroupingChange={(groupBy) => {
+              // This function is handled via custom events now
+            }}
+          />
           <CurveInventoryTable
             client:load
             initialCurves={curves}
@@ -93,4 +100,22 @@ const stats = {
       </div>
     </div>
   </div>
-</Layout> 
+</Layout>
+
+<script>
+  // Add client-side functionality to ensure components can communicate
+  document.addEventListener('DOMContentLoaded', () => {
+    // Load saved filters from localStorage if they exist
+    const savedFilters = localStorage.getItem('curveInventoryFilters');
+    if (savedFilters) {
+      try {
+        const filters = JSON.parse(savedFilters);
+        // Dispatch the saved filters to update the table
+        const event = new CustomEvent('curve-inventory-filter-change', { detail: filters });
+        window.dispatchEvent(event);
+      } catch (e) {
+        console.error('Error loading saved filters:', e);
+      }
+    }
+  });
+</script> 

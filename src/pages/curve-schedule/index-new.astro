@@ -1,0 +1,195 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FilterPanel from '../../components/curve-tracker/FilterPanel';
+import CurveGrid from '../../components/curve-tracker/CurveGrid';
+import StatusSummary from '../../components/curve-tracker/StatusSummary';
+import DateFilter from '../../components/curve-tracker/DateFilter';
+import { prisma } from '../../lib/prisma';
+
+// Query from new architecture tables
+const curveSchedules = await prisma.$queryRaw`
+  SELECT 
+    cs.id,
+    cs."curve_definition_id" as "curveId",
+    cd."curveName" as "curvePattern",
+    cd."location",
+    cd."market",
+    cd."product" as "sourceType",
+    cd."metadata"->>'legacy_curve_creator' as "provider",
+    cd."granularity",
+    cs."frequency" as "updateFrequency",
+    cs."dayOfMonth" as "updateDay",
+    cs."responsibleTeam",
+    cs."importance",
+    cs."isActive",
+    -- Calculate next update due based on frequency
+    CASE 
+      WHEN cs."frequency" = 'DAILY' THEN CURRENT_DATE + INTERVAL '1 day'
+      WHEN cs."frequency" = 'WEEKLY' THEN 
+        DATE_TRUNC('week', CURRENT_DATE) + INTERVAL '1 week' + (cs."dayOfWeek" || ' days')::INTERVAL
+      WHEN cs."frequency" = 'MONTHLY' THEN 
+        DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month' + ((cs."dayOfMonth" - 1) || ' days')::INTERVAL
+      ELSE CURRENT_DATE + INTERVAL '30 days'
+    END as "nextUpdateDue",
+    ci."forecastRunDate" as "lastUpdatedDate",
+    cs."createdAt",
+    cs."updatedAt"
+  FROM "CurveSchedule" cs
+  JOIN "CurveDefinition" cd ON cd.id = cs."curve_definition_id"
+  LEFT JOIN LATERAL (
+    SELECT "forecastRunDate" 
+    FROM "CurveInstance" ci
+    WHERE ci."curve_definition_id" = cs."curve_definition_id"
+      AND ci.status = 'ACTIVE'
+    ORDER BY ci."forecastRunDate" DESC
+    LIMIT 1
+  ) ci ON true
+  ORDER BY cd."market", cd."location", cd."curveName"
+`;
+
+// Get counts from compatibility view
+const compatCurves = await prisma.$queryRaw`
+  SELECT COUNT(*) as count FROM curve_definitions_compat
+`;
+const totalCurves = Number(compatCurves[0]?.count || 0);
+
+// Calculate summary statistics
+const now = new Date();
+const overdueCurves = curveSchedules.filter(schedule => {
+  const nextDue = new Date(schedule.nextUpdateDue);
+  return nextDue < now;
+}).length;
+
+const dueSoonCurves = curveSchedules.filter(schedule => {
+  const nextDue = new Date(schedule.nextUpdateDue);
+  const daysDiff = (nextDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+  return daysDiff >= 0 && daysDiff <= 7;
+}).length;
+
+// Transform data for existing components
+const transformedCurves = curveSchedules.map(schedule => ({
+  id: schedule.id,
+  curveId: schedule.curveId,
+  curvePattern: schedule.curvePattern,
+  location: schedule.location,
+  market: schedule.market,
+  sourceType: schedule.sourceType,
+  provider: schedule.provider || 'Unknown',
+  granularity: schedule.granularity,
+  updateFrequency: schedule.updateFrequency,
+  updateDay: schedule.updateDay,
+  responsibleTeam: schedule.responsibleTeam,
+  description: `${schedule.market} ${schedule.sourceType} at ${schedule.location}`,
+  importance: schedule.importance,
+  nextUpdateDue: schedule.nextUpdateDue,
+  lastUpdatedDate: schedule.lastUpdatedDate,
+  createdAt: schedule.createdAt,
+  updatedAt: schedule.updatedAt,
+  isActive: true,
+  providerContact: null,
+  modelType: null,
+  // Mock data for component compatibility
+  updateHistory: [],
+  receipts: [],
+  comments: [],
+  _count: { comments: 0 }
+}));
+
+const initialDate = null;
+---
+
+<Layout title="Curve Schedule - New Architecture">
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold">Curve Schedule</h1>
+        <p class="mt-2 text-gray-600">New architecture with versioning and freshness tracking</p>
+      </div>
+      <div class="space-x-4">
+        <a
+          href="/curve-schedule/create-enhanced"
+          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          Create Schedules
+        </a>
+        <a
+          href="/curve-schedule/calendar"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          View Calendar
+        </a>
+      </div>
+    </div>
+
+    {/* Migration Notice */}
+    <div class="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      <div class="flex">
+        <svg class="w-5 h-5 text-yellow-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <div class="flex-1">
+          <h3 class="text-sm font-medium text-yellow-800">New Architecture Active</h3>
+          <div class="mt-1 text-sm text-yellow-700">
+            This page is using the new curve instance architecture. Data has been migrated from the legacy system.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <StatusSummary
+        client:load
+        totalCurves={totalCurves}
+        overdueCurves={overdueCurves}
+        dueSoonCurves={dueSoonCurves}
+      />
+    </div>
+
+    <div class="mb-8">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="space-y-6">
+          <FilterPanel client:load />
+          <div id="date-filter-container">
+            <DateFilter
+              client:only="react"
+              selectedDate={initialDate}
+              onDateChange={(date) => {
+                const event = new CustomEvent('dateChange', { 
+                  detail: date,
+                  bubbles: true,
+                  composed: true
+                });
+                document.dispatchEvent(event);
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <CurveGrid
+        client:load
+        curves={transformedCurves as any}
+        selectedDate={initialDate}
+      />
+    </div>
+  </div>
+</Layout>
+
+<script>
+  let selectedDate = null;
+  const curves = JSON.parse(document.querySelector('#__ASTRO_DATA__')?.textContent || '[]');
+
+  document.addEventListener('dateChange', ((e: CustomEvent) => {
+    selectedDate = e.detail;
+    const curveGrid = document.querySelector('astro-island[component-url*="CurveGrid"]');
+    if (curveGrid) {
+      // @ts-ignore - Astro component prop update
+      curveGrid.setAttribute('props', JSON.stringify({ curves, selectedDate }));
+    }
+  }) as EventListener);
+</script> 

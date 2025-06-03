@@ -1,10 +1,15 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "Forecasts"]
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -28,6 +33,7 @@ model caiso_long_term_forecasts_annual {
   valueType                    String?
 
   @@ignore
+  @@schema("public")
 }
 
 model curve_definitions {
@@ -49,7 +55,6 @@ model curve_definitions {
   granularity                     String?           @db.VarChar
   display_curves                  display_curves[]
   price_forecasts                 price_forecasts[]
-  schedules                       CurveSchedule[]
 
   @@index([curve_start_date, curve_end_date], map: "idx_curve_dates")
   @@index([location], map: "idx_curve_location")
@@ -58,6 +63,7 @@ model curve_definitions {
   @@index([mark_type], map: "idx_curve_mark_type")
   @@index([market], map: "idx_curve_market")
   @@index([market, location], map: "idx_curve_market_location")
+  @@schema("public")
 }
 
 model display_curves {
@@ -73,6 +79,7 @@ model display_curves {
   @@id([display_id, curve_id])
   @@index([curve_id], map: "idx_display_curves_curve_id")
   @@index([display_id], map: "idx_display_curves_display_id")
+  @@schema("public")
 }
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
@@ -96,6 +103,7 @@ model ercot_long_term_forecasts_annual {
   valueType                    String?
 
   @@ignore
+  @@schema("public")
 }
 
 model price_forecasts {
@@ -120,6 +128,7 @@ model price_forecasts {
   @@index([mark_case], map: "idx_price_mark_case")
   @@index([mark_date], map: "idx_price_mark_date")
   @@index([value_type], map: "idx_price_value_type")
+  @@schema("public")
 }
 
 model website_display {
@@ -128,6 +137,8 @@ model website_display {
   description  String?   @db.VarChar
   created_at   DateTime? @default(now()) @db.Timestamp(6)
   updated_at   DateTime? @default(now()) @db.Timestamp(6)
+
+  @@schema("public")
 }
 
 model website_displays {
@@ -137,90 +148,416 @@ model website_displays {
   created_at     DateTime?        @default(now()) @db.Timestamp(6)
   updated_at     DateTime?        @default(now()) @db.Timestamp(6)
   display_curves display_curves[]
+
+  @@schema("public")
 }
 
-// Curve Schedule Model
+// ========== ENUMS ==========
+
+enum InstanceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  SUPERSEDED
+  EXPIRED
+  FAILED
+
+  @@schema("Forecasts")
+}
+
+enum RunType {
+  SCHEDULED
+  MANUAL
+  TRIGGERED
+  BACKFILL
+  CORRECTION
+
+  @@schema("Forecasts")
+}
+
+enum InputType {
+  WEATHER_FORECAST
+  WEATHER_ACTUAL
+  DEMAND_FORECAST
+  DEMAND_ACTUAL
+  GENERATION_FORECAST
+  GENERATION_ACTUAL
+  TRANSMISSION_LIMITS
+  FUEL_PRICES
+  HYDRO_CONDITIONS
+  RENEWABLE_FORECAST
+  MARKET_FUNDAMENTALS
+  REGULATORY_CHANGES
+  LEGACY_MIGRATION
+  OTHER
+
+  @@schema("Forecasts")
+}
+
+enum UsageType {
+  PRIMARY
+  VALIDATION
+  REFERENCE
+  FALLBACK
+
+  @@schema("Forecasts")
+}
+
+enum CurveType {
+  REVENUE
+  REVENUE_OTHER
+  ENERGY
+  ENERGY_ARB
+  AS
+  TB2
+  TB4
+  RA
+  DA
+  RT
+  OTHER
+
+  @@schema("Forecasts")
+}
+
+enum BatteryDuration {
+  TWO_H           @map("2H")
+  TWO_POINT_SIX_H @map("2.6H")
+  FOUR_H          @map("4H")
+  EIGHT_H         @map("8H")
+  UNKNOWN
+  OTHER
+
+  @@schema("Forecasts")
+}
+
+enum ScenarioType {
+  BASE
+  LOW
+  HIGH
+  P50
+  P90
+  P10
+  DOWNSIDE
+  UPSIDE
+  WORST
+  BEST
+  ACTUAL
+  TARGET
+  LOWER_BOUND
+  UPPER_BOUND
+  OTHER
+
+  @@schema("Forecasts")
+}
+
+enum DegradationType {
+  NONE
+  YEAR_1
+  YEAR_2
+  YEAR_5
+  YEAR_10
+  YEAR_15
+  YEAR_20
+  CUSTOM
+  OTHER
+
+  @@schema("Forecasts")
+}
+
+enum ScheduleType {
+  REGULAR
+  AD_HOC
+  TRIGGERED
+  EVENT_BASED
+
+  @@schema("Forecasts")
+}
+
+enum UpdateFrequency {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUALLY
+  ON_DEMAND
+
+  @@schema("Forecasts")
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PARTIAL
+
+  @@schema("Forecasts")
+}
+
+enum ChangeType {
+  INITIAL
+  UPDATE
+  CORRECTION
+  REVISION
+  FINAL
+  ROLLBACK
+
+  @@schema("Forecasts")
+}
+
+// ========== MODELS ==========
+
+model CurveDefinition {
+  id              Int             @id @default(autoincrement())
+  curveName       String          @unique @db.VarChar(255)
+  market          String          @db.VarChar(50)
+  location        String          @db.VarChar(100)
+  product         String          @db.VarChar(100)
+  curveType       CurveType
+  batteryDuration BatteryDuration @default(UNKNOWN)
+  scenario        ScenarioType    @default(BASE)
+  degradationType DegradationType @default(NONE)
+  commodity       String          @default("Energy") @db.VarChar(50)
+  units           String          @default("$/MWh") @db.VarChar(50)
+  timezone        String          @default("UTC") @db.VarChar(50)
+  description     String?         @db.Text
+  isActive        Boolean         @default(true)
+  metadata        Json?           @db.JsonB
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+  createdBy       String?         @db.VarChar(100)
+
+  // Relations
+  instances     CurveInstance[]
+  schedules     CurveSchedule[]
+  defaultInputs DefaultCurveInput[]
+
+  @@index([market, location])
+  @@index([curveType, batteryDuration, scenario])
+  @@index([isActive])
+  @@index([createdAt])
+  @@schema("Forecasts")
+}
+
+model CurveInstance {
+  id                  Int            @id @default(autoincrement())
+  curveDefinitionId   Int
+  instanceVersion     String         @db.VarChar(50)
+  granularity         String         @db.VarChar(20)
+  deliveryPeriodStart DateTime       @db.Timestamptz(6)
+  deliveryPeriodEnd   DateTime       @db.Timestamptz(6)
+  forecastRunDate     DateTime       @db.Timestamptz(6)
+  freshnessStartDate  DateTime       @db.Timestamptz(6)
+  freshnessEndDate    DateTime?      @db.Timestamptz(6)
+  status              InstanceStatus @default(DRAFT)
+  modelType           String?        @db.VarChar(100)
+  modelVersion        String?        @db.VarChar(50)
+  runType             RunType        @default(MANUAL)
+  createdBy           String         @db.VarChar(100)
+  approvedBy          String?        @db.VarChar(100)
+  approvedAt          DateTime?      @db.Timestamptz(6)
+  notes               String?        @db.Text
+  metadata            Json?          @db.JsonB
+  createdAt           DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
+
+  // Relations
+  curveDefinition  CurveDefinition     @relation(fields: [curveDefinitionId], references: [id])
+  priceForecasts   PriceForecast[]
+  inputLineage     CurveInputLineage[]
+  versionHistory   VersionHistory[]    @relation("CurrentInstance")
+  previousVersions VersionHistory[]    @relation("PreviousInstance")
+  qualityMetrics   QualityMetric[]
+
+  @@unique([curveDefinitionId, instanceVersion])
+  @@index([curveDefinitionId])
+  @@index([status])
+  @@index([freshnessStartDate, freshnessEndDate])
+  @@index([deliveryPeriodStart, deliveryPeriodEnd])
+  @@index([forecastRunDate])
+  @@index([curveDefinitionId, granularity])
+  @@schema("Forecasts")
+}
+
+model PriceForecast {
+  id              Int      @id @default(autoincrement())
+  curveInstanceId Int
+  timestamp       DateTime @db.Timestamptz(6)
+  value           Float
+  confidence      Float?
+  valueHigh       Float?
+  valueLow        Float?
+  valueP90        Float?
+  valueP10        Float?
+  flags           String[]
+
+  // Relations
+  curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([curveInstanceId, timestamp])
+  @@index([curveInstanceId])
+  @@index([timestamp])
+  @@index([curveInstanceId, timestamp])
+  @@schema("Forecasts")
+}
+
+model CurveInputLineage {
+  id               Int       @id @default(autoincrement())
+  curveInstanceId  Int
+  inputType        InputType
+  inputSource      String    @db.VarChar(100)
+  inputIdentifier  String    @db.VarChar(255)
+  inputVersion     String?   @db.VarChar(50)
+  inputTimestamp   DateTime  @db.Timestamptz(6)
+  usageType        UsageType
+  transformApplied String?   @db.Text
+  weight           Float?
+  metadata         Json?     @db.JsonB
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  // Relations
+  curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
+
+  @@index([curveInstanceId])
+  @@index([inputType])
+  @@index([inputSource])
+  @@schema("Forecasts")
+}
+
+model VersionHistory {
+  id                 Int        @id @default(autoincrement())
+  curveInstanceId    Int
+  previousInstanceId Int?
+  changeType         ChangeType
+  changeReason       String     @db.Text
+  changedBy          String     @db.VarChar(100)
+  changedAt          DateTime   @default(now()) @db.Timestamptz(6)
+  changeDetails      Json?      @db.JsonB
+
+  // Relations
+  curveInstance    CurveInstance  @relation("CurrentInstance", fields: [curveInstanceId], references: [id])
+  previousInstance CurveInstance? @relation("PreviousInstance", fields: [previousInstanceId], references: [id])
+
+  @@index([curveInstanceId])
+  @@index([previousInstanceId])
+  @@schema("Forecasts")
+}
+
+model ScheduleRun {
+  id               Int       @id @default(autoincrement())
+  scheduleId       Int
+  runDate          DateTime  @db.Timestamptz(6)
+  runType          RunType   @default(SCHEDULED)
+  instancesCreated Int       @default(0)
+  status           String    @default("PENDING") @db.VarChar(50)
+  startedAt        DateTime? @db.Timestamptz(6)
+  completedAt      DateTime? @db.Timestamptz(6)
+  metadata         Json?     @db.JsonB
+
+  // Relations
+  schedule CurveSchedule @relation(fields: [scheduleId], references: [id])
+
+  @@index([scheduleId])
+  @@index([runDate])
+  @@index([status])
+  @@schema("Forecasts")
+}
+
+model QualityMetric {
+  id              Int      @id @default(autoincrement())
+  curveInstanceId Int
+  metricType      String   @db.VarChar(50)
+  metricValue     Float
+  comparisonType  String?  @db.VarChar(50)
+  comparisonId    Int?
+  calculatedAt    DateTime @default(now()) @db.Timestamptz(6)
+  metadata        Json?    @db.JsonB
+
+  // Relations
+  curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id])
+
+  @@index([curveInstanceId])
+  @@index([metricType])
+  @@schema("Forecasts")
+}
+
+model DefaultCurveInput {
+  id                Int       @id @default(autoincrement())
+  curveDefinitionId Int
+  inputType         InputType
+  inputSource       String    @db.VarChar(100)
+  inputIdentifier   String    @db.VarChar(255)
+  isRequired        Boolean   @default(true)
+  defaultWeight     Float?
+  validFrom         DateTime  @default(now()) @db.Timestamptz(6)
+  validUntil        DateTime? @db.Timestamptz(6)
+
+  // Relations
+  curveDefinition CurveDefinition @relation(fields: [curveDefinitionId], references: [id])
+
+  @@index([curveDefinitionId])
+  @@schema("Forecasts")
+}
+
 model CurveSchedule {
-  id                Int                @id @default(autoincrement()) @map("schedule_id")
-  curvePattern      String             @map("curve_pattern") @db.VarChar(100)
-  location          String             @db.VarChar(100)
-  sourceType        String             @map("source_type") @db.VarChar(50)
-  provider          String?            @db.VarChar(100)
-  granularity       String             @db.VarChar(20)
-  modelType         String?            @map("model_type") @db.VarChar(50)
-  updateFrequency   String             @map("update_frequency") @db.VarChar(50)
-  updateDay         Int?               @map("update_day")
-  responsibleTeam   String             @map("responsible_team") @db.VarChar(100)
-  description       String?            @db.Text
-  importance        Int
-  lastReceivedDate  DateTime?          @map("last_received_date") @db.Date
-  nextExpectedDate  DateTime?          @map("next_expected_date") @db.Date
-  providerContact   String?            @map("provider_contact") @db.VarChar(100)
-  lastUpdatedDate   DateTime?          @map("last_updated_date") @db.Date
-  nextUpdateDue     DateTime?          @map("next_update_due") @db.Date
-  freshnessStartDate DateTime?         @map("freshness_start_date") @db.Date
-  freshnessEndDate   DateTime?         @map("freshness_end_date") @db.Date
-  createdAt         DateTime           @default(now()) @map("created_at")
-  updatedAt         DateTime           @updatedAt @map("updated_at")
-  curveId           Int?               @map("curve_id")
-  
-  // Relations
-  curve             curve_definitions? @relation(fields: [curveId], references: [curve_id], onDelete: SetNull, onUpdate: Cascade)
-  updateHistory     CurveUpdateHistory[]
-  receipts          CurveReceipt[]
-  comments          CurveComment[]
+  id                 Int             @id @default(autoincrement())
+  curveDefinitionId  Int
+  scheduleType       ScheduleType    @default(REGULAR)
+  frequency          UpdateFrequency
+  dayOfWeek          Int?
+  dayOfMonth         Int?
+  timeOfDay          DateTime        @default("1970-01-01T09:00:00Z") @db.Time
+  leadTimeDays       Int             @default(0)
+  freshnessDays      Int             @default(30)
+  responsibleTeam    String          @default("Market Analysis") @db.VarChar(100)
+  notificationEmails String[]
+  importance         Int             @default(3)
+  isActive           Boolean         @default(true)
+  validFrom          DateTime        @default(now()) @db.Timestamptz(6)
+  validUntil         DateTime?       @db.Timestamptz(6)
+  metadata           Json?           @db.JsonB
+  createdAt          DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
 
-  @@index([curveId], map: "idx_curve_schedule_curve_id")
-  @@map("curve_schedule")
+  // Relations
+  curveDefinition   CurveDefinition         @relation(fields: [curveDefinitionId], references: [id])
+  scheduleRuns      ScheduleRun[]
+  instanceTemplates CurveInstanceTemplate[]
+
+  @@index([curveDefinitionId])
+  @@index([isActive, validFrom, validUntil])
+  @@index([frequency])
+  @@schema("Forecasts")
 }
 
-// Curve Update History Model
-model CurveUpdateHistory {
-  id          Int           @id @default(autoincrement()) @map("history_id")
-  scheduleId  Int           @map("schedule_id")
-  updateDate  DateTime      @map("update_date")
-  updatedBy   String        @map("updated_by") @db.VarChar(100)
-  notes       String?       @db.Text
-  status      String        @db.VarChar(50)
-  fileReference String?     @map("file_reference") @db.VarChar(255)
-  createdAt   DateTime      @default(now()) @map("created_at")
+model CurveInstanceTemplate {
+  id                    Int      @id @default(autoincrement())
+  scheduleId            Int
+  deliveryPeriodStart   DateTime @db.Timestamptz(6)
+  deliveryPeriodEnd     DateTime @db.Timestamptz(6)
+  degradationStartDate  DateTime? @db.Date
+  granularity           String   @db.VarChar(50)
+  instanceVersion       String   @default("v1") @db.VarChar(50)
+  
+  // Custom enum values (stored as TEXT when not matching predefined enums)
+  customCurveType       String?  @db.VarChar(100)
+  customBatteryDuration String?  @db.VarChar(50)
+  customScenario        String?  @db.VarChar(100)
+  customDegradeType     String?  @db.VarChar(100)
+  
+  // Metadata
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  createdBy             String?  @db.VarChar(100)
   
   // Relations
-  schedule    CurveSchedule @relation(fields: [scheduleId], references: [id])
+  schedule              CurveSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
 
-  @@map("curve_update_history")
-}
-
-// Curve Receipt Model
-model CurveReceipt {
-  id              Int           @id @default(autoincrement()) @map("receipt_id")
-  scheduleId      Int           @map("schedule_id")
-  receivedDate    DateTime      @map("received_date") @db.Date
-  receivedBy      String        @map("received_by") @db.VarChar(100)
-  providerContact String?       @map("provider_contact") @db.VarChar(100)
-  fileReference   String?       @map("file_reference") @db.VarChar(255)
-  processingStatus String       @map("processing_status") @db.VarChar(50)
-  notes           String?       @db.Text
-  createdAt       DateTime      @default(now()) @map("created_at")
-  
-  // Relations
-  schedule        CurveSchedule @relation(fields: [scheduleId], references: [id])
-
-  @@map("curve_receipt")
-}
-
-// Curve Comment Model
-model CurveComment {
-  id          Int           @id @default(autoincrement()) @map("comment_id")
-  scheduleId  Int           @map("schedule_id")
-  userName    String        @map("user_name") @db.VarChar(100)
-  commentText String        @map("comment_text") @db.Text
-  commentDate DateTime      @default(now()) @map("comment_date")
-  isResolved  Boolean       @default(false) @map("is_resolved")
-  createdAt   DateTime      @default(now()) @map("created_at")
-  
-  // Relations
-  schedule    CurveSchedule @relation(fields: [scheduleId], references: [id])
-
-  @@map("curve_comment")
+  @@index([scheduleId])
+  @@index([deliveryPeriodStart, deliveryPeriodEnd])
+  @@schema("Forecasts")
 }

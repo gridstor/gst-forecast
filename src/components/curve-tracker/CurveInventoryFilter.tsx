@@ -69,8 +69,7 @@ export default function CurveInventoryFilter({ onFilterChange, onGroupingChange 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
-    onFilterChange?.(newFilters);
-
+    
     // Update location options based on market selection
     if (key === 'market' && value !== 'All') {
       const marketPrefix = value + '-';
@@ -83,6 +82,20 @@ export default function CurveInventoryFilter({ onFilterChange, onGroupingChange 
   const handleGroupingChange = (value: string) => {
     handleFilterChange('groupBy', value);
     onGroupingChange?.(value);
+  };
+
+  const applyFilters = () => {
+    // Dispatch a custom event for CurveInventoryTable to listen to
+    const event = new CustomEvent('curve-inventory-filter-change', { detail: filters });
+    window.dispatchEvent(event);
+    
+    // Also call the callback if provided
+    onFilterChange?.(filters);
+    
+    // Handle grouping separately
+    if (filters.groupBy !== 'None') {
+      onGroupingChange?.(filters.groupBy);
+    }
   };
 
   const renderSelect = (
@@ -150,6 +163,11 @@ export default function CurveInventoryFilter({ onFilterChange, onGroupingChange 
               groupBy: 'None'
             };
             setFilters(defaultFilters);
+            
+            // Dispatch event with default filters
+            const event = new CustomEvent('curve-inventory-filter-change', { detail: defaultFilters });
+            window.dispatchEvent(event);
+            
             onFilterChange?.(defaultFilters);
             onGroupingChange?.('None');
           }}
@@ -158,7 +176,7 @@ export default function CurveInventoryFilter({ onFilterChange, onGroupingChange 
           Reset Filters
         </button>
         <button
-          onClick={() => onFilterChange?.(filters)}
+          onClick={applyFilters}
           className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Apply Filters

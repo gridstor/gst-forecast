@@ -19,9 +19,99 @@ interface GroupedCurves {
 
 export default function CurveInventoryTable({ initialCurves }: CurveInventoryTableProps) {
   const [curves, setCurves] = useState(initialCurves);
+  const [filteredCurves, setFilteredCurves] = useState(initialCurves);
   const [groupedCurves, setGroupedCurves] = useState<GroupedCurves>({});
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [selectedCurves, setSelectedCurves] = useState<Set<number>>(new Set());
+  const [groupBy, setGroupBy] = useState<string>('None');
+
+  // Listen for filter changes from CurveInventoryFilter
+  useEffect(() => {
+    const handleFilterChange = (event: CustomEvent) => {
+      const filters = event.detail;
+      
+      // Apply filters
+      const filtered = initialCurves.filter(curve => {
+        if (filters.sourceType !== 'All' && curve.sourceType !== filters.sourceType) return false;
+        if (filters.provider !== 'All' && curve.provider !== filters.provider) return false;
+        if (filters.market !== 'All' && !curve.location.startsWith(filters.market)) return false;
+        if (filters.location !== 'All' && curve.location !== filters.location) return false;
+        if (filters.granularity !== 'All' && curve.granularity !== filters.granularity) return false;
+        if (filters.modelType !== 'All' && filters.sourceType === 'Internal' && curve.modelType !== filters.modelType) return false;
+        
+        return true;
+      });
+      
+      setFilteredCurves(filtered);
+      
+      // Update grouping if the groupBy setting changed
+      if (filters.groupBy !== groupBy) {
+        setGroupBy(filters.groupBy);
+        updateGroupedCurves(filtered, filters.groupBy);
+      } else {
+        updateGroupedCurves(filtered, groupBy);
+      }
+    };
+
+    window.addEventListener('curve-inventory-filter-change', handleFilterChange as EventListener);
+    
+    // Initial grouping setup
+    updateGroupedCurves(filteredCurves, groupBy);
+    
+    return () => {
+      window.removeEventListener('curve-inventory-filter-change', handleFilterChange as EventListener);
+    };
+  }, [initialCurves, groupBy]);
+
+  // Function to update grouped curves
+  const updateGroupedCurves = (curvesToGroup: CurveWithRelations[], groupByKey: string) => {
+    if (groupByKey === 'None') {
+      setGroupedCurves({});
+      return;
+    }
+    
+    const grouped: GroupedCurves = {};
+    
+    curvesToGroup.forEach(curve => {
+      let groupValue: string;
+      
+      switch(groupByKey) {
+        case 'Source Type':
+          groupValue = curve.sourceType || 'Unknown';
+          break;
+        case 'Market':
+          groupValue = curve.location.split('-')[0] || 'Unknown';
+          break;
+        case 'Location':
+          groupValue = curve.location || 'Unknown';
+          break;
+        case 'Curve Type':
+          groupValue = curve.curvePattern.split('-')[0] || 'Unknown';
+          break;
+        case 'Granularity':
+          groupValue = curve.granularity || 'Unknown';
+          break;
+        case 'Model Type':
+          groupValue = curve.modelType || 'Unknown';
+          break;
+        default:
+          groupValue = 'Other';
+      }
+      
+      if (!grouped[groupValue]) {
+        grouped[groupValue] = [];
+      }
+      
+      grouped[groupValue].push(curve);
+    });
+    
+    setGroupedCurves(grouped);
+    
+    // Auto-expand groups if there are only a few
+    if (Object.keys(grouped).length <= 5) {
+      setExpandedGroups(new Set(Object.keys(grouped)));
+    }
+  };
 
   const formatDate = (date: Date | null) => {
     if (!date) return '-';
@@ -69,7 +159,9 @@ export default function CurveInventoryTable({ initialCurves }: CurveInventoryTab
             onChange={(e) => {
               const newSelectedCurves = new Set<number>();
               if (e.target.checked) {
-                curves.forEach(curve => newSelectedCurves.add(curve.id));
+                (Object.keys(groupedCurves).length > 0 ? 
+                  Object.values(groupedCurves).flat() : 
+                  filteredCurves).forEach(curve => newSelectedCurves.add(curve.id));
               }
               setSelectedCurves(newSelectedCurves);
             }}
@@ -119,7 +211,7 @@ export default function CurveInventoryTable({ initialCurves }: CurveInventoryTab
         {curve.curvePattern}
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
-        {curve.sourceType} / {curve.provider}
+        {curve.sourceType} {curve.provider ? `/ ${curve.provider}` : ''}
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
         {curve.location}
@@ -134,18 +226,18 @@ export default function CurveInventoryTable({ initialCurves }: CurveInventoryTab
         {formatDate(curve.nextUpdateDue)}
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
-        {curve.updateHistory[0]?.status || '-'}
+        {curve.updateHistory.length > 0 ? curve.updateHistory[0]?.status || '-' : '-'}
       </td>
       <td className="px-4 py-3 text-sm text-gray-500">
         <div className="flex space-x-2">
           <button
-            onClick={() => window.location.href = `/curve-tracker/${curve.id}`}
+            onClick={() => window.location.href = `/curve-schedule/${curve.id}`}
             className="text-indigo-600 hover:text-indigo-900"
           >
             View
           </button>
           <button
-            onClick={() => window.location.href = `/curve-tracker/${curve.id}/edit`}
+            onClick={() => window.location.href = `/curve-schedule/${curve.id}/edit`}
             className="text-blue-600 hover:text-blue-900"
           >
             Edit
@@ -182,6 +274,10 @@ export default function CurveInventoryTable({ initialCurves }: CurveInventoryTab
     ))
   );
 
+  const curvesToDisplay = Object.keys(groupedCurves).length > 0 ? 
+    Object.values(groupedCurves).flat() : 
+    filteredCurves;
+
   return (
     <div className="overflow-x-auto">
       {Object.keys(groupedCurves).length > 0 ? (
@@ -192,7 +288,7 @@ export default function CurveInventoryTable({ initialCurves }: CurveInventoryTab
         <table className="min-w-full divide-y divide-gray-200">
           {renderTableHeader()}
           <tbody className="bg-white divide-y divide-gray-200">
-            {curves.map(curve => renderCurveRow(curve))}
+            {filteredCurves.map(curve => renderCurveRow(curve))}
           </tbody>
         </table>
       )}

@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== CORE CURVE MODELS ==========
+
+// Template/specification for a curve type (e.g., CAISO DA LMP SP15)
+model CurveDefinition {
+  id                  Int                @id @default(autoincrement())
+  curveName          String             @unique // e.g., "CAISO_DA_LMP_SP15"
+  market             String             // CAISO, ERCOT, etc.
+  location           String             // SP15, NP15, Houston Hub, etc.
+  product            String             // DA LMP, RT LMP, AS, etc.
+  commodity          String             // Energy, Capacity, Ancillary
+  units              String             // $/MWh, $/MW-day, etc.
+  granularity        String             // Hourly, Daily, Monthly
+  timezone           String             @default("UTC")
+  description        String?
+  isActive           Boolean           @default(true)
+  metadata           Json?              // Additional flexible metadata
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  
+  // Relations
+  instances          CurveInstance[]
+  schedules          CurveSchedule[]
+  defaultInputs      DefaultCurveInput[]
+  
+  @@index([market, location, product])
+  @@index([curveName])
+}
+
+// Specific forecast run with delivery date and freshness period
+model CurveInstance {
+  id                  Int                @id @default(autoincrement())
+  curveDefinitionId   Int                @map("curve_definition_id")
+  instanceVersion     String             // v1, v2, v3, final, etc.
+  deliveryPeriodStart DateTime           // When this forecast is for
+  deliveryPeriodEnd   DateTime           
+  forecastRunDate     DateTime           // When this forecast was created
+  freshnessStartDate  DateTime           // When this forecast becomes active
+  freshnessEndDate    DateTime?          // When this forecast expires (null = current)
+  status              InstanceStatus     @default(DRAFT)
+  modelType           String?            // Historical, Quantitative, Fundamental
+  modelVersion        String?            // Model version identifier
+  runType             RunType            @default(SCHEDULED)
+  createdBy           String
+  approvedBy          String?
+  approvedAt          DateTime?
+  notes               String?
+  metadata            Json?              // Run-specific metadata
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  // Relations
+  curveDefinition     CurveDefinition   @relation(fields: [curveDefinitionId], references: [id])
+  priceForecasts      PriceForecast[]
+  inputLineage        CurveInputLineage[]
+  versionHistory      VersionHistory[]
+  qualityMetrics      QualityMetric[]
+  
+  @@unique([curveDefinitionId, instanceVersion, deliveryPeriodStart])
+  @@index([curveDefinitionId, freshnessStartDate, freshnessEndDate])
+  @@index([deliveryPeriodStart, deliveryPeriodEnd])
+  @@index([forecastRunDate])
+  @@index([status])
+}
+
+// Time series points belonging to a specific instance
+model PriceForecast {
+  id                  Int                @id @default(autoincrement())
+  curveInstanceId     Int                @map("curve_instance_id")
+  timestamp           DateTime           // Forecast timestamp (in curve timezone)
+  value               Float
+  confidence          Float?             // Confidence interval or std dev
+  valueHigh           Float?             // Upper bound
+  valueLow            Float?             // Lower bound
+  flags               String[]           // Quality flags, adjustments, etc.
+  
+  // Relations
+  curveInstance       CurveInstance     @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
+  
+  @@unique([curveInstanceId, timestamp])
+  @@index([curveInstanceId])
+  @@index([timestamp])
+}
+
+// ========== LINEAGE & VERSIONING ==========
+
+// Track what fundamental inputs went into creating each instance
+model CurveInputLineage {
+  id                  Int                @id @default(autoincrement())
+  curveInstanceId     Int                @map("curve_instance_id")
+  inputType           InputType          // WEATHER, DEMAND, GENERATION, TRANSMISSION, etc.
+  inputSource         String             // NOAA, EIA, ISO, etc.
+  inputIdentifier     String             // Specific dataset/file identifier
+  inputVersion        String?            // Version of input data
+  inputTimestamp      DateTime           // When input data was generated
+  usageType           UsageType          // PRIMARY, VALIDATION, REFERENCE
+  transformApplied    String?            // Description of any transforms
+  weight              Float?             // If weighted combination
+  metadata            Json?              // Additional input metadata
+  createdAt           DateTime          @default(now())
+  
+  // Relations
+  curveInstance       CurveInstance     @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
+  
+  @@index([curveInstanceId])
+  @@index([inputType, inputSource])
+}
+
+// Track version history and changes
+model VersionHistory {
+  id                  Int                @id @default(autoincrement())
+  curveInstanceId     Int                @map("curve_instance_id")
+  previousInstanceId  Int?               @map("previous_instance_id")
+  changeType          ChangeType         // INITIAL, UPDATE, CORRECTION, FINAL
+  changeReason        String
+  changedBy           String
+  changedAt           DateTime          @default(now())
+  changeDetails       Json?              // Detailed change information
+  
+  // Relations
+  curveInstance       CurveInstance     @relation(fields: [curveInstanceId], references: [id])
+  
+  @@index([curveInstanceId])
+  @@index([changedAt])
+}
+
+// ========== SCHEDULING & MANAGEMENT ==========
+
+// Enhanced scheduling with instance awareness
+model CurveSchedule {
+  id                  Int                @id @default(autoincrement())
+  curveDefinitionId   Int                @map("curve_definition_id")
+  scheduleType        ScheduleType       // REGULAR, AD_HOC, TRIGGERED
+  frequency           UpdateFrequency
+  dayOfWeek           Int?               // 0-6 for weekly
+  dayOfMonth          Int?               // 1-31 for monthly
+  timeOfDay           String?            // HH:MM in curve timezone
+  leadTimeDays        Int                @default(0) // Days before delivery to run
+  freshnessHours      Int                @default(24) // How long forecast stays fresh
+  responsibleTeam     String
+  importance          Int                @default(3)
+  isActive            Boolean            @default(true)
+  validFrom           DateTime           @default(now())
+  validUntil          DateTime?
+  metadata            Json?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  
+  // Relations
+  curveDefinition     CurveDefinition   @relation(fields: [curveDefinitionId], references: [id])
+  scheduleRuns        ScheduleRun[]
+  
+  @@index([curveDefinitionId])
+  @@index([isActive, validFrom, validUntil])
+}
+
+// Track actual schedule executions
+model ScheduleRun {
+  id                  Int                @id @default(autoincrement())
+  scheduleId          Int                @map("schedule_id")
+  scheduledFor        DateTime           // When it was supposed to run
+  startedAt           DateTime?
+  completedAt         DateTime?
+  status              RunStatus
+  instancesCreated    Int                @default(0)
+  errorMessage        String?
+  metadata            Json?
+  
+  // Relations
+  schedule            CurveSchedule     @relation(fields: [scheduleId], references: [id])
+  
+  @@index([scheduleId, scheduledFor])
+  @@index([status])
+}
+
+// ========== DATA QUALITY & METRICS ==========
+
+model QualityMetric {
+  id                  Int                @id @default(autoincrement())
+  curveInstanceId     Int                @map("curve_instance_id")
+  metricType          String             // MAE, RMSE, MAPE, etc.
+  metricValue         Float
+  comparisonType      String?            // vs_actual, vs_previous, vs_benchmark
+  comparisonId        Int?               // ID of comparison instance
+  calculatedAt        DateTime          @default(now())
+  metadata            Json?
+  
+  // Relations
+  curveInstance       CurveInstance     @relation(fields: [curveInstanceId], references: [id])
+  
+  @@index([curveInstanceId])
+  @@index([metricType])
+}
+
+// ========== REFERENCE DATA ==========
+
+model DefaultCurveInput {
+  id                  Int                @id @default(autoincrement())
+  curveDefinitionId   Int                @map("curve_definition_id")
+  inputType           InputType
+  inputSource         String
+  inputIdentifier     String
+  isRequired          Boolean            @default(true)
+  defaultWeight       Float?
+  validFrom           DateTime           @default(now())
+  validUntil          DateTime?
+  
+  // Relations
+  curveDefinition     CurveDefinition   @relation(fields: [curveDefinitionId], references: [id])
+  
+  @@index([curveDefinitionId])
+}
+
+// ========== ENUMS ==========
+
+enum InstanceStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ACTIVE
+  SUPERSEDED
+  EXPIRED
+  FAILED
+}
+
+enum RunType {
+  SCHEDULED
+  MANUAL
+  TRIGGERED
+  BACKFILL
+  CORRECTION
+}
+
+enum InputType {
+  WEATHER_FORECAST
+  WEATHER_ACTUAL
+  DEMAND_FORECAST
+  DEMAND_ACTUAL
+  GENERATION_FORECAST
+  GENERATION_ACTUAL
+  TRANSMISSION_LIMITS
+  FUEL_PRICES
+  HYDRO_CONDITIONS
+  RENEWABLE_FORECAST
+  MARKET_FUNDAMENTALS
+  REGULATORY_CHANGES
+  OTHER
+}
+
+enum UsageType {
+  PRIMARY
+  VALIDATION
+  REFERENCE
+  FALLBACK
+}
+
+enum ChangeType {
+  INITIAL
+  UPDATE
+  CORRECTION
+  REVISION
+  FINAL
+  ROLLBACK
+}
+
+enum ScheduleType {
+  REGULAR
+  AD_HOC
+  TRIGGERED
+  EVENT_BASED
+}
+
+enum UpdateFrequency {
+  HOURLY
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ON_DEMAND
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  PARTIAL
+}
+
+// ========== LEGACY SUPPORT (for migration) ==========
+
+model LegacyCurveMapping {
+  id                  Int                @id @default(autoincrement())
+  oldCurveId          Int                @unique
+  newCurveDefinitionId Int
+  migrationNotes      String?
+  migratedAt          DateTime          @default(now())
+} 

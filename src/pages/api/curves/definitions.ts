@@ -1,48 +1,85 @@
 import type { APIRoute } from 'astro';
-import prisma from '../../../lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export const GET: APIRoute = async ({ url }) => {
   try {
-    const searchParams = new URL(url).searchParams;
-    const location = searchParams.get('location');
-    const granularity = searchParams.get('granularity');
-
-    if (!location || !granularity) {
-      return new Response(
-        JSON.stringify({ error: 'Location and granularity are required' }), 
-        { status: 400 }
-      );
-    }
-
-    const curves = await prisma.curve_definitions.findMany({
+    // Get all active curve definitions
+    const definitions = await prisma.curveDefinition.findMany({
       where: {
-        location,
-        granularity
+        isActive: true
       },
       select: {
-        curve_id: true,
+        id: true,
+        curveName: true,
         market: true,
         location: true,
-        mark_case: true,
-        mark_date: true,
-        mark_type: true,
-        granularity: true,
-        curve_creator: true
+        product: true,
+        curveType: true,
+        batteryDuration: true,
+        scenario: true,
+        degradationType: true,
+        commodity: true,
+        units: true,
+        description: true,
+        createdAt: true,
+        // Include count of existing instances
+        _count: {
+          select: {
+            instances: true
+          }
+        }
       },
       orderBy: [
-        { mark_date: 'desc' }
+        { market: 'asc' },
+        { location: 'asc' },
+        { product: 'asc' },
+        { createdAt: 'desc' }
       ]
     });
 
-    return new Response(JSON.stringify(curves), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Transform data for frontend consumption
+    const formattedDefinitions = definitions.map(def => ({
+      id: def.id,
+      curveName: def.curveName,
+      market: def.market,
+      location: def.location,
+      product: def.product,
+      curveType: def.curveType,
+      batteryDuration: def.batteryDuration,
+      scenario: def.scenario,
+      degradationType: def.degradationType,
+      commodity: def.commodity,
+      units: def.units,
+      description: def.description,
+      instanceCount: def._count.instances,
+      displayName: `${def.market} ${def.location} ${def.product} ${def.curveType} (${def.batteryDuration}, ${def.scenario})`,
+      createdAt: def.createdAt
+    }));
+
+    return new Response(
+      JSON.stringify(formattedDefinitions),
+      { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    );
+
   } catch (error) {
     console.error('Error fetching curve definitions:', error);
+    
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch curve definitions' }), 
-      { status: 500 }
+      JSON.stringify({ 
+        error: 'Failed to load curve definitions',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
+      { 
+        status: 500, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }; 

@@ -2,381 +2,790 @@
 import Layout from '../../layouts/Layout.astro';
 ---
 
-<Layout title="Enhanced Curve Schedule Creation">
-  <div class="container mx-auto px-4 py-8">
-    <div class="max-w-6xl mx-auto">
-      <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Enhanced Curve Schedule Creation</h1>
-        <p class="text-gray-600">Create complete curve schedules with delivery planning and instance templates. Preview before finalizing.</p>
-      </div>
+<Layout title="Create Delivery Request - Hierarchical Workflow">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Create Delivery Request</h1>
+      <p class="text-gray-600">Follow the three-step process to create a curve delivery commitment</p>
+    </div>
 
-      <!-- Progress Indicator -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center">
-            <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</div>
-            <div class="ml-2 text-sm font-medium text-blue-600">Configure</div>
+    <!-- Detailed Database Relationship Hierarchy -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-8 border border-blue-200">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 text-center">📊 How Curve Data is Organized</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        <!-- Level 1: Curve Definition (Reusable Template) -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+          <div class="flex items-center mb-3">
+            <span class="text-2xl mr-2">🏗️</span>
+            <h3 class="font-bold text-blue-700 text-lg">CurveDefinition</h3>
+            <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Reusable Template</span>
           </div>
-          <div class="flex-1 h-0.5 bg-gray-200 mx-4"></div>
-          <div class="flex items-center">
-            <div id="previewStep" class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">2</div>
-            <div class="ml-2 text-sm font-medium text-gray-600">Preview</div>
-          </div>
-          <div class="flex-1 h-0.5 bg-gray-200 mx-4"></div>
-          <div class="flex items-center">
-            <div id="confirmStep" class="w-8 h-8 bg-gray-300 text-gray-600 rounded-full flex items-center justify-center text-sm font-medium">3</div>
-            <div class="ml-2 text-sm font-medium text-gray-600">Confirm</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Main Form -->
-      <div id="configForm" class="bg-white shadow-lg rounded-lg p-6">
-        <form id="enhancedScheduleForm" class="space-y-8">
           
-          <!-- Curve Definition Section -->
-          <div class="border-b border-gray-200 pb-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Curve Definition</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
-              <!-- Market -->
-              <div>
-                <label for="market" class="block text-sm font-medium text-gray-700 mb-2">Market *</label>
-                <div class="relative">
-                  <select id="market" name="market" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Market</option>
-                    <option value="ERCOT">ERCOT</option>
-                    <option value="CAISO">CAISO</option>
-                    <option value="PJM">PJM</option>
-                    <option value="MISO">MISO</option>
-                    <option value="SPP">SPP</option>
-                    <option value="NYISO">NYISO</option>
-                    <option value="ISO-NE">ISO-NE</option>
-                    <option value="CUSTOM">Custom...</option>
-                  </select>
-                  <input type="text" id="marketCustom" name="marketCustom" placeholder="Enter custom market" 
-                         class="hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2">
-                </div>
-              </div>
-
-              <!-- Location -->
-              <div>
-                <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location *</label>
-                <input type="text" id="location" name="location" required 
-                       placeholder="e.g., Houston, SP15, Zone A"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-
-              <!-- Product -->
-              <div>
-                <label for="product" class="block text-sm font-medium text-gray-700 mb-2">Product *</label>
-                <input type="text" id="product" name="product" required 
-                       placeholder="e.g., Aurora_Houston_Revenue_4h"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-
-              <!-- Curve Type -->
-              <div>
-                <label for="curveType" class="block text-sm font-medium text-gray-700 mb-2">Curve Type *</label>
-                <div class="relative">
-                  <select id="curveType" name="curveType" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="">Select Type</option>
-                    <option value="REVENUE">Revenue</option>
-                    <option value="ENERGY">Energy</option>
-                    <option value="ENERGY_ARB">Energy Arbitrage</option>
-                    <option value="AS">Ancillary Services</option>
-                    <option value="TB2">Two-Hour Battery</option>
-                    <option value="TB4">Four-Hour Battery</option>
-                    <option value="RA">Resource Adequacy</option>
-                    <option value="DA">Day-Ahead</option>
-                    <option value="RT">Real-Time</option>
-                    <option value="CUSTOM">Custom...</option>
-                  </select>
-                  <input type="text" id="curveTypeCustom" name="curveTypeCustom" placeholder="Enter custom curve type" 
-                         class="hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2">
-                </div>
-              </div>
-
-              <!-- Battery Duration -->
-              <div>
-                <label for="batteryDuration" class="block text-sm font-medium text-gray-700 mb-2">Battery Duration</label>
-                <div class="relative">
-                  <select id="batteryDuration" name="batteryDuration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="2H">2 Hour</option>
-                    <option value="2.6H">2.6 Hour</option>
-                    <option value="4H">4 Hour</option>
-                    <option value="8H">8 Hour</option>
-                    <option value="CUSTOM">Custom...</option>
-                  </select>
-                  <input type="text" id="batteryDurationCustom" name="batteryDurationCustom" placeholder="Enter custom duration" 
-                         class="hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2">
-                </div>
-              </div>
-
-              <!-- Scenario -->
-              <div>
-                <label for="scenario" class="block text-sm font-medium text-gray-700 mb-2">Scenario</label>
-                <div class="relative">
-                  <select id="scenario" name="scenario" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="BASE">Base</option>
-                    <option value="LOW">Low</option>
-                    <option value="HIGH">High</option>
-                    <option value="P50">P50</option>
-                    <option value="P90">P90</option>
-                    <option value="P10">P10</option>
-                    <option value="DOWNSIDE">Downside</option>
-                    <option value="UPSIDE">Upside</option>
-                    <option value="WORST">Worst</option>
-                    <option value="BEST">Best</option>
-                    <option value="CUSTOM">Custom...</option>
-                  </select>
-                  <input type="text" id="scenarioCustom" name="scenarioCustom" placeholder="Enter custom scenario" 
-                         class="hidden w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 mt-2">
-                </div>
-              </div>
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Purpose:</strong> Defines <em>what kind</em> of curve this is. Templates are reused across many forecast runs.
+          </p>
+          
+          <div class="space-y-2 text-xs">
+            <div><strong>Key Fields:</strong></div>
+            <div class="ml-2">
+              <div>• <code class="bg-gray-100 px-1 rounded">market</code> → "ERCOT", "CAISO", "PJM"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">location</code> → "Houston", "SP15", "North Hub"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">product</code> → "Revenue_Optimized", "LMP"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">curveType</code> → "REVENUE", "TB4", "ENERGY_ARB"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">batteryDuration</code> → "HOUR_4", "HOUR_2"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">scenario</code> → "BASE", "BULL", "P50"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">units</code> → "$/MWh", "MW"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">degradationType</code> → "NONE", "DATE", "PERCENTAGE"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">units</code> → "$/MWh", "MW", "MWh"</div>
             </div>
           </div>
+          
+          <div class="mt-3 p-2 bg-blue-50 rounded text-xs">
+            <strong>Example:</strong> "ERCOT Houston Revenue_Optimized TB4 Battery, Base Case scenario"
+          </div>
+        </div>
 
-          <!-- Instance Template Section -->
-          <div class="border-b border-gray-200 pb-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Delivery & Instance Details</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
-              <!-- Delivery Period Start -->
-              <div>
-                <label for="deliveryPeriodStart" class="block text-sm font-medium text-gray-700 mb-2">Delivery Start *</label>
-                <input type="datetime-local" id="deliveryPeriodStart" name="deliveryPeriodStart" required 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-
-              <!-- Delivery Period End -->
-              <div>
-                <label for="deliveryPeriodEnd" class="block text-sm font-medium text-gray-700 mb-2">Delivery End *</label>
-                <input type="datetime-local" id="deliveryPeriodEnd" name="deliveryPeriodEnd" required 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-
-              <!-- Degradation Control -->
-              <div>
-                <label for="degradationStartDate" class="block text-sm font-medium text-gray-700 mb-2">
-                  Degradation
-                  <span class="text-xs text-gray-500 font-normal ml-1">(Optional)</span>
-                </label>
-                <div class="space-y-2">
-                  <div class="flex items-center space-x-2">
-                    <input type="radio" id="noDegradation" name="degradationOption" value="none" checked
-                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                    <label for="noDegradation" class="text-sm text-gray-700">No degradation</label>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <input type="radio" id="withDegradation" name="degradationOption" value="date"
-                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300">
-                    <label for="withDegradation" class="text-sm text-gray-700">Degradation starts on:</label>
-                  </div>
-                  <div id="degradationDateContainer" class="ml-6 hidden">
-                    <input type="date" id="degradationStartDate" name="degradationStartDate" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <p class="text-xs text-gray-500 mt-1">Must be within delivery period</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Granularity -->
-              <div>
-                <label for="granularity" class="block text-sm font-medium text-gray-700 mb-2">Granularity</label>
-                <select id="granularity" name="granularity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="HOURLY">Hourly</option>
-                  <option value="DAILY">Daily</option>
-                  <option value="MONTHLY" selected>Monthly</option>
-                  <option value="ANNUAL">Annual</option>
-                </select>
-              </div>
-
-              <!-- Instance Version -->
-              <div>
-                <label for="instanceVersion" class="block text-sm font-medium text-gray-700 mb-2">Instance Version</label>
-                <input type="text" id="instanceVersion" name="instanceVersion" value="v1" 
-                       placeholder="v1, v2, final, etc."
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-            </div>
-
-            <!-- Delivery Period Summary -->
-            <div id="deliveryPeriodSummary" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md hidden">
-              <h4 class="text-sm font-medium text-blue-900 mb-2">Delivery Period Summary</h4>
-              <div class="text-sm text-blue-800">
-                <div>Duration: <span id="deliveryDuration">-</span> days</div>
-                <div id="degradationInfo" class="hidden">Degradation starts: <span id="degradationDays">-</span> days from delivery start</div>
-              </div>
+        <!-- Level 2: Curve Instance (Specific Forecast Run) -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+          <div class="flex items-center mb-3">
+            <span class="text-2xl mr-2">📈</span>
+            <h3 class="font-bold text-green-700 text-lg">CurveInstance</h3>
+            <span class="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded">Specific Run</span>
+          </div>
+          
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Purpose:</strong> A specific forecast run of the definition template. Contains <em>when</em> and <em>who</em> created this version.
+          </p>
+          
+          <div class="space-y-2 text-xs">
+            <div><strong>Key Fields:</strong></div>
+            <div class="ml-2">
+              <div>• <code class="bg-gray-100 px-1 rounded">curveDefinitionId</code> → Links to template above</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">instanceVersion</code> → "v1.0", "v2.1", "final"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">createdBy</code> → "Aurora", "Gridstor"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">granularity</code> → "HOURLY", "DAILY"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">deliveryPeriodStart</code> → "2025-01-01"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">deliveryPeriodEnd</code> → "2025-12-31"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">forecastRunDate</code> → When created</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">modelType</code> → "Fundamental", "Statistical"</div>
             </div>
           </div>
+          
+          <div class="mt-3 p-2 bg-green-50 rounded text-xs">
+            <strong>Example:</strong> "March 2025 v2.1 by Aurora, hourly from Jan-Dec 2025"
+          </div>
+        </div>
 
-          <!-- Schedule Configuration Section -->
-          <div class="border-b border-gray-200 pb-8">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Schedule Configuration</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              
-              <!-- Frequency -->
-              <div>
-                <label for="frequency" class="block text-sm font-medium text-gray-700 mb-2">Update Frequency *</label>
-                <select id="frequency" name="frequency" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="DAILY">Daily</option>
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="MONTHLY" selected>Monthly</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="ANNUALLY">Annually</option>
-                  <option value="ON_DEMAND">On Demand</option>
-                </select>
-              </div>
-
-              <!-- Day of Week (for weekly) -->
-              <div id="dayOfWeekContainer" class="hidden">
-                <label for="dayOfWeek" class="block text-sm font-medium text-gray-700 mb-2">Day of Week</label>
-                <select id="dayOfWeek" name="dayOfWeek" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="0">Sunday</option>
-                  <option value="1">Monday</option>
-                  <option value="2">Tuesday</option>
-                  <option value="3">Wednesday</option>
-                  <option value="4">Thursday</option>
-                  <option value="5">Friday</option>
-                  <option value="6">Saturday</option>
-                </select>
-              </div>
-
-              <!-- Day of Month (for monthly) -->
-              <div id="dayOfMonthContainer">
-                <label for="dayOfMonth" class="block text-sm font-medium text-gray-700 mb-2">Day of Month</label>
-                <input type="number" id="dayOfMonth" name="dayOfMonth" min="1" max="31" value="5"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-
-              <!-- Time of Day -->
-              <div>
-                <label for="timeOfDay" class="block text-sm font-medium text-gray-700 mb-2">Time of Day</label>
-                <input type="time" id="timeOfDay" name="timeOfDay" value="09:00"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              </div>
-
-              <!-- Freshness Days -->
-              <div>
-                <label for="freshnessDays" class="block text-sm font-medium text-gray-700 mb-2">Freshness Days</label>
-                <input type="number" id="freshnessDays" name="freshnessDays" value="30" min="1"
-                       placeholder="30 (1 month)"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <p class="text-sm text-gray-500 mt-1">How long the data stays fresh (days)</p>
-              </div>
-
-              <!-- Responsible Team -->
-              <div>
-                <label for="responsibleTeam" class="block text-sm font-medium text-gray-700 mb-2">Responsible Team *</label>
-                <select id="responsibleTeam" name="responsibleTeam" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="Analytics">Analytics</option>
-                  <option value="Finance">Finance</option>
-                  <option value="M&A">M&A</option>
-                  <option value="Commercial">Commercial</option>
-                  <option value="Goldman">Goldman</option>
-                  <option value="Trading/Risk">Trading/Risk</option>
-                </select>
-              </div>
-
-              <!-- Importance -->
-              <div>
-                <label for="importance" class="block text-sm font-medium text-gray-700 mb-2">Importance Level</label>
-                <select id="importance" name="importance" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="1">1 - Low</option>
-                  <option value="2">2</option>
-                  <option value="3" selected>3 - Medium</option>
-                  <option value="4">4</option>
-                  <option value="5">5 - Critical</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Notification Emails -->
-            <div class="mt-6">
-              <label for="notificationEmails" class="block text-sm font-medium text-gray-700 mb-2">Notification Emails</label>
-              <input type="text" id="notificationEmails" name="notificationEmails" 
-                     placeholder="email1@company.com, email2@company.com"
-                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <p class="text-sm text-gray-500 mt-1">Comma-separated email addresses</p>
+        <!-- Level 3: CurveInstanceData (Time Series Data) -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+          <div class="flex items-center mb-3">
+            <span class="text-2xl mr-2">💾</span>
+            <h3 class="font-bold text-purple-700 text-lg">CurveInstanceData</h3>
+            <span class="ml-2 text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">Raw Data</span>
+          </div>
+          
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Purpose:</strong> Individual data points with flexible percentile storage. Multiple rows per timestamp for different confidence levels.
+          </p>
+          
+          <div class="space-y-2 text-xs">
+            <div><strong>Key Fields:</strong></div>
+            <div class="ml-2">
+              <div>• <code class="bg-gray-100 px-1 rounded">curveInstanceId</code> → Links to specific run above</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">timestamp</code> → "2025-01-01 00:00:00"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">pvalue</code> → 10, 50, 90 (percentile number)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">value</code> → $45.67 (forecast at this percentile)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">units</code> → "$/MWh", "MW", "MWh"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">pValueGranularity</code> → "MONTHLY", "YEARLY"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">granularity</code> → "HOURLY" (from CurveInstance)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">flags</code> → ["outlier", "holiday", "estimated"]</div>
             </div>
           </div>
-
-          <!-- Action Buttons -->
-          <div class="flex justify-between items-center pt-6">
-            <button type="button" id="cancelBtn" 
-                    class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              Cancel
-            </button>
-            <div class="space-x-4">
-              <button type="button" id="previewBtn"
-                      class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                Preview Schedule
-              </button>
-              <button type="button" id="createDirectBtn"
-                      class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
-                Create Directly
-              </button>
-            </div>
+          
+          <div class="mt-3 p-2 bg-purple-50 rounded text-xs">
+            <strong>Structure:</strong> 3 rows per hour (P10, P50, P90) × 8,760 hours = 26,280 rows for full annual coverage with confidence bands.
           </div>
-        </form>
+        </div>
+
       </div>
 
-      <!-- Preview Modal -->
-      <div id="previewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-8 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
-          <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Schedule Preview</h3>
-            
-            <!-- Preview Content -->
-            <div id="previewContent" class="space-y-6">
-              <!-- Will be populated by JavaScript -->
+      <!-- Relationship Flow -->
+      <div class="bg-white rounded-lg p-4 border border-gray-200">
+        <h4 class="font-bold text-gray-800 mb-4 text-center">🔗 How The Three Tables Connect</h4>
+        
+        <!-- Why Three Tables Explanation -->
+        <div class="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
+          <h5 class="font-medium text-blue-800 mb-2">🤔 Why Three Separate Tables?</h5>
+          <p class="text-sm text-blue-700">
+            <strong>Think of it like a recipe system:</strong> You have <em>recipe templates</em> (CurveDefinition) that describe what to make, 
+            <em>specific cooking sessions</em> (CurveInstance) where someone actually makes the recipe on a particular day, 
+            and <em>detailed measurements</em> (CurveInstanceData) of every ingredient amount used during that cooking session. 
+            This structure avoids repeating the same template information thousands of times and lets you compare different 
+            cooking sessions of the same recipe.
+          </p>
+        </div>
+        
+        <!-- Step-by-Step Flow -->
+        <div class="space-y-6">
+          
+          <!-- Step 1: Curve Definition -->
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-lg">1</div>
             </div>
-            
-            <!-- Modal Actions -->
-            <div class="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-200">
-              <button type="button" id="editPreviewBtn" 
-                      class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                Edit
-              </button>
-              <button type="button" id="confirmCreateBtn" 
-                      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                Confirm & Create
-              </button>
+            <div class="flex-1">
+              <h5 class="font-bold text-blue-700 mb-2">CurveDefinition: The Template</h5>
+              <p class="text-sm text-gray-700 mb-3">
+                <strong>What it is:</strong> A high-level description of what kind of curve this is. Think "recipe name and basic ingredients."
+              </p>
+              <div class="bg-blue-50 p-3 rounded border-l-4 border-blue-500">
+                <p class="text-sm font-medium text-blue-800">Example: "Houston Revenue 4H Battery"</p>
+                <div class="text-xs text-blue-700 mt-1 space-y-1">
+                  <div>• <strong>Market:</strong> ERCOT</div>
+                  <div>• <strong>Location:</strong> Houston</div>
+                  <div>• <strong>Product:</strong> Revenue_Optimized</div>
+                  <div>• <strong>Battery Duration:</strong> 4 Hours</div>
+                  <div>• <strong>Units:</strong> $/MWh</div>
+                  <div>• <strong>Database ID:</strong> 7</div>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <!-- Arrow Down -->
+          <div class="flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-gray-400 text-2xl">↓</div>
+              <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded">One definition → Many instances</span>
+            </div>
+          </div>
+
+          <!-- Step 2: Curve Instance -->
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-lg">2</div>
+            </div>
+            <div class="flex-1">
+              <h5 class="font-bold text-green-700 mb-2">CurveInstance: The Specific Forecast Run</h5>
+              <p class="text-sm text-gray-700 mb-3">
+                <strong>What it is:</strong> Someone actually creates a forecast using that template. Think "Aurora cooked the Houston Revenue recipe on March 15th."
+              </p>
+              
+              <!-- Multiple Instances Example -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <div class="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                  <p class="text-sm font-medium text-green-800">Instance #23: "March 2025 Monthly by Aurora"</p>
+                  <div class="text-xs text-green-700 mt-1 space-y-1">
+                    <div>• <strong>curveDefinitionId:</strong> 7 (links to Houston Revenue 4H)</div>
+                    <div>• <strong>Version:</strong> v3.1</div>
+                    <div>• <strong>Created by:</strong> Aurora</div>
+                    <div>• <strong>Period:</strong> March 2025 (monthly data)</div>
+                    <div>• <strong>Granularity:</strong> MONTHLY</div>
+                    <div>• <strong>Model:</strong> Fundamental</div>
+                  </div>
+                </div>
+                
+                <div class="bg-green-50 p-3 rounded border-l-4 border-green-500">
+                  <p class="text-sm font-medium text-green-800">Instance #31: "March 2025 Monthly by Gridstor"</p>
+                  <div class="text-xs text-green-700 mt-1 space-y-1">
+                    <div>• <strong>curveDefinitionId:</strong> 7 (same Houston Revenue 4H)</div>
+                    <div>• <strong>Version:</strong> v2.8</div>
+                    <div>• <strong>Created by:</strong> Gridstor</div>
+                    <div>• <strong>Period:</strong> March 2025 (monthly data)</div>
+                    <div>• <strong>Granularity:</strong> MONTHLY</div>
+                    <div>• <strong>Model:</strong> Statistical</div>
+                  </div>
+                </div>
+              </div>
+              
+              <p class="text-xs text-gray-600 italic">
+                Notice: Both instances use the same template (Definition #7) but have different creators, versions, and models.
+              </p>
+            </div>
+          </div>
+
+          <!-- Arrow Down -->
+          <div class="flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-gray-400 text-2xl">↓</div>
+              <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded">One instance → Many data points</span>
+            </div>
+          </div>
+
+          <!-- Step 3: Curve Instance Data -->
+          <div class="flex items-start space-x-4">
+            <div class="flex-shrink-0">
+              <div class="w-12 h-12 bg-purple-500 text-white rounded-full flex items-center justify-center font-bold text-lg">3</div>
+            </div>
+            <div class="flex-1">
+              <h5 class="font-bold text-purple-700 mb-2">CurveInstanceData: The Actual Numbers</h5>
+              <p class="text-sm text-gray-700 mb-3">
+                <strong>What it is:</strong> The actual forecast numbers with confidence levels. Think "exact measurements for every month."
+              </p>
+              
+              <div class="bg-purple-50 p-3 rounded border-l-4 border-purple-500">
+                <p class="text-sm font-medium text-purple-800">Data for Instance #23 (Aurora's March 2025 forecast):</p>
+                
+                <!-- Sample Data Table -->
+                <div class="mt-3 overflow-x-auto">
+                  <table class="text-xs w-full border-collapse">
+                    <thead>
+                      <tr class="border-b border-purple-200">
+                        <th class="text-left p-1">Timestamp</th>
+                        <th class="text-left p-1">pvalue</th>
+                        <th class="text-left p-1">value</th>
+                        <th class="text-left p-1">units</th>
+                        <th class="text-left p-1">curveInstanceId</th>
+                      </tr>
+                    </thead>
+                    <tbody class="text-purple-700">
+                      <tr class="border-b border-purple-100">
+                        <td class="p-1">2025-03-01</td>
+                        <td class="p-1">10</td>
+                        <td class="p-1">$42.50</td>
+                        <td class="p-1">$/MWh</td>
+                        <td class="p-1">23</td>
+                      </tr>
+                      <tr class="border-b border-purple-100">
+                        <td class="p-1">2025-03-01</td>
+                        <td class="p-1">50</td>
+                        <td class="p-1">$48.75</td>
+                        <td class="p-1">$/MWh</td>
+                        <td class="p-1">23</td>
+                      </tr>
+                      <tr class="border-b border-purple-100">
+                        <td class="p-1">2025-03-01</td>
+                        <td class="p-1">90</td>
+                        <td class="p-1">$55.20</td>
+                        <td class="p-1">$/MWh</td>
+                        <td class="p-1">23</td>
+                      </tr>
+                      <tr class="border-b border-purple-100">
+                        <td class="p-1">2025-04-01</td>
+                        <td class="p-1">10</td>
+                        <td class="p-1">$38.90</td>
+                        <td class="p-1">$/MWh</td>
+                        <td class="p-1">23</td>
+                      </tr>
+                      <tr class="border-b border-purple-100">
+                        <td class="p-1">2025-04-01</td>
+                        <td class="p-1">50</td>
+                        <td class="p-1">$44.25</td>
+                        <td class="p-1">$/MWh</td>
+                        <td class="p-1">23</td>
+                      </tr>
+                      <tr>
+                        <td class="p-1">2025-04-01</td>
+                        <td class="p-1">90</td>
+                        <td class="p-1">$51.80</td>
+                        <td class="p-1">$/MWh</td>
+                        <td class="p-1">23</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="mt-3 text-xs text-purple-700 space-y-1">
+                  <div><strong>Key Connections:</strong></div>
+                  <div>• <strong>curveInstanceId: 23</strong> → Points back to Aurora's Instance</div>
+                  <div>• Instance #23 → <strong>curveDefinitionId: 7</strong> → Points to "Houston Revenue 4H" template</div>
+                  <div>• Multiple rows per month for different confidence levels (P10, P50, P90)</div>
+                  <div>• Each month gets 3 rows, so 12 months × 3 pvalues = 36 total data points</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Connection Summary -->
+        <div class="mt-6 border-t pt-4">
+          <h5 class="font-medium text-gray-800 mb-3">🔍 How to Trace the Connections:</h5>
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <div class="text-sm space-y-2">
+              <div><strong>To find all data for "Houston Revenue 4H":</strong></div>
+              <div class="ml-4 text-gray-700">
+                1. Look up CurveDefinition: "Houston Revenue 4H" → ID = 7<br/>
+                2. Find all CurveInstances where curveDefinitionId = 7 → (Instance #23, #31, etc.)<br/>
+                3. Get all CurveInstanceData where curveInstanceId IN (23, 31, etc.)
+              </div>
+              
+              <div class="mt-3"><strong>To compare Aurora vs Gridstor forecasts:</strong></div>
+              <div class="ml-4 text-gray-700">
+                Filter CurveInstanceData by curveInstanceId = 23 (Aurora) vs curveInstanceId = 31 (Gridstor)
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="border-t pt-3 mt-4">
+          <div class="inline-flex items-center space-x-2 text-sm text-gray-600">
+            <span>📋</span>
+            <strong>Delivery Request Integration:</strong>
+            <span>When you request "Houston Revenue 4H data," the system links to CurveDefinition ID=7, then creates a specific CurveInstance when fulfilled, containing all the monthly CurveInstanceData points.</span>
           </div>
         </div>
       </div>
 
-      <!-- Loading and Status Messages -->
-      <div id="loadingMessage" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
-        <div class="flex items-center">
-          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-          <span class="text-blue-700" id="loadingText">Processing...</span>
-        </div>
-      </div>
-
-      <div id="successMessage" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-        <div class="flex items-center">
-          <svg class="h-4 w-4 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-          </svg>
-          <span class="text-green-700" id="successText">Success!</span>
-        </div>
-      </div>
-
-      <div id="errorMessage" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-        <div class="flex items-center">
-          <svg class="h-4 w-4 text-red-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-          </svg>
-          <span class="text-red-700" id="errorText">Error occurred</span>
+      <!-- Key Insight -->
+      <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+        <div class="flex items-start">
+          <span class="text-xl mr-2">💡</span>
+          <div class="text-sm">
+            <strong class="text-yellow-800">Key Understanding:</strong>
+            <span class="text-yellow-700">
+              One CurveDefinition template (like "ERCOT Houston 4H Battery Revenue") gets reused for multiple forecast runs. 
+              Each CurveInstance represents one specific forecast run with its own version, creator, and delivery period. 
+              Each Instance contains thousands of PriceForecast data points with timestamps and confidence intervals.
+              This request commits to deliver one specific Instance that matches the Definition template.
+            </span>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Progress Indicators -->
+    <div class="mb-8">
+      <div class="flex items-center justify-center space-x-8">
+        <div id="step1-indicator" class="flex items-center">
+          <div class="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full font-bold">1</div>
+          <span class="ml-2 font-medium text-blue-600">Curve Definition</span>
+        </div>
+        <div class="w-16 h-1 bg-gray-300 rounded" id="progress1"></div>
+        <div id="step2-indicator" class="flex items-center">
+          <div class="flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full font-bold">2</div>
+          <span class="ml-2 text-gray-500">Curve Instance</span>
+        </div>
+        <div class="w-16 h-1 bg-gray-300 rounded" id="progress2"></div>
+        <div id="step3-indicator" class="flex items-center">
+          <div class="flex items-center justify-center w-8 h-8 bg-gray-300 text-gray-500 rounded-full font-bold">3</div>
+          <span class="ml-2 text-gray-500">Delivery Request</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-Step Form -->
+    <form id="deliveryRequestForm" class="space-y-8">
+      
+      <!-- STEP 1: Curve Definition Selection -->
+      <div id="step1" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center mb-4">
+          <span class="text-2xl mr-3">🏗️</span>
+          <h2 class="text-xl font-bold text-gray-900">Step 1: Curve Definition</h2>
+          <div class="ml-auto">
+            <span class="text-sm text-gray-500" id="step1-status">Required</span>
+          </div>
+        </div>
+        
+        <!-- Definition Selection Options -->
+        <div class="mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+              <input type="radio" name="definitionOption" value="existing" class="mr-3">
+              <div>
+                <div class="font-medium">Use Existing Definition</div>
+                <div class="text-sm text-gray-500">Select from previously created curve templates</div>
+              </div>
+            </label>
+            <label class="flex items-center p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+              <input type="radio" name="definitionOption" value="new" class="mr-3">
+              <div>
+                <div class="font-medium">Create New Definition</div>
+                <div class="text-sm text-gray-500">Define a new curve template</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Existing Definition Dropdown -->
+        <div id="existingDefinitionSection" class="hidden mb-6">
+          <label for="existingDefinition" class="block text-sm font-medium text-gray-700 mb-2">
+            Select Existing Curve Definition
+            <span class="ml-1 text-blue-500 cursor-help" title="Choose from previously created curve templates">ℹ️</span>
+          </label>
+          <select id="existingDefinition" name="existingDefinition" 
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Loading definitions...</option>
+          </select>
+          <p class="mt-1 text-sm text-gray-500">
+            Format: "Market Location Product CurveType (Battery Duration, Scenario)"
+          </p>
+        </div>
+
+        <!-- New Definition Fields -->
+        <div id="newDefinitionSection" class="hidden">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Market -->
+            <div>
+              <label for="market" class="block text-sm font-medium text-gray-700 mb-2">
+                Market *
+                <span class="ml-1 text-blue-500 cursor-help" title="Which electricity market this curve represents">ℹ️</span>
+              </label>
+              <select id="market" name="market" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Market</option>
+                <option value="ERCOT">ERCOT</option>
+                <option value="CAISO">CAISO</option>
+                <option value="PJM">PJM</option>
+                <option value="MISO">MISO</option>
+                <option value="CUSTOM">Custom</option>
+              </select>
+            </div>
+
+            <!-- Location -->
+            <div>
+              <label for="location" class="block text-sm font-medium text-gray-700 mb-2">
+                Location *
+                <span class="ml-1 text-blue-500 cursor-help" title="Specific location or node within the market">ℹ️</span>
+              </label>
+              <input type="text" id="location" name="location" 
+                     placeholder="e.g., Houston, SP15, LZ_HOUSTON"
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Product -->
+            <div>
+              <label for="product" class="block text-sm font-medium text-gray-700 mb-2">
+                Product *
+                <span class="ml-1 text-blue-500 cursor-help" title="What type of energy product this curve represents">ℹ️</span>
+              </label>
+              <select id="product" name="product" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Product</option>
+                <option value="Revenue_Optimized">Revenue Optimized</option>
+                <option value="LMP">LMP (Locational Marginal Price)</option>
+                <option value="Energy">Energy</option>
+                <option value="Ancillary_Services">Ancillary Services</option>
+                <option value="CUSTOM">Custom</option>
+              </select>
+            </div>
+
+            <!-- Curve Type -->
+            <div>
+              <label for="curveType" class="block text-sm font-medium text-gray-700 mb-2">
+                Curve Type *
+                <span class="ml-1 text-blue-500 cursor-help" title="The specific type of forecast curve">ℹ️</span>
+              </label>
+              <select id="curveType" name="curveType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">Select Type</option>
+                <option value="REVENUE">Revenue</option>
+                <option value="ENERGY_ARB">Energy Arbitrage</option>
+                <option value="AS">Ancillary Services</option>
+                <option value="TB2">Two-Hour Battery</option>
+                <option value="TB4">Four-Hour Battery</option>
+                <option value="TB8">Eight-Hour Battery</option>
+              </select>
+            </div>
+
+            <!-- Battery Duration -->
+            <div>
+              <label for="batteryDuration" class="block text-sm font-medium text-gray-700 mb-2">
+                Battery Duration
+                <span class="ml-1 text-blue-500 cursor-help" title="Storage duration for battery-related curves">ℹ️</span>
+              </label>
+              <select id="batteryDuration" name="batteryDuration" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="UNKNOWN">Not Applicable</option>
+                <option value="HOUR_2">2 Hours</option>
+                <option value="HOUR_4">4 Hours</option>
+                <option value="HOUR_8">8 Hours</option>
+                <option value="HOUR_12">12 Hours</option>
+              </select>
+            </div>
+
+            <!-- Scenario -->
+            <div>
+              <label for="scenario" class="block text-sm font-medium text-gray-700 mb-2">
+                Scenario
+                <span class="ml-1 text-blue-500 cursor-help" title="The forecast scenario or case">ℹ️</span>
+              </label>
+              <select id="scenario" name="scenario" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="BASE">Base Case</option>
+                <option value="BULL">Bull Case</option>
+                <option value="BEAR">Bear Case</option>
+                <option value="P10">P10 (10th percentile)</option>
+                <option value="P50">P50 (median)</option>
+                <option value="P90">P90 (90th percentile)</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Step 1 Actions -->
+        <div class="flex justify-end pt-4">
+          <button type="button" id="step1Next" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Continue to Instance Details →
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Curve Instance Details -->
+      <div id="step2" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 opacity-50 pointer-events-none">
+        <div class="flex items-center mb-4">
+          <span class="text-2xl mr-3">📈</span>
+          <h2 class="text-xl font-bold text-gray-900">Step 2: Curve Instance Details</h2>
+          <div class="ml-auto">
+            <span class="text-sm text-gray-500" id="step2-status">Locked</span>
+          </div>
+        </div>
+
+        <p class="text-gray-600 mb-6">Specify the details for this specific forecast run</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <!-- Curve Creator -->
+          <div>
+            <label for="curveCreator" class="block text-sm font-medium text-gray-700 mb-2">
+              Curve Creator *
+              <span class="ml-1 text-blue-500 cursor-help" title="Who will create this specific curve instance">ℹ️</span>
+            </label>
+            <input type="text" id="curveCreator" name="curveCreator" 
+                   placeholder="e.g., John Doe, Analytics Team"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+          </div>
+
+          <!-- Instance Version -->
+          <div>
+            <label for="instanceVersion" class="block text-sm font-medium text-gray-700 mb-2">
+              Instance Version *
+              <span class="ml-1 text-blue-500 cursor-help" title="Version identifier for this forecast run">ℹ️</span>
+            </label>
+            <input type="text" id="instanceVersion" name="instanceVersion" 
+                   placeholder="e.g., v1.0, v2.1, final"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+          </div>
+
+          <!-- Granularity -->
+          <div>
+            <label for="granularity" class="block text-sm font-medium text-gray-700 mb-2">
+              Granularity *
+              <span class="ml-1 text-blue-500 cursor-help" title="Time resolution of the data points">ℹ️</span>
+            </label>
+            <select id="granularity" name="granularity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <option value="HOURLY">Hourly</option>
+              <option value="DAILY">Daily</option>
+              <option value="MONTHLY">Monthly</option>
+              <option value="QUARTERLY">Quarterly</option>
+            </select>
+          </div>
+
+          <!-- Delivery Period Start -->
+          <div>
+            <label for="deliveryPeriodStart" class="block text-sm font-medium text-gray-700 mb-2">
+              Delivery Period Start *
+              <span class="ml-1 text-blue-500 cursor-help" title="Start date of the forecast period">ℹ️</span>
+            </label>
+            <input type="datetime-local" id="deliveryPeriodStart" name="deliveryPeriodStart" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+          </div>
+
+          <!-- Delivery Period End -->
+          <div>
+            <label for="deliveryPeriodEnd" class="block text-sm font-medium text-gray-700 mb-2">
+              Delivery Period End *
+              <span class="ml-1 text-blue-500 cursor-help" title="End date of the forecast period">ℹ️</span>
+            </label>
+            <input type="datetime-local" id="deliveryPeriodEnd" name="deliveryPeriodEnd" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+          </div>
+
+          <!-- Model Type -->
+          <div>
+            <label for="modelType" class="block text-sm font-medium text-gray-700 mb-2">
+              Model Type
+              <span class="ml-1 text-blue-500 cursor-help" title="Type of forecasting model used">ℹ️</span>
+            </label>
+            <select id="modelType" name="modelType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
+              <option value="">Select Model Type</option>
+              <option value="Fundamental">Fundamental</option>
+              <option value="Statistical">Statistical</option>
+              <option value="Hybrid">Hybrid</option>
+              <option value="Machine Learning">Machine Learning</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Degradation Settings -->
+        <div class="mt-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Degradation Settings</h3>
+          <div class="space-y-4">
+            <label class="flex items-center">
+              <input type="radio" name="degradationOption" value="none" class="mr-2" checked>
+              <span>No degradation</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="degradationOption" value="date" class="mr-2">
+              <span>Degradation starts on:</span>
+              <input type="date" id="degradationStartDate" name="degradationStartDate" 
+                     class="ml-2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500" disabled>
+            </label>
+          </div>
+        </div>
+
+        <!-- Estimated Data Points -->
+        <div class="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+          <h4 class="font-medium text-green-800 mb-2">📊 Estimated Data Points</h4>
+          <p id="dataPointEstimate" class="text-sm text-green-700">
+            Select delivery period and granularity to see estimate
+          </p>
+        </div>
+
+        <!-- Step 2 Actions -->
+        <div class="flex justify-between pt-4">
+          <button type="button" id="step2Back" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500">
+            ← Back to Definition
+          </button>
+          <button type="button" id="step2Next" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Continue to Delivery Request →
+          </button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Delivery Request Details -->
+      <div id="step3" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 opacity-50 pointer-events-none">
+        <div class="flex items-center mb-4">
+          <span class="text-2xl mr-3">📋</span>
+          <h2 class="text-xl font-bold text-gray-900">Step 3: Delivery Request</h2>
+          <div class="ml-auto">
+            <span class="text-sm text-gray-500" id="step3-status">Locked</span>
+          </div>
+        </div>
+
+        <p class="text-gray-600 mb-6">Specify when and how this curve should be delivered</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          <!-- Due Date -->
+          <div>
+            <label for="dueDate" class="block text-sm font-medium text-gray-700 mb-2">
+              Due Date *
+              <span class="ml-1 text-blue-500 cursor-help" title="When the client needs this delivery">ℹ️</span>
+            </label>
+            <input type="date" id="dueDate" name="dueDate" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+
+          <!-- Requested By -->
+          <div>
+            <label for="requestedBy" class="block text-sm font-medium text-gray-700 mb-2">
+              Requested By *
+              <span class="ml-1 text-blue-500 cursor-help" title="Who is requesting this delivery">ℹ️</span>
+            </label>
+            <input type="text" id="requestedBy" name="requestedBy" 
+                   placeholder="e.g., Goldman Sachs, M&A Team"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+          </div>
+
+          <!-- Priority Level -->
+          <div>
+            <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">
+              Priority Level *
+              <span class="ml-1 text-blue-500 cursor-help" title="Urgency level from 1 (low) to 5 (critical)">ℹ️</span>
+            </label>
+            <select id="priority" name="priority" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="1">1 - Low</option>
+              <option value="2">2 - Below Normal</option>
+              <option value="3" selected>3 - Normal</option>
+              <option value="4">4 - High</option>
+              <option value="5">5 - Critical</option>
+            </select>
+          </div>
+
+          <!-- Responsible Team -->
+          <div>
+            <label for="responsibleTeam" class="block text-sm font-medium text-gray-700 mb-2">
+              Responsible Team *
+              <span class="ml-1 text-blue-500 cursor-help" title="Which team will fulfill this request">ℹ️</span>
+            </label>
+            <select id="responsibleTeam" name="responsibleTeam" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="Analytics">Analytics</option>
+              <option value="Finance">Finance</option>
+              <option value="M&A">M&A</option>
+              <option value="Commercial">Commercial</option>
+              <option value="Goldman">Goldman</option>
+              <option value="Trading/Risk">Trading/Risk</option>
+            </select>
+          </div>
+
+          <!-- Delivery Format -->
+          <div>
+            <label for="deliveryFormat" class="block text-sm font-medium text-gray-700 mb-2">
+              Delivery Format *
+              <span class="ml-1 text-blue-500 cursor-help" title="How the client wants to receive the data">ℹ️</span>
+            </label>
+            <select id="deliveryFormat" name="deliveryFormat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <option value="Excel">Excel (.xlsx)</option>
+              <option value="CSV">CSV (.csv)</option>
+              <option value="JSON">JSON (.json)</option>
+              <option value="API">API Access</option>
+              <option value="PDF">PDF Report</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- Notes -->
+        <div class="mt-6">
+          <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+            Notes & Special Instructions
+            <span class="ml-1 text-blue-500 cursor-help" title="Any special requirements or context for this delivery">ℹ️</span>
+          </label>
+          <textarea id="notes" name="notes" rows="4" 
+                    placeholder="e.g., Include confidence intervals, format for specific analysis, urgency reasons..."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"></textarea>
+        </div>
+
+        <!-- Step 3 Actions -->
+        <div class="flex justify-between pt-4">
+          <button type="button" id="step3Back" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500">
+            ← Back to Instance
+          </button>
+          <button type="button" id="previewRequest" class="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Preview & Submit
+          </button>
+        </div>
+      </div>
+
+    </form>
+
+    <!-- Preview Modal -->
+    <div id="previewModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">📋 Delivery Request Preview</h3>
+          <div id="previewContent" class="space-y-4">
+            <!-- Preview content will be generated here -->
+          </div>
+          <div class="flex justify-end space-x-3 pt-4">
+            <button type="button" id="cancelPreview" 
+                    class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+              Edit Request
+            </button>
+            <button type="submit" form="deliveryRequestForm"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+              Submit Request
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-1/2 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white transform -translate-y-1/2">
+        <div class="mt-3 text-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h3 class="text-lg font-medium text-gray-900">Creating Delivery Request...</h3>
+          <p class="text-gray-600">Please wait while we process your request.</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <script src="/js/enhanced-schedule-form.js" is:inline></script>
+  <script src="/js/delivery-request-form-hierarchical.js" is:inline></script>
 </Layout> 

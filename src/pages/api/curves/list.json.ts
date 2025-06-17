@@ -7,14 +7,20 @@ export const GET: APIRoute = async ({ request }) => {
       SELECT 
         cd.curve_id,
         cd.mark_type,
+        cd.mark_case,
         cd.location,
         cd.market,
         cd.mark_date,
+        cd.granularity,
+        cd.curve_start_date,
+        cd.curve_end_date,
+        cd.curve_creator,
+        cd.created_at,
         COUNT(pf.id) as price_points
-      FROM "Forecasts".curve_definitions cd
-      LEFT JOIN "Forecasts".price_forecasts pf ON cd.curve_id = pf.curve_id
-      GROUP BY cd.curve_id, cd.mark_type, cd.location, cd.market, cd.mark_date
-      ORDER BY cd.mark_date DESC
+      FROM curve_definitions cd
+      LEFT JOIN price_forecasts pf ON cd.curve_id = pf.curve_id
+      GROUP BY cd.curve_id, cd.mark_type, cd.mark_case, cd.location, cd.market, cd.mark_date, cd.granularity, cd.curve_start_date, cd.curve_end_date, cd.curve_creator, cd.created_at
+      ORDER BY cd.mark_date DESC, cd.created_at DESC
     `);
     
     return new Response(JSON.stringify(result.rows), {

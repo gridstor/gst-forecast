@@ -18,7 +18,7 @@ const CurveRowSchema = z.object({
   market: z.string()
 });
 
-export const post: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request }) => {
   try {
     if (!request.body) {
       return new Response('No file uploaded', { status: 400 });

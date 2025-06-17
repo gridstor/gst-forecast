@@ -1,0 +1,2 @@
+-- Empty migration for freshness periods
+-- This migration was created to resolve migration baseline issues 

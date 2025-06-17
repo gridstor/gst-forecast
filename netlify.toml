@@ -3,10 +3,14 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
+
+[dev]
+  command = "npm run dev"
+  port = 4321
 
 [functions]
-  external_node_modules = ["@prisma/client"]
+  external_node_modules = ["@prisma/client", "@astrojs/react"]
   node_bundler = "esbuild"
 
 [[redirects]]

@@ -2,6 +2,10 @@
   "name": "gridstor-analytics",
   "type": "module",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=18.20.8",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -22,9 +26,11 @@
     "migrate:curves": "tsx scripts/run_curve_migration.ts",
     "test": "vitest",
     "test:integration": "vitest integration",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "type-check": "astro check"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.4",
     "@astrojs/netlify": "^6.3.4",
     "@astrojs/react": "^4.3.0",
     "@astrojs/tailwind": "^6.0.2",
@@ -59,7 +65,7 @@
     "cross-env": "^7.0.3",
     "prisma": "^5.0.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.3.3",
+    "typescript": "^5.8.3",
     "vitest": "^1.6.1"
   },
   "prisma": {

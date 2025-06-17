@@ -290,9 +290,11 @@ import Layout from '../../layouts/Layout.astro';
     </div>
   </div>
 
-  <!-- Include FullCalendar for calendar view -->
+  <!-- Include FullCalendar for calendar view - try multiple CDNs -->
   <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
-  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+  <link href='https://unpkg.com/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js' onerror="console.log('jsdelivr CDN failed')"></script>
+  <script src='https://unpkg.com/fullcalendar@6.1.8/index.global.min.js' onerror="console.log('unpkg CDN failed')"></script>
 
   <script src="/js/delivery-management.js" is:inline></script>
 </Layout> 

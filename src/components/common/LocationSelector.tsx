@@ -21,11 +21,13 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         aria-label="Select Location"
       >
         <option value="">Select a location...</option>
-        {locations.map(loc => (
-          <option key={loc.id} value={loc.id}>
-            {loc.name} ({loc.market})
-          </option>
-        ))}
+        {locations
+          .filter(loc => loc && loc.id) // Filter out invalid items
+          .map((loc, index) => (
+            <option key={`${loc.id}-${index}`} value={loc.id}>
+              {loc.name} ({loc.market})
+            </option>
+          ))}
       </select>
     </div>
   );

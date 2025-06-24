@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { query } from '../../../lib/db';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
@@ -11,13 +12,33 @@ export const GET: APIRoute = async ({ url }) => {
       );
     }
 
-    console.log(`Curves by location fallback for: ${locationParam}`);
+    console.log(`Fetching curves for location: ${locationParam}`);
     
-    // Return empty array until new Forecasts schema is properly connected
-    // This API will be updated to use the new CurveDefinition table later
-    const emptyCurves: any[] = [];
+    const result = await query(`
+      SELECT 
+        id as curve_id,
+        "curveName" as curve_name,
+        market,
+        location,
+        product,
+        "curveType" as curve_type,
+        "batteryDuration" as battery_duration,
+        scenario,
+        "degradationType" as degradation_type,
+        commodity,
+        units,
+        description,
+        "isActive" as is_active,
+        "createdAt" as created_at,
+        "createdBy" as created_by
+      FROM "Forecasts"."CurveDefinition"
+      WHERE location = $1 AND "isActive" = true
+      ORDER BY "createdAt" DESC
+    `, [locationParam]);
 
-    return new Response(JSON.stringify(emptyCurves), {
+    console.log(`Found ${result.rows.length} curves for location ${locationParam}`);
+
+    return new Response(JSON.stringify(result.rows), {
       headers: { 'Content-Type': 'application/json' }
     });
     

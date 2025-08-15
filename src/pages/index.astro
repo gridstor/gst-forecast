@@ -1,3 +1,39 @@
 ---
-return Astro.redirect('/curve-viewer');
---- 
+// Remove redirect - serve the main page instead
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GST Forecast - GridStor Analytics</title>
+</head>
+<body>
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+        <h1 style="color: #2563eb;">GST Forecast</h1>
+        <p style="color: #6b7280; font-size: 18px;">Forecasting application for tracking and managing curve schedules and updates.</p>
+        
+        <div style="display: grid; gap: 20px; margin-top: 40px;">
+            <a href="/curve-schedule/" style="display: block; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #1e40af;">
+                <h3 style="margin: 0 0 10px 0;">📅 Curve Schedule</h3>
+                <p style="margin: 0; color: #64748b;">View and manage curve update schedules</p>
+            </a>
+            
+            <a href="/curve-tracker/" style="display: block; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #1e40af;">
+                <h3 style="margin: 0 0 10px 0;">📊 Curve Tracker</h3>
+                <p style="margin: 0; color: #64748b;">Track curve health and performance</p>
+            </a>
+            
+            <a href="/curve-viewer/" style="display: block; padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-decoration: none; color: #1e40af;">
+                <h3 style="margin: 0 0 10px 0;">📈 Curve Viewer</h3>
+                <p style="margin: 0; color: #64748b;">Visualize and analyze curve data</p>
+            </a>
+        </div>
+        
+        <div style="margin-top: 40px; padding: 20px; background: #fef3c7; border-radius: 8px;">
+            <p style="margin: 0; color: #92400e;"><strong>Note:</strong> This site is part of the GridStor Analytics platform. All functionality is accessible through the main navigation.</p>
+        </div>
+    </div>
+</body>
+</html> 

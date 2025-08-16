@@ -4,8 +4,8 @@ import tailwind from '@astrojs/tailwind';
 import netlify from '@astrojs/netlify';
 
 export default defineConfig({
-  site: 'https://gridstordayzer.netlify.app',
-  base: '/dayzer',
+  // Remove site and base - let the sub-site serve from its own root domain
+  // The main site's proxy will handle the /forecasts/ routing
   output: 'server',
   adapter: netlify(),
   integrations: [react(), tailwind()],

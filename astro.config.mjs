@@ -1,13 +1,26 @@
+// @ts-check
 import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import tailwind from '@astrojs/tailwind';
 import netlify from '@astrojs/netlify';
-
+ 
 export default defineConfig({
-  // Remove site and base - let the sub-site serve from its own root domain
-  // The main site's proxy will handle the /forecasts/ routing
+  site: 'https://gridstor.netlify.app',
+  integrations: [react(), tailwind()],
   output: 'server',
   adapter: netlify(),
-  integrations: [react(), tailwind()],
-  vite: { build: { rollupOptions: { external: ['@prisma/client'] } } }
+  build: {
+    assets: '_astro'
+  },
+  vite: {
+    build: {
+      rollupOptions: {
+        external: ['@prisma/client']
+      }
+    },
+    define: {
+      // Ensure assets load from correct domain
+      'import.meta.env.ASSET_URL': JSON.stringify('https://gridstor.netlify.app')
+    }
+  }
 });

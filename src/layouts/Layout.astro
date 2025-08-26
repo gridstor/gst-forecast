@@ -53,9 +53,12 @@ const currentPath = Astro.url.pathname;
 							>
 								Curve Tracker
 							</a>
-							<span class="text-gray-400 font-medium cursor-not-allowed">
+							<a 
+								href="/admin/" 
+								class={`${currentPath.startsWith('/admin') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium`}
+							>
 								Admin Tools
-							</span>
+							</a>
 						</nav>
 					</div>
 					
@@ -67,11 +70,11 @@ const currentPath = Astro.url.pathname;
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
 							</svg>
 						</button>
-						<button class="p-2 hover:bg-gray-700 rounded-md transition-colors">
+						<a href="https://gridstoranalytics.com" class="p-2 hover:bg-gray-700 rounded-md transition-colors" title="Back to GridStor Analytics">
 							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
 							</svg>
-						</button>
+						</a>
 					</div>
 				</div>
 			</div>

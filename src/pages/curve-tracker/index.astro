@@ -4,50 +4,71 @@ import FilterPanel from '../../components/curve-tracker/FilterPanel';
 import CurveTable from '../../components/curve-tracker/CurveTable';
 import StatusSummary from '../../components/curve-tracker/StatusSummary';
 import MarketSummary from '../../components/curve-tracker/MarketSummary';
-import { prisma } from '../../lib/prisma';
+import { query } from '../../lib/db';
 
-// Fetch initial data
-const curves = await prisma.curveSchedule.findMany({
-  include: {
-    updateHistory: {
-      orderBy: {
-        updateDate: 'desc'
-      },
-      take: 1
-    },
-    receipts: {
-      orderBy: {
-        receivedDate: 'desc'
-      },
-      take: 1
-    },
-    _count: {
-      select: {
-        comments: true
-      }
-    }
-  }
-});
+// Fetch initial data from CurveDefinition table
+let curves = [];
+let totalCurves = 0;
+let overdueCurves = 0;
+let dueSoonCurves = 0;
+let marketDistribution = {};
 
-// Calculate summary statistics
-const totalCurves = curves.length;
-const overdueCurves = curves.filter(curve => 
-  curve.nextUpdateDue && new Date(curve.nextUpdateDue) < new Date()
-).length;
-const dueSoonCurves = curves.filter(curve => {
-  if (!curve.nextUpdateDue) return false;
-  const dueDate = new Date(curve.nextUpdateDue);
-  const now = new Date();
-  const daysDiff = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
-  return daysDiff > 0 && daysDiff <= 7;
-}).length;
+try {
+  const result = await query(`
+    SELECT 
+      id,
+      "curveName" as curve_name,
+      market,
+      location,
+      product,
+      "curveType" as curve_type,
+      "createdAt" as created_at,
+      "createdBy" as created_by,
+      description
+    FROM "Forecasts"."CurveDefinition"
+    WHERE "isActive" = true
+    ORDER BY "createdAt" DESC
+  `);
+  
+  curves = result.rows.map(row => ({
+    id: row.id,
+    curveName: row.curve_name,
+    market: row.market,
+    location: row.location,
+    product: row.product,
+    curveType: row.curve_type,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    description: row.description,
+    // For compatibility with existing components, add some mock data
+    nextUpdateDue: null, // No schedule data available yet
+    updateHistory: [],
+    receipts: [],
+    _count: { comments: 0 }
+  }));
 
-// Calculate market distribution
-const marketDistribution = curves.reduce((acc, curve) => {
-  const market = curve.location.split('-')[0];
-  acc[market] = (acc[market] || 0) + 1;
-  return acc;
-}, {} as Record<string, number>);
+  // Calculate summary statistics
+  totalCurves = curves.length;
+  // Since we don't have schedule data yet, set these to 0
+  overdueCurves = 0;
+  dueSoonCurves = 0;
+
+  // Calculate market distribution
+  marketDistribution = curves.reduce((acc, curve) => {
+    const market = curve.market || 'Unknown';
+    acc[market] = (acc[market] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+} catch (error) {
+  console.error('Error fetching curves:', error);
+  // Provide fallback empty data
+  curves = [];
+  totalCurves = 0;
+  overdueCurves = 0;
+  dueSoonCurves = 0;
+  marketDistribution = {};
+}
 ---
 
 <Layout title="Curve Tracker Dashboard">

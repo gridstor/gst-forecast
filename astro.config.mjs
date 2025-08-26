@@ -5,22 +5,17 @@ import tailwind from '@astrojs/tailwind';
 import netlify from '@astrojs/netlify';
  
 export default defineConfig({
-  site: 'https://gridstor.netlify.app',
+  // Remove site URL - let it serve from its own domain
+  // This allows Netlify proxies to work correctly
   integrations: [react(), tailwind()],
   output: 'server',
   adapter: netlify(),
-  build: {
-    assets: '_astro'
-  },
   vite: {
     build: {
       rollupOptions: {
         external: ['@prisma/client']
       }
-    },
-    define: {
-      // Ensure assets load from correct domain
-      'import.meta.env.ASSET_URL': JSON.stringify('https://gridstor.netlify.app')
     }
+    // Remove ASSET_URL definition - let assets load from current domain
   }
 });

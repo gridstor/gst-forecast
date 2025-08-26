@@ -28,12 +28,14 @@ const currentPath = Astro.url.pathname;
 				<div class="flex justify-between items-center py-4">
 					<!-- Left side: Logo + Navigation -->
 					<div class="flex items-center gap-8">
-						<a href="/" class="flex items-center gap-3 text-xl font-bold hover:text-gray-300 transition-colors">
-							<div class="bg-white p-1 flex items-center justify-center">
+						<div class="flex items-center gap-3">
+							<a href="https://gridstoranalytics.com" class="bg-white p-1 flex items-center justify-center hover:bg-gray-100 transition-colors" title="Back to GridStor Analytics">
 								<img src="/GST_logo.svg" alt="GridStor Analytics Logo" class="w-6 h-6" />
-							</div>
-							GST Forecast
-						</a>
+							</a>
+							<a href="/curve-viewer/" class="text-xl font-bold hover:text-gray-300 transition-colors">
+								Revenue Forecast
+							</a>
+						</div>
 						<nav class="hidden lg:flex items-center gap-8">
 							<a 
 								href="/curve-viewer/" 

@@ -18,8 +18,8 @@ interface SortConfig {
 }
 
 export default function CurveTable({ initialCurves }: CurveTableProps) {
-  const [curves, setCurves] = useState(initialCurves);
-  const [filteredCurves, setFilteredCurves] = useState(initialCurves);
+  const [curves, setCurves] = useState(initialCurves || []);
+  const [filteredCurves, setFilteredCurves] = useState(initialCurves || []);
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: 'curvePattern',
     direction: 'asc'

@@ -34,6 +34,7 @@ pnpm-debug.log*
 # Database
 *.db
 *.sqlite
+*.csv
 
 # Test files and coverage
 coverage/

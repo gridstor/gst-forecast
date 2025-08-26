@@ -1,0 +1,133 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Curve Schedule - Admin Tools">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">📅 Curve Schedule</h1>
+          <p class="text-gray-600">Create delivery commitments for curves. Define what you need first, then track when data will be ready.</p>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="flex gap-3">
+          <a href="/admin/docs" class="inline-flex items-center px-3 py-2 bg-blue-100 text-blue-700 text-sm rounded-md hover:bg-blue-200 transition-colors">
+            📚 View Documentation
+          </a>
+          <a href="/admin/upload" class="inline-flex items-center px-3 py-2 bg-green-100 text-green-700 text-sm rounded-md hover:bg-green-200 transition-colors">
+            📤 Upload Data Now
+          </a>
+          <a href="/admin/" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+            ← Back to Admin
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simplified Workflow Overview -->
+    <div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-6 mb-8 border border-orange-200">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 text-center">⚡ Quick Start: Curve Delivery Workflow</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <!-- Step 1 -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+          <div class="flex items-center mb-3">
+            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3">1</div>
+            <h3 class="font-bold text-blue-700">Define What You Need</h3>
+          </div>
+          <p class="text-sm text-gray-700">
+            Create a curve definition (market, location, product) and instance (who's providing it, when it's due).
+          </p>
+        </div>
+        
+        <!-- Step 2 -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
+          <div class="flex items-center mb-3">
+            <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold mr-3">2</div>
+            <h3 class="font-bold text-orange-700">Set Delivery Date</h3>
+          </div>
+          <p class="text-sm text-gray-700">
+            Track when the data will be ready. Create commitment without having the actual data yet.
+          </p>
+        </div>
+        
+        <!-- Step 3 -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+          <div class="flex items-center mb-3">
+            <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold mr-3">3</div>
+            <h3 class="font-bold text-green-700">Upload Data Later</h3>
+          </div>
+          <p class="text-sm text-gray-700">
+            When data is ready, upload CSV files to fulfill the delivery commitment.
+          </p>
+        </div>
+      </div>
+      
+      <!-- Key Concept -->
+      <div class="bg-white rounded-lg p-4 border border-gray-200">
+        <div class="flex items-start space-x-3">
+          <div class="text-2xl">💡</div>
+          <div>
+            <h4 class="font-bold text-gray-800 mb-2">Key Concept: Create Commitments Before Data</h4>
+            <p class="text-sm text-gray-700">
+              This workflow lets you create delivery requests and track deadlines <strong>before</strong> you have the actual forecast data. 
+              Perfect for managing vendor deliverables and internal forecasting schedules.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Management Options -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      
+      <!-- Create New Delivery Request -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-3 bg-blue-100 rounded-full mr-4">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Create New Request</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Set up a new curve delivery commitment with timeline tracking.</p>
+        <a href="/curve-schedule/create-enhanced" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+          Create Delivery Request →
+        </a>
+      </div>
+      
+      <!-- Manage Existing Requests -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-3 bg-green-100 rounded-full mr-4">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Manage Requests</h3>
+        </div>
+        <p class="text-gray-600 mb-4">View, update, and track status of existing delivery commitments.</p>
+        <a href="/curve-schedule/manage" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+          Manage Requests →
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">📈 Recent Schedule Activity</h3>
+      <div class="text-center py-8 text-gray-500">
+        <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p>No recent schedule activity</p>
+        <p class="text-sm">Create your first delivery request to get started</p>
+      </div>
+    </div>
+  </div>
+</Layout>

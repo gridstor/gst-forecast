@@ -1,0 +1,274 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Database Schema Documentation">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">📚 Database Schema Documentation</h1>
+      <p class="text-gray-600">Comprehensive guide to how curve data is organized in the GST Forecast system</p>
+    </div>
+
+    <!-- Detailed Database Relationship Hierarchy -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-8 border border-blue-200">
+      <h2 class="text-xl font-bold text-gray-900 mb-4 text-center">📊 How Curve Data is Organized</h2>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        <!-- Level 1: Curve Definition (Reusable Template) -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
+          <div class="flex items-center mb-3">
+            <span class="text-2xl mr-2">🏗️</span>
+            <h3 class="font-bold text-blue-700 text-lg">CurveDefinition</h3>
+            <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">Reusable Template</span>
+          </div>
+          
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Purpose:</strong> Defines <em>what kind</em> of curve this is. Templates are reused across many forecast runs.
+          </p>
+          
+          <div class="space-y-2 text-xs">
+            <div><strong>Key Fields:</strong></div>
+            <div class="ml-2">
+              <div>• <code class="bg-gray-100 px-1 rounded">market</code> → "ERCOT", "CAISO", "PJM"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">location</code> → "Houston", "SP15", "North Hub"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">product</code> → "Revenue_Optimized", "LMP"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">curveType</code> → "REVENUE", "TB4", "ENERGY_ARB"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">batteryDuration</code> → "HOUR_4", "HOUR_2"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">scenario</code> → "BASE", "BULL", "P50"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">units</code> → "$/MWh", "MW"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">degradationType</code> → "NONE", "DATE", "PERCENTAGE"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">granularity</code> → "HOURLY", "MONTHLY", "ANNUAL"</div>
+            </div>
+          </div>
+          
+          <div class="mt-3 p-2 bg-blue-50 rounded text-xs">
+            <strong>Example:</strong> "ERCOT Houston Revenue_Optimized TB4 Battery, Base Case scenario"
+          </div>
+        </div>
+
+        <!-- Level 2: Curve Instance (Specific Forecast Run) -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
+          <div class="flex items-center mb-3">
+            <span class="text-2xl mr-2">📈</span>
+            <h3 class="font-bold text-green-700 text-lg">CurveInstance</h3>
+            <span class="ml-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded">Specific Run</span>
+          </div>
+          
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Purpose:</strong> A specific forecast run of the definition template. Contains <em>when</em> and <em>who</em> created this version.
+          </p>
+          
+          <div class="space-y-2 text-xs">
+            <div><strong>Key Fields:</strong></div>
+            <div class="ml-2">
+              <div>• <code class="bg-gray-100 px-1 rounded">curveDefinitionId</code> → Links to template above</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">instanceVersion</code> → "v1.0", "v2.1", "final"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">createdBy</code> → "Aurora", "Gridstor"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">modelType</code> → "Fundamental", "Statistical"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">deliveryPeriodStart</code> → "2025-01-01"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">deliveryPeriodEnd</code> → "2025-12-31"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">forecastRunDate</code> → When created</div>
+            </div>
+          </div>
+          
+          <div class="mt-3 p-2 bg-green-50 rounded text-xs">
+            <strong>Example:</strong> "March 2025 v2.1 by Aurora, from Jan-Dec 2025"
+          </div>
+        </div>
+
+        <!-- Level 3: PriceForecast (Time Series Data) -->
+        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-purple-500">
+          <div class="flex items-center mb-3">
+            <span class="text-2xl mr-2">💾</span>
+            <h3 class="font-bold text-purple-700 text-lg">PriceForecast</h3>
+            <span class="ml-2 text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">Raw Data</span>
+          </div>
+          
+          <p class="text-sm text-gray-700 mb-3">
+            <strong>Purpose:</strong> Individual data points with consolidated p-value columns. One row per timestamp with all confidence levels.
+          </p>
+          
+          <div class="space-y-2 text-xs">
+            <div><strong>Key Fields:</strong></div>
+            <div class="ml-2">
+              <div>• <code class="bg-gray-100 px-1 rounded">curveInstanceId</code> → Links to specific run above</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">timestamp</code> → "2025-01-01 00:00:00"</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">valueP5</code> → $42.50 (5th percentile)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">valueP25</code> → $45.25 (25th percentile)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">valueP50</code> → $48.75 (median/base case)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">valueP75</code> → $52.10 (75th percentile)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">valueP95</code> → $55.20 (95th percentile)</div>
+              <div>• <code class="bg-gray-100 px-1 rounded">flags</code> → ["outlier", "holiday", "estimated"]</div>
+            </div>
+          </div>
+          
+          <div class="mt-3 p-2 bg-purple-50 rounded text-xs">
+            <strong>Structure:</strong> One row per timestamp with all p-values. 8,760 hours = 8,760 rows (not 26,280), much more efficient!
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual Flow Diagram -->
+      <div class="bg-white rounded-lg p-4 border-2 border-dashed border-gray-300">
+        <h3 class="font-bold text-gray-800 mb-4 text-center">📈 Data Flow</h3>
+        <div class="flex items-center justify-center space-x-6 text-sm">
+          <div class="text-center">
+            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-2">
+              <span class="text-blue-600 font-bold">1</span>
+            </div>
+            <div class="text-blue-700 font-medium">Definition</div>
+            <div class="text-xs text-gray-500">Template</div>
+          </div>
+          
+          <div class="text-gray-400">→</div>
+          
+          <div class="text-center">
+            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-2">
+              <span class="text-green-600 font-bold">2</span>
+            </div>
+            <div class="text-green-700 font-medium">Instance</div>
+            <div class="text-xs text-gray-500">Run Details</div>
+          </div>
+          
+          <div class="text-gray-400">→</div>
+          
+          <div class="text-center">
+            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-2">
+              <span class="text-purple-600 font-bold">3</span>
+            </div>
+            <div class="text-purple-700 font-medium">Data</div>
+            <div class="text-xs text-gray-500">Time Series</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Workflow Documentation -->
+    <div class="space-y-6">
+      
+      <!-- Schema Principles -->
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">🎯 Schema Design Principles</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 class="font-semibold text-green-700 mb-2">✅ "Apples to Apples" Comparisons</h3>
+            <p class="text-sm text-gray-700 mb-3">
+              All data within a <code class="bg-gray-100 px-1 rounded">CurveDefinition</code> should be directly comparable:
+            </p>
+            <ul class="text-xs text-gray-600 space-y-1">
+              <li>• Same market, location, and product</li>
+              <li>• Same battery duration and granularity</li>
+              <li>• Different vendors/models/p-values are comparable</li>
+              <li>• Different scenarios can be compared within context</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h3 class="font-semibold text-blue-700 mb-2">📊 P-Value Consolidation</h3>
+            <p class="text-sm text-gray-700 mb-3">
+              Instead of separate instances per p-value, we store all confidence levels in one row:
+            </p>
+            <ul class="text-xs text-gray-600 space-y-1">
+              <li>• One <code class="bg-gray-100 px-1 rounded">CurveInstance</code> per forecast run</li>
+              <li>• P5, P25, P50, P75, P95 as columns in <code class="bg-gray-100 px-1 rounded">PriceForecast</code></li>
+              <li>• More efficient storage and querying</li>
+              <li>• Easier to visualize confidence bands</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Endpoints -->
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">🛠️ API Endpoints</h2>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="border border-blue-200 rounded-lg p-4">
+            <h3 class="font-semibold text-blue-700 mb-2">Definition Management</h3>
+            <div class="space-y-1 text-xs">
+              <div>• <code class="bg-gray-100 px-1 rounded">POST /api/curve-upload/create-definition</code></div>
+              <div>• <code class="bg-gray-100 px-1 rounded">GET /api/curves/definitions</code></div>
+              <div>• <code class="bg-gray-100 px-1 rounded">PUT /api/admin/edit-curve-definition</code></div>
+              <div>• <code class="bg-gray-100 px-1 rounded">DELETE /api/admin/edit-curve-definition</code></div>
+            </div>
+          </div>
+          
+          <div class="border border-green-200 rounded-lg p-4">
+            <h3 class="font-semibold text-green-700 mb-2">Instance Management</h3>
+            <div class="space-y-1 text-xs">
+              <div>• <code class="bg-gray-100 px-1 rounded">POST /api/curve-upload/create-instance</code></div>
+              <div>• <code class="bg-gray-100 px-1 rounded">GET /api/curves/list</code></div>
+              <div>• <code class="bg-gray-100 px-1 rounded">DELETE /api/admin/delete-curve-instance</code></div>
+            </div>
+          </div>
+          
+          <div class="border border-purple-200 rounded-lg p-4">
+            <h3 class="font-semibold text-purple-700 mb-2">Data Upload</h3>
+            <div class="space-y-1 text-xs">
+              <div>• <code class="bg-gray-100 px-1 rounded">POST /api/curve-upload/upload-data</code></div>
+              <div>• <code class="bg-gray-100 px-1 rounded">GET /api/curves/data</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CSV Format Documentation -->
+      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">📄 CSV Upload Format</h2>
+        
+        <div class="bg-blue-50 rounded-lg p-4 mb-4">
+          <h3 class="font-medium text-blue-900 mb-2">Required Columns</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <code class="bg-white px-2 py-1 rounded border">timestamp</code>
+              <p class="text-blue-800 text-xs mt-1">ISO 8601 format: 2024-01-01T00:00:00Z</p>
+            </div>
+            <div>
+              <code class="bg-white px-2 py-1 rounded border">value</code>
+              <p class="text-blue-800 text-xs mt-1">Numeric price/revenue value</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-green-50 rounded-lg p-4 mb-4">
+          <h3 class="font-medium text-green-900 mb-2">Optional Columns</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <code class="bg-white px-2 py-1 rounded border">pvalue</code>
+              <p class="text-green-800 text-xs mt-1">Confidence level: 5, 25, 50, 75, 95 (default: 50)</p>
+            </div>
+            <div>
+              <code class="bg-white px-2 py-1 rounded border">units</code>
+              <p class="text-green-800 text-xs mt-1">Price units: $/MWh, MW, etc. (default: $/MWh)</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-lg p-4">
+          <h3 class="font-medium text-gray-900 mb-2">Example CSV</h3>
+          <pre class="text-xs bg-white p-3 rounded border font-mono overflow-x-auto">
+timestamp,value,pvalue,units
+2024-01-01T00:00:00Z,42.50,5,$/MWh
+2024-01-01T00:00:00Z,45.25,25,$/MWh
+2024-01-01T00:00:00Z,48.75,50,$/MWh
+2024-01-01T00:00:00Z,52.10,75,$/MWh
+2024-01-01T00:00:00Z,55.20,95,$/MWh
+2024-01-01T01:00:00Z,43.10,5,$/MWh
+2024-01-01T01:00:00Z,46.80,25,$/MWh
+...</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back to Tools -->
+    <div class="mt-8 text-center">
+      <a href="/admin/" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+        ← Back to Admin Tools
+      </a>
+    </div>
+  </div>
+</Layout>

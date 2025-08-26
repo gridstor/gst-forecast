@@ -65,14 +65,16 @@ export const POST: APIRoute = async ({ request }) => {
         continue;
       }
 
+      // Handle p-value mapping to columns
+      const pvalue = row.pvalue ? parseInt(row.pvalue) : 50;
+      const pValueColumnName = `valueP${pvalue}`;
+      
       validatedData.push({
         curveInstanceId: parseInt(curveInstanceId),
         timestamp,
-        pvalue: row.pvalue ? parseInt(row.pvalue) : 50, // Default to P50
+        pvalue,
+        pValueColumnName,
         value,
-        units: row.units || 'USD/MWh',
-        pValueGranularity: row.pValueGranularity || 'MONTHLY',
-        granularity: row.granularity || 'MONTHLY',
         flags: row.flags || []
       });
     }
@@ -102,17 +104,67 @@ export const POST: APIRoute = async ({ request }) => {
       WHERE "curveInstanceId" = ${parseInt(curveInstanceId)}
     `;
 
-    // Insert price forecasts using raw SQL to match actual database structure
-    let insertedCount = 0;
+    // Group data by timestamp to consolidate p-values
+    const groupedData = new Map<string, any>();
+    
     for (const record of validatedData) {
+      const timestampKey = record.timestamp.toISOString();
+      
+      if (!groupedData.has(timestampKey)) {
+        groupedData.set(timestampKey, {
+          curveInstanceId: record.curveInstanceId,
+          timestamp: record.timestamp,
+          valueP5: null,
+          valueP25: null,
+          valueP50: null,
+          valueP75: null,
+          valueP95: null,
+          value: null, // Legacy column
+          flags: record.flags
+        });
+      }
+      
+      const existingRecord = groupedData.get(timestampKey);
+      
+      // Set the appropriate p-value column
+      switch (record.pvalue) {
+        case 5:
+          existingRecord.valueP5 = record.value;
+          break;
+        case 25:
+          existingRecord.valueP25 = record.value;
+          break;
+        case 50:
+          existingRecord.valueP50 = record.value;
+          existingRecord.value = record.value; // Also set legacy column
+          break;
+        case 75:
+          existingRecord.valueP75 = record.value;
+          break;
+        case 95:
+          existingRecord.valueP95 = record.value;
+          break;
+      }
+    }
+
+    // Insert consolidated price forecasts
+    let insertedCount = 0;
+    for (const record of groupedData.values()) {
+      // Ensure valueP50 is not null (required field)
+      if (record.valueP50 === null) {
+        // If no P50 provided, use any available value as fallback
+        record.valueP50 = record.valueP5 || record.valueP25 || record.valueP75 || record.valueP95 || 0;
+        record.value = record.valueP50;
+      }
+      
       await prisma.$executeRaw`
         INSERT INTO "Forecasts"."PriceForecast" (
-          "curveInstanceId", "timestamp", "pvalue", "value", 
-          "units", "pValueGranularity", "granularity", "flags"
+          "curveInstanceId", "timestamp", "valueP5", "valueP25", "valueP50", 
+          "valueP75", "valueP95", "value", "flags"
         ) VALUES (
-          ${record.curveInstanceId}, ${record.timestamp}, ${record.pvalue}, 
-          ${record.value}, ${record.units}, ${record.pValueGranularity}::"PValueGranularity", 
-          ${record.granularity}::"Granularity", ${record.flags}::text[]
+          ${record.curveInstanceId}, ${record.timestamp}, ${record.valueP5}, 
+          ${record.valueP25}, ${record.valueP50}, ${record.valueP75}, 
+          ${record.valueP95}, ${record.value}, ${record.flags}::text[]
         )
       `;
       insertedCount++;

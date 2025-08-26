@@ -10,22 +10,95 @@ import Layout from '../../layouts/Layout.astro';
     </div>
 
     <h1 class="text-3xl font-bold mb-6">Price Curves Upload</h1>
-    <p class="text-gray-600 mb-8">Upload price forecast data using the modern Forecasts schema (CurveDefinition + CurveInstance + PriceForecast)</p>
+    <p class="text-gray-600 mb-4">Upload price forecast data using the modern Forecasts schema (CurveDefinition + CurveInstance + PriceForecast)</p>
+    
+    <div class="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+      <h2 class="font-semibold text-amber-900 mb-2">📊 Multi P-Value Upload Supported</h2>
+      <p class="text-amber-800 text-sm">You can upload multiple p-values (P5, P25, P50, P75, P95) in a single CSV file. The "Scenario" field below is just the overall category - your CSV data can contain rows with different p-values.</p>
+    </div>
 
-    <!-- Progress Indicator -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-sm font-medium text-gray-700">Upload Progress</span>
-        <span class="text-sm text-gray-500" id="progress-text">Step 1 of 3</span>
+    <!-- Upload Options -->
+    <div class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Quick CSV Upload -->
+      <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-green-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">⚡ Quick CSV Upload</h3>
+        </div>
+        <p class="text-gray-600 text-sm mb-4">Already have a complete CSV? Skip the form and upload directly to an existing curve.</p>
+        <div class="space-y-3">
+          <button id="show-quick-upload" class="w-full bg-green-600 text-white text-center py-2 px-4 rounded-md hover:bg-green-700 transition-colors">
+            📄 Upload CSV Only
+          </button>
+          <button id="download-template" class="w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+            📥 Download CSV Template
+          </button>
+        </div>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-2">
-        <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 33%"></div>
+      
+      <!-- Full Workflow -->
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-blue-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">📋 Full Workflow</h3>
+        </div>
+        <p class="text-gray-600 text-sm mb-4">Create new curve definition, instance, and upload data all at once.</p>
+        <button id="show-full-workflow" class="w-full bg-blue-600 text-white text-center py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
+          🔧 Start Full Setup
+        </button>
       </div>
     </div>
 
-    <!-- Step 1: Curve Definition -->
-    <div id="step-1" class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 class="text-xl font-semibold mb-4">Step 1: Curve Definition</h2>
+    <!-- Quick Upload Modal -->
+    <div id="quick-upload-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-900">⚡ Quick CSV Upload</h3>
+          <button id="close-quick-upload" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Select Existing Curve Instance</label>
+          <select id="quick-curve-select" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Loading curves...</option>
+          </select>
+        </div>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">CSV File</label>
+          <input type="file" id="quick-csv-file" accept=".csv" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        </div>
+        
+        <div class="flex justify-end space-x-3">
+          <button id="cancel-quick-upload" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200">
+            Cancel
+          </button>
+          <button id="submit-quick-upload" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700" disabled>
+            Upload CSV
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Workflow Container -->
+    <div id="full-workflow-container" class="hidden">
+
+    <!-- Section 1: Curve Definition -->
+    <div id="definition-section" class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">📊 Curve Definition</h2>
       <p class="text-gray-600 mb-4">Define the metadata for your price curve</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -60,6 +133,7 @@ import Layout from '../../layouts/Layout.astro';
           <label class="block text-sm font-medium text-gray-700">Location *</label>
           <select id="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
             <option value="">Select Location</option>
+            <option value="Channel View">Channel View</option>
             <option value="NP15">NP15</option>
             <option value="SP15">SP15</option>
             <option value="ZP26">ZP26</option>
@@ -75,12 +149,17 @@ import Layout from '../../layouts/Layout.astro';
         <!-- Product -->
         <div>
           <label class="block text-sm font-medium text-gray-700">Product *</label>
+          <select id="product" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+            <option value="">Select Product</option>
+            <option value="Optimized Revenue">Optimized Revenue</option>
+            <option value="Market Price Forecast">Market Price Forecast</option>
+            <option value="Other">Other (type below)</option>
+          </select>
           <input
             type="text"
-            id="product"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="e.g., Energy Storage, LMP, Ancillary Services"
-            required
+            id="productOther"
+            class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 hidden"
+            placeholder="Enter custom product type"
           />
         </div>
 
@@ -89,17 +168,14 @@ import Layout from '../../layouts/Layout.astro';
           <label class="block text-sm font-medium text-gray-700">Curve Type *</label>
           <select id="curveType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
             <option value="">Select Curve Type</option>
-            <option value="REVENUE">Revenue</option>
-            <option value="REVENUE_OTHER">Revenue Other</option>
-            <option value="ENERGY">Energy</option>
-            <option value="ENERGY_ARB">Energy Arbitrage</option>
-            <option value="AS">Ancillary Services</option>
-            <option value="TB2">TB2</option>
-            <option value="TB4">TB4</option>
-            <option value="RA">Resource Adequacy</option>
-            <option value="DA">Day-Ahead</option>
-            <option value="RT">Real-Time</option>
-            <option value="OTHER">Other</option>
+            <option value="DA Energy Arbitrage">DA Energy Arbitrage</option>
+            <option value="RT Energy Arbitrage">RT Energy Arbitrage</option>
+            <option value="Total AS">Total AS</option>
+            <option value="AS Reg Up">AS Reg Up</option>
+            <option value="AS Reg Down">AS Reg Down</option>
+            <option value="AS Spin">AS Spin</option>
+            <option value="Capacity Price Curve">Capacity Price Curve</option>
+            <option value="Total Revenue">Total Revenue</option>
           </select>
         </div>
 
@@ -116,65 +192,29 @@ import Layout from '../../layouts/Layout.astro';
           </select>
         </div>
 
-        <!-- Scenario -->
+
+
+        <!-- Granularity -->
         <div>
-          <label class="block text-sm font-medium text-gray-700">Scenario</label>
-          <select id="scenario" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <option value="BASE">Base</option>
-            <option value="P50">P50</option>
-            <option value="P90">P90</option>
-            <option value="P10">P10</option>
-            <option value="LOW">Low</option>
-            <option value="HIGH">High</option>
-            <option value="UPSIDE">Upside</option>
-            <option value="DOWNSIDE">Downside</option>
-            <option value="ACTUAL">Actual</option>
-            <option value="TARGET">Target</option>
-            <option value="OTHER">Other</option>
+          <label class="block text-sm font-medium text-gray-700">Granularity *</label>
+          <select id="granularityDef" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+            <option value="">Select Granularity</option>
+            <option value="HOURLY">Hourly</option>
+            <option value="DAILY">Daily</option>
+            <option value="MONTHLY">Monthly</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="ANNUAL">Annual</option>
           </select>
         </div>
 
-        <!-- Degradation Type -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Degradation Type</label>
-          <select id="degradationType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <option value="NONE">None</option>
-            <option value="YEAR_1">Year 1</option>
-            <option value="YEAR_2">Year 2</option>
-            <option value="YEAR_5">Year 5</option>
-            <option value="YEAR_10">Year 10</option>
-            <option value="YEAR_15">Year 15</option>
-            <option value="YEAR_20">Year 20</option>
-            <option value="CUSTOM">Custom</option>
-            <option value="OTHER">Other</option>
-          </select>
-        </div>
 
-        <!-- Description -->
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            id="description"
-            rows="3"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            placeholder="Optional description of this curve..."
-          ></textarea>
-        </div>
       </div>
 
-      <div class="flex justify-end mt-4">
-        <button
-          id="step1-next"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Next: Instance Details
-        </button>
-      </div>
     </div>
 
-    <!-- Step 2: Curve Instance -->
-    <div id="step-2" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
-      <h2 class="text-xl font-semibold mb-4">Step 2: Curve Instance</h2>
+    <!-- Section 2: Curve Instance -->
+    <div id="instance-section" class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">📈 Curve Instance</h2>
       <p class="text-gray-600 mb-4">Define the specific instance parameters for this forecast run</p>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -190,18 +230,7 @@ import Layout from '../../layouts/Layout.astro';
           />
         </div>
 
-        <!-- Granularity -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Granularity *</label>
-          <select id="granularity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-            <option value="">Select Granularity</option>
-            <option value="HOURLY">Hourly</option>
-            <option value="DAILY">Daily</option>
-            <option value="MONTHLY">Monthly</option>
-            <option value="QUARTERLY">Quarterly</option>
-            <option value="ANNUAL">Annual</option>
-          </select>
-        </div>
+
 
         <!-- Delivery Period Start -->
         <div>
@@ -248,6 +277,37 @@ import Layout from '../../layouts/Layout.astro';
           />
         </div>
 
+        <!-- Scenario (P-Values) -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Scenario</label>
+          <select id="scenario" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="P5">P5</option>
+            <option value="P25">P25</option>
+            <option value="P50" selected>P50</option>
+            <option value="P75">P75</option>
+            <option value="P95">P95</option>
+          </select>
+          <p class="mt-1 text-sm text-gray-500">
+            📊 <strong>Note:</strong> Your CSV can contain multiple p-values - they will be consolidated under this scenario context.
+          </p>
+        </div>
+
+        <!-- Degradation Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Degradation Type</label>
+          <select id="degradationType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="NONE">None</option>
+            <option value="YEAR_1">Year 1</option>
+            <option value="YEAR_2">Year 2</option>
+            <option value="YEAR_5">Year 5</option>
+            <option value="YEAR_10">Year 10</option>
+            <option value="YEAR_15">Year 15</option>
+            <option value="YEAR_20">Year 20</option>
+            <option value="CUSTOM">Custom</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </div>
+
         <!-- Notes -->
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-700">Notes</label>
@@ -260,33 +320,24 @@ import Layout from '../../layouts/Layout.astro';
         </div>
       </div>
 
-      <div class="flex justify-between mt-4">
-        <button
-          id="step2-back"
-          class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-        >
-          Back
-        </button>
-        <button
-          id="step2-next"
-          class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Next: Upload Data
-        </button>
-      </div>
     </div>
 
-    <!-- Step 3: Data Upload -->
-    <div id="step-3" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
-      <h2 class="text-xl font-semibold mb-4">Step 3: Upload Price Data</h2>
+    <!-- Section 3: Data Upload -->
+    <div id="upload-section" class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-xl font-semibold mb-4">📤 Upload Price Data</h2>
       <p class="text-gray-600 mb-4">Upload CSV file with price forecast data</p>
 
       <!-- CSV Format Guide -->
       <div class="mb-6 p-4 bg-blue-50 rounded-lg">
         <h3 class="font-medium text-blue-900 mb-2">CSV Format Requirements</h3>
-        <p class="text-blue-800 text-sm mb-2">Required columns: timestamp, value</p>
-        <p class="text-blue-800 text-sm mb-2">Optional columns: pvalue (default: 50), units (default: USD/MWh), granularity (default: MONTHLY)</p>
-        <p class="text-blue-800 text-sm">Example: 2024-01-01T00:00:00Z,45.50,50,USD/MWh,MONTHLY</p>
+        <p class="text-blue-800 text-sm mb-2"><strong>Required columns:</strong> timestamp, value</p>
+        <p class="text-blue-800 text-sm mb-2"><strong>Optional columns:</strong> pvalue (default: 50), units (default: USD/MWh)</p>
+        <p class="text-blue-800 text-sm mb-3"><strong>Example:</strong> 2024-01-01T00:00:00Z,45.50,50,USD/MWh</p>
+        
+        <div class="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+          <h4 class="font-medium text-green-900 mb-1">✅ Multiple P-Values Supported!</h4>
+          <p class="text-green-800 text-sm">You can upload multiple p-values (P5, P25, P50, P75, P95) in a single CSV file. Each row can have a different pvalue - the system will store them all under the scenario selected above.</p>
+        </div>
       </div>
 
       <!-- File Upload -->
@@ -353,6 +404,8 @@ import Layout from '../../layouts/Layout.astro';
         </button>
       </div>
     </div>
+    
+    </div> <!-- End Full Workflow Container -->
   </div>
 </Layout>
 
@@ -400,21 +453,23 @@ import Layout from '../../layouts/Layout.astro';
 
   // Step 1: Create curve definition
   async function createCurveDefinition() {
+    const productSelect = document.getElementById('product') as HTMLSelectElement;
+    const productOther = document.getElementById('productOther') as HTMLInputElement;
+    const productValue = productSelect.value === 'Other' ? productOther.value : productSelect.value;
+
     const formData = {
       curveName: (document.getElementById('curveName') as HTMLInputElement).value,
       market: (document.getElementById('market') as HTMLSelectElement).value,
       location: (document.getElementById('location') as HTMLSelectElement).value,
-      product: (document.getElementById('product') as HTMLInputElement).value,
+      product: productValue,
       curveType: (document.getElementById('curveType') as HTMLSelectElement).value,
       batteryDuration: (document.getElementById('batteryDuration') as HTMLSelectElement).value,
-      scenario: (document.getElementById('scenario') as HTMLSelectElement).value,
-      degradationType: (document.getElementById('degradationType') as HTMLSelectElement).value,
-      description: (document.getElementById('description') as HTMLTextAreaElement).value
+      granularity: (document.getElementById('granularityDef') as HTMLSelectElement).value
     };
 
     // Validate required fields
-    if (!formData.curveName || !formData.market || !formData.location || !formData.product || !formData.curveType) {
-      showNotification('Please fill in all required fields', true);
+    if (!formData.curveName || !formData.market || !formData.location || !formData.product || !formData.curveType || !formData.granularity) {
+      showNotification('Please fill in all required definition fields', true);
       return false;
     }
 
@@ -441,21 +496,22 @@ import Layout from '../../layouts/Layout.astro';
     }
   }
 
-  // Step 2: Create curve instance
+  // Create curve instance
   async function createCurveInstance() {
     const formData = {
       curveDefinitionId: curveDefinition.id,
       instanceVersion: (document.getElementById('instanceVersion') as HTMLInputElement).value,
-      granularity: (document.getElementById('granularity') as HTMLSelectElement).value,
       deliveryPeriodStart: (document.getElementById('deliveryPeriodStart') as HTMLInputElement).value,
       deliveryPeriodEnd: (document.getElementById('deliveryPeriodEnd') as HTMLInputElement).value,
       createdBy: (document.getElementById('createdBy') as HTMLInputElement).value,
       notes: (document.getElementById('notes') as HTMLTextAreaElement).value,
-      modelType: (document.getElementById('modelType') as HTMLInputElement).value
+      modelType: (document.getElementById('modelType') as HTMLInputElement).value,
+      scenario: (document.getElementById('scenario') as HTMLSelectElement).value,
+      degradationType: (document.getElementById('degradationType') as HTMLSelectElement).value
     };
 
     // Validate required fields
-    if (!formData.instanceVersion || !formData.granularity || !formData.deliveryPeriodStart || !formData.deliveryPeriodEnd) {
+    if (!formData.instanceVersion || !formData.deliveryPeriodStart || !formData.deliveryPeriodEnd) {
       showNotification('Please fill in all required instance fields', true);
       return false;
     }
@@ -632,26 +688,60 @@ import Layout from '../../layouts/Layout.astro';
 
   // Event listeners
   document.addEventListener('DOMContentLoaded', function() {
-    // Step navigation
-    document.getElementById('step1-next')?.addEventListener('click', async function() {
-      if (await createCurveDefinition()) {
-        showStep(2);
+    // Product dropdown handling
+    document.getElementById('product')?.addEventListener('change', function(e: any) {
+      const productOther = document.getElementById('productOther') as HTMLInputElement;
+      if (e.target.value === 'Other') {
+        productOther.classList.remove('hidden');
+        productOther.required = true;
+      } else {
+        productOther.classList.add('hidden');
+        productOther.required = false;
+        productOther.value = '';
       }
     });
 
-    document.getElementById('step2-back')?.addEventListener('click', function() {
-      showStep(1);
+    // Upload mode handling
+    document.getElementById('show-quick-upload')?.addEventListener('click', function() {
+      document.getElementById('quick-upload-modal')?.classList.remove('hidden');
+      loadCurveInstances();
     });
 
-    document.getElementById('step2-next')?.addEventListener('click', async function() {
-      if (await createCurveInstance()) {
-        showStep(3);
-      }
+    document.getElementById('show-full-workflow')?.addEventListener('click', function() {
+      document.getElementById('full-workflow-container')?.classList.remove('hidden');
     });
 
-    document.getElementById('step3-back')?.addEventListener('click', function() {
-      showStep(2);
+    document.getElementById('close-quick-upload')?.addEventListener('click', function() {
+      document.getElementById('quick-upload-modal')?.classList.add('hidden');
     });
+
+    document.getElementById('cancel-quick-upload')?.addEventListener('click', function() {
+      document.getElementById('quick-upload-modal')?.classList.add('hidden');
+    });
+
+    // Download template
+    document.getElementById('download-template')?.addEventListener('click', function() {
+      downloadCSVTemplate();
+    });
+
+    // Quick CSV upload
+    document.getElementById('quick-csv-file')?.addEventListener('change', function(e: any) {
+      const submitBtn = document.getElementById('submit-quick-upload') as HTMLButtonElement;
+      const curveSelect = document.getElementById('quick-curve-select') as HTMLSelectElement;
+      submitBtn.disabled = !(e.target.files[0] && curveSelect.value);
+    });
+
+    document.getElementById('quick-curve-select')?.addEventListener('change', function(e: any) {
+      const submitBtn = document.getElementById('submit-quick-upload') as HTMLButtonElement;
+      const fileInput = document.getElementById('quick-csv-file') as HTMLInputElement;
+      submitBtn.disabled = !(e.target.value && fileInput.files && fileInput.files[0]);
+    });
+
+    document.getElementById('submit-quick-upload')?.addEventListener('click', async function() {
+      await handleQuickUpload();
+    });
+
+    // Form validation will now be done on final upload button
 
     // CSV upload
     document.getElementById('csvFile')?.addEventListener('change', function(e: any) {
@@ -673,12 +763,31 @@ import Layout from '../../layouts/Layout.astro';
       reader.readAsText(file);
     });
 
-    // Final upload
+    // Final upload - handle all steps at once
     document.getElementById('upload-final')?.addEventListener('click', async function() {
       const button = this as HTMLButtonElement;
       button.disabled = true;
-      button.textContent = 'Uploading...';
+      button.textContent = 'Creating curve...';
 
+      // Validate and create definition
+      if (!(await createCurveDefinition())) {
+        button.disabled = false;
+        button.textContent = 'Upload Complete Curve';
+        return;
+      }
+
+      button.textContent = 'Creating instance...';
+      
+      // Validate and create instance
+      if (!(await createCurveInstance())) {
+        button.disabled = false;
+        button.textContent = 'Upload Complete Curve';
+        return;
+      }
+
+      button.textContent = 'Uploading data...';
+
+      // Upload data
       const success = await uploadPriceData();
       
       button.disabled = false;
@@ -690,6 +799,120 @@ import Layout from '../../layouts/Layout.astro';
       resetForm();
     });
   });
+
+  // Load curve instances for quick upload
+  async function loadCurveInstances() {
+    try {
+      const response = await fetch('/api/curves/list');
+      const data = await response.json();
+      const select = document.getElementById('quick-curve-select') as HTMLSelectElement;
+      
+      select.innerHTML = '<option value="">Select a curve instance...</option>';
+      
+      if (data.curves && data.curves.length > 0) {
+        data.curves.forEach((curve: any) => {
+          const option = document.createElement('option');
+          option.value = curve.id;
+          option.textContent = `${curve.curveName} - ${curve.instanceVersion} (${curve.createdBy})`;
+          select.appendChild(option);
+        });
+      } else {
+        select.innerHTML = '<option value="">No curve instances available</option>';
+      }
+    } catch (error) {
+      console.error('Error loading curve instances:', error);
+      const select = document.getElementById('quick-curve-select') as HTMLSelectElement;
+      select.innerHTML = '<option value="">Error loading curves</option>';
+    }
+  }
+
+  // Download CSV template
+  function downloadCSVTemplate() {
+    const csvContent = `timestamp,value,pvalue,units
+2024-01-01T00:00:00Z,45.50,5,$/MWh
+2024-01-01T00:00:00Z,48.25,25,$/MWh
+2024-01-01T00:00:00Z,52.75,50,$/MWh
+2024-01-01T00:00:00Z,57.10,75,$/MWh
+2024-01-01T00:00:00Z,62.20,95,$/MWh
+2024-01-01T01:00:00Z,44.80,5,$/MWh
+2024-01-01T01:00:00Z,47.90,25,$/MWh
+2024-01-01T01:00:00Z,51.40,50,$/MWh
+2024-01-01T01:00:00Z,55.75,75,$/MWh
+2024-01-01T01:00:00Z,60.30,95,$/MWh`;
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'curve_data_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    showNotification('CSV template downloaded successfully');
+  }
+
+  // Handle quick CSV upload
+  async function handleQuickUpload() {
+    const curveSelect = document.getElementById('quick-curve-select') as HTMLSelectElement;
+    const fileInput = document.getElementById('quick-csv-file') as HTMLInputElement;
+    const submitBtn = document.getElementById('submit-quick-upload') as HTMLButtonElement;
+    
+    if (!curveSelect.value || !fileInput.files || !fileInput.files[0]) {
+      showNotification('Please select a curve instance and CSV file', true);
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading...';
+
+    try {
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = async function(e: any) {
+        try {
+          const csvText = e.target.result;
+          const parsedData = parseCSV(csvText);
+          
+          // Upload data directly to the selected curve instance
+          const response = await fetch('/api/curve-upload/upload-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              curveInstanceId: parseInt(curveSelect.value),
+              data: parsedData
+            })
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            showNotification(`Successfully uploaded ${result.recordsInserted} data points`);
+            document.getElementById('quick-upload-modal')?.classList.add('hidden');
+            
+            // Reset form
+            curveSelect.value = '';
+            fileInput.value = '';
+          } else {
+            showNotification(result.error || 'Upload failed', true);
+          }
+        } catch (error: any) {
+          showNotification(`Error processing CSV: ${error.message}`, true);
+        }
+        
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Upload CSV';
+      };
+      
+      reader.readAsText(file);
+    } catch (error) {
+      showNotification('Error reading file', true);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload CSV';
+    }
+  }
 </script>
 
 <style>

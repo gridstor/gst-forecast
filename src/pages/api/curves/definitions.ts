@@ -22,6 +22,7 @@ export const GET: APIRoute = async ({ url }) => {
         degradationType: true,
         commodity: true,
         units: true,
+        granularity: true, // ADDED
         description: true,
         createdAt: true,
         // Include count of existing instances
@@ -52,9 +53,10 @@ export const GET: APIRoute = async ({ url }) => {
       degradationType: def.degradationType,
       commodity: def.commodity,
       units: def.units,
+      granularity: def.granularity, // ADDED
       description: def.description,
       instanceCount: def._count.instances,
-      displayName: `${def.market} ${def.location} ${def.product} ${def.curveType} (${def.batteryDuration}, ${def.scenario})`,
+      displayName: `${def.market} ${def.location} ${def.product} ${def.curveType} (${def.batteryDuration}, ${def.granularity})`,
       createdAt: def.createdAt
     }));
 

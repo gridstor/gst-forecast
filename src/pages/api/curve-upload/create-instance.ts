@@ -10,20 +10,21 @@ export const POST: APIRoute = async ({ request }) => {
     const {
       curveDefinitionId,
       instanceVersion,
-      granularity,
       deliveryPeriodStart,
       deliveryPeriodEnd,
       forecastRunDate,
       createdBy = 'Upload System',
       notes,
-      modelType
+      modelType,
+      scenario = 'P50',
+      degradationType = 'NONE'
     } = body;
 
     // Validate required fields
-    if (!curveDefinitionId || !instanceVersion || !granularity || !deliveryPeriodStart || !deliveryPeriodEnd) {
+    if (!curveDefinitionId || !instanceVersion || !deliveryPeriodStart || !deliveryPeriodEnd) {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing required fields: curveDefinitionId, instanceVersion, granularity, deliveryPeriodStart, deliveryPeriodEnd' 
+          error: 'Missing required fields: curveDefinitionId, instanceVersion, deliveryPeriodStart, deliveryPeriodEnd' 
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -63,7 +64,6 @@ export const POST: APIRoute = async ({ request }) => {
       data: {
         curveDefinitionId: parseInt(curveDefinitionId),
         instanceVersion,
-        granularity,
         deliveryPeriodStart: startDate,
         deliveryPeriodEnd: endDate,
         forecastRunDate: runDate,
@@ -72,7 +72,9 @@ export const POST: APIRoute = async ({ request }) => {
         runType: 'MANUAL',
         createdBy,
         notes,
-        modelType
+        modelType,
+        scenario,
+        degradationType
       },
       include: {
         curveDefinition: true

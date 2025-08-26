@@ -137,10 +137,55 @@ try {
             Upload New Curves
           </a>
           <a
-            href="/admin/curve-inventory"
-            class="block w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+            href="/admin/inventory"
+            class="block w-full bg-orange-600 text-white text-center py-2 px-4 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
           >
             Manage Inventory
+          </a>
+          <a
+            href="/admin/curve-inventory"
+            class="block w-full bg-indigo-600 text-white text-center py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+          >
+            📊 Curve Inventory
+          </a>
+          <a
+            href="/admin/curve-schedule"
+            class="block w-full bg-purple-600 text-white text-center py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+          >
+            📅 Curve Schedule
+          </a>
+          <a
+            href="/admin/curve-logs"
+            class="block w-full bg-teal-600 text-white text-center py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors"
+          >
+            📋 Activity Logs
+          </a>
+        </div>
+      </div>
+
+      <!-- Documentation & Help -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-indigo-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Documentation & Help</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Schema guides, workflows, and system documentation</p>
+        <div class="space-y-3">
+          <a
+            href="/admin/docs"
+            class="block w-full bg-indigo-600 text-white text-center py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+          >
+            📚 Database Schema Docs
+          </a>
+          <a
+            href="/curve-schedule/create-enhanced"
+            class="block w-full bg-teal-600 text-white text-center py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors"
+          >
+            📅 Curve Schedule Workflow
           </a>
         </div>
       </div>
@@ -399,3 +444,4 @@ try {
     transition: background-color 0.2s ease, color 0.2s ease;
   }
 </style>
+

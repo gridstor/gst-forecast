@@ -14,11 +14,9 @@ export const POST: APIRoute = async ({ request }) => {
       product,
       curveType,
       batteryDuration,
-      scenario,
-      degradationType,
       commodity = 'Energy',
       units = '$/MWh',
-      description,
+      granularity = 'MONTHLY',
       createdBy = 'Upload System'
     } = body;
 
@@ -41,7 +39,7 @@ export const POST: APIRoute = async ({ request }) => {
         product,
         curveType,
         batteryDuration: batteryDuration || 'UNKNOWN',
-        scenario: scenario || 'BASE'
+        granularity: granularity || 'MONTHLY'
       }
     });
 
@@ -55,11 +53,9 @@ export const POST: APIRoute = async ({ request }) => {
           product,
           curveType,
           batteryDuration: batteryDuration || 'UNKNOWN',
-          scenario: scenario || 'BASE',
-          degradationType: degradationType || 'NONE',
           commodity,
           units,
-          description,
+          granularity: granularity || 'MONTHLY',
           createdBy
         }
       });

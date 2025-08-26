@@ -322,6 +322,7 @@ model CurveDefinition {
   degradationType DegradationType @default(NONE)
   commodity       String          @default("Energy") @db.VarChar(50)
   units           String          @default("$/MWh") @db.VarChar(50)
+  granularity     String          @default("MONTHLY") @db.VarChar(20)  // MOVED FROM INSTANCE
   timezone        String          @default("UTC") @db.VarChar(50)
   description     String?         @db.Text
   isActive        Boolean         @default(true)
@@ -337,6 +338,7 @@ model CurveDefinition {
 
   @@index([market, location])
   @@index([curveType, batteryDuration, scenario])
+  @@index([granularity])  // NEW INDEX
   @@index([isActive])
   @@index([createdAt])
   @@schema("Forecasts")
@@ -346,7 +348,7 @@ model CurveInstance {
   id                  Int            @id @default(autoincrement())
   curveDefinitionId   Int
   instanceVersion     String         @db.VarChar(50)
-  granularity         String         @db.VarChar(20)
+  // granularity REMOVED - now in CurveDefinition
   deliveryPeriodStart DateTime       @db.Timestamptz(6)
   deliveryPeriodEnd   DateTime       @db.Timestamptz(6)
   forecastRunDate     DateTime       @db.Timestamptz(6)
@@ -378,7 +380,7 @@ model CurveInstance {
   @@index([freshnessStartDate, freshnessEndDate])
   @@index([deliveryPeriodStart, deliveryPeriodEnd])
   @@index([forecastRunDate])
-  @@index([curveDefinitionId, granularity])
+  // REMOVED: @@index([curveDefinitionId, granularity]) - granularity now in definition
   @@schema("Forecasts")
 }
 
@@ -386,12 +388,22 @@ model PriceForecast {
   id              Int      @id @default(autoincrement())
   curveInstanceId Int
   timestamp       DateTime @db.Timestamptz(6)
-  value           Float
+  
+  // P-Value columns (consolidated from separate instances)
+  valueP5         Float?   // 5th percentile
+  valueP25        Float?   // 25th percentile  
+  valueP50        Float    // 50th percentile (median/base case)
+  valueP75        Float?   // 75th percentile
+  valueP95        Float?   // 95th percentile
+  
+  // Legacy/compatibility columns
+  value           Float?   // Will map to valueP50 for backward compatibility
   confidence      Float?
-  valueHigh       Float?
-  valueLow        Float?
-  valueP90        Float?
-  valueP10        Float?
+  valueHigh       Float?   // Can map to valueP95
+  valueLow        Float?   // Can map to valueP5
+  valueP90        Float?   // Keep for additional granularity
+  valueP10        Float?   // Keep for additional granularity
+  
   flags           String[]
 
   // Relations

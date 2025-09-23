@@ -15,7 +15,7 @@ import Layout from '../../layouts/Layout.astro';
     <div class="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-lg">
       <h2 class="font-semibold text-amber-900 mb-2">📊 Multi P-Value Upload Supported</h2>
       <p class="text-amber-800 text-sm">You can upload multiple p-values (P5, P25, P50, P75, P95) in a single CSV file. The "Scenario" field below is just the overall category - your CSV data can contain rows with different p-values.</p>
-    </div>
+      </div>
 
     <!-- Upload Options -->
     <div class="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -38,9 +38,9 @@ import Layout from '../../layouts/Layout.astro';
           <button id="download-template" class="w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
             📥 Download CSV Template
           </button>
-        </div>
       </div>
-      
+    </div>
+
       <!-- Full Workflow -->
       <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
         <div class="flex items-center mb-4">
@@ -100,6 +100,139 @@ import Layout from '../../layouts/Layout.astro';
     <div id="definition-section" class="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 class="text-xl font-semibold mb-4">📊 Curve Definition</h2>
       <p class="text-gray-600 mb-4">Define the metadata for your price curve</p>
+
+      <!-- Upload Mode Selection -->
+      <div class="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+        <label class="block text-sm font-medium text-gray-700 mb-3">Upload Mode</label>
+        <div class="space-y-2">
+          <label class="flex items-center">
+            <input type="radio" name="uploadMode" value="new" class="mr-2" checked>
+            <span class="text-sm">Create new curve definition and instance</span>
+          </label>
+          <label class="flex items-center">
+            <input type="radio" name="uploadMode" value="existing" class="mr-2">
+            <span class="text-sm">Associate with existing curve definition/instance</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Existing Curve Selection (hidden by default) -->
+      <div id="existingCurveSection" class="hidden mb-6 p-4 bg-gray-50 rounded-lg">
+        <div class="mb-4 p-3 bg-blue-50 rounded-md border-l-4 border-blue-400">
+          <p class="text-sm text-blue-800">
+            📋 <strong>Flexible Upload:</strong> Select a definition (required) and optionally select an instance. If no instance is selected, you can create one or upload directly to the definition.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Curve Definitions List -->
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-medium text-gray-900">📊 Curve Definitions</h3>
+              <span id="definitionCount" class="text-sm text-gray-500">Loading...</span>
+            </div>
+            
+            <!-- Filter Input -->
+            <div class="relative mb-3">
+              <input
+                type="text"
+                id="definitionFilter"
+                placeholder="Filter definitions..."
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm pr-8"
+              />
+              <div class="absolute inset-y-0 right-0 pr-2 flex items-center">
+                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Definitions List -->
+            <div id="definitionsList" class="space-y-2 max-h-80 overflow-y-auto">
+              <div class="p-3 text-sm text-gray-500 text-center">Loading definitions...</div>
+            </div>
+
+            <!-- Selected Definition Display -->
+            <div id="selectedDefinitionBanner" class="hidden mt-3 p-2 bg-blue-100 rounded border-l-4 border-blue-500">
+              <div class="flex items-center justify-between">
+                <div class="text-sm">
+                  <span class="font-medium text-blue-900">Selected:</span>
+                  <span id="selectedDefName" class="text-blue-800"></span>
+                </div>
+                <button type="button" id="clearDefinition" class="text-blue-600 hover:text-blue-800 text-xs">Clear</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Curve Instances List -->
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="font-medium text-gray-900">📈 Curve Instances</h3>
+              <span id="instanceCount" class="text-sm text-gray-500">Select definition first</span>
+            </div>
+            
+            <!-- Filter Input -->
+            <div class="relative mb-3">
+              <input
+                type="text"
+                id="instanceFilter"
+                placeholder="Filter instances..."
+                class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm pr-8"
+                disabled
+              />
+              <div class="absolute inset-y-0 right-0 pr-2 flex items-center">
+                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Instances List -->
+            <div id="instancesList" class="space-y-2 max-h-80 overflow-y-auto">
+              <div class="p-3 text-sm text-gray-500 text-center">Select a definition to see instances</div>
+            </div>
+
+            <!-- Selected Instance Display -->
+            <div id="selectedInstanceBanner" class="hidden mt-3 p-2 bg-green-100 rounded border-l-4 border-green-500">
+              <div class="flex items-center justify-between">
+                <div class="text-sm">
+                  <span class="font-medium text-green-900">Selected:</span>
+                  <span id="selectedInstName" class="text-green-800"></span>
+                </div>
+                <button type="button" id="clearInstance" class="text-green-600 hover:text-green-800 text-xs">Clear</button>
+              </div>
+            </div>
+
+            <!-- No Instance Option -->
+            <div class="mt-3 p-2 bg-yellow-50 rounded border border-yellow-200">
+              <div class="text-xs text-yellow-800">
+                💡 <strong>Tip:</strong> No instance selected? You can upload directly to the definition or create a new instance during upload.
+              </div>
+            </div>
+                  </div>
+
+        <!-- Preview Section -->
+        <div id="selectedCurvePreview" class="hidden mt-6 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
+          <h3 class="font-medium text-indigo-900 mb-3">📋 Selected Curve Preview & Quick Copy</h3>
+          <div id="previewContent" class="space-y-3">
+            <!-- Preview content will be inserted here -->
+          </div>
+          <div class="mt-4 flex gap-3">
+            <button type="button" id="copyDefinitionFields" class="px-3 py-1 text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700">
+              Copy Definition Fields
+            </button>
+            <button type="button" id="copyInstanceFields" class="px-3 py-1 text-sm bg-purple-600 text-white rounded hover:bg-purple-700">
+              Copy Instance Fields
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+      <!-- New Curve Definition Fields -->
+      <div id="newCurveSection">
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Curve Name -->
@@ -168,14 +301,17 @@ import Layout from '../../layouts/Layout.astro';
           <label class="block text-sm font-medium text-gray-700">Curve Type *</label>
           <select id="curveType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
             <option value="">Select Curve Type</option>
-            <option value="DA Energy Arbitrage">DA Energy Arbitrage</option>
-            <option value="RT Energy Arbitrage">RT Energy Arbitrage</option>
-            <option value="Total AS">Total AS</option>
-            <option value="AS Reg Up">AS Reg Up</option>
-            <option value="AS Reg Down">AS Reg Down</option>
-            <option value="AS Spin">AS Spin</option>
-            <option value="Capacity Price Curve">Capacity Price Curve</option>
-            <option value="Total Revenue">Total Revenue</option>
+            <option value="REVENUE">Revenue</option>
+            <option value="REVENUE_OTHER">Revenue - Other</option>
+            <option value="ENERGY">Energy</option>
+            <option value="ENERGY_ARB">Energy Arbitrage</option>
+            <option value="AS">Ancillary Services</option>
+            <option value="TB2">TB2</option>
+            <option value="TB4">TB4</option>
+            <option value="RA">Resource Adequacy</option>
+            <option value="DA">Day Ahead</option>
+            <option value="RT">Real Time</option>
+            <option value="OTHER">Other</option>
           </select>
         </div>
 
@@ -207,8 +343,32 @@ import Layout from '../../layouts/Layout.astro';
           </select>
         </div>
 
+        <!-- Units -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Units *</label>
+          <select id="units" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+            <option value="">Select Units</option>
+            <option value="$/MWh">$/MWh</option>
+            <option value="$/kW-month">$/kW-month</option>
+            <option value="$/MW">$/MW</option>
+            <option value="$/kW">$/kW</option>
+            <option value="MWh">MWh</option>
+            <option value="MW">MW</option>
+            <option value="%">%</option>
+            <option value="Other">Other (type below)</option>
+          </select>
+          <input
+            type="text"
+            id="unitsOther"
+            class="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 hidden"
+            placeholder="Enter custom units"
+          />
+        </div>
+
 
       </div>
+
+      </div> <!-- End newCurveSection -->
 
     </div>
 
@@ -278,7 +438,7 @@ import Layout from '../../layouts/Layout.astro';
         </div>
 
         <!-- Scenario (P-Values) -->
-        <div>
+        <div class="hidden">
           <label class="block text-sm font-medium text-gray-700">Scenario</label>
           <select id="scenario" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
             <option value="P5">P5</option>
@@ -293,7 +453,7 @@ import Layout from '../../layouts/Layout.astro';
         </div>
 
         <!-- Degradation Type -->
-        <div>
+        <div class="hidden">
           <label class="block text-sm font-medium text-gray-700">Degradation Type</label>
           <select id="degradationType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
             <option value="NONE">None</option>
@@ -414,6 +574,7 @@ import Layout from '../../layouts/Layout.astro';
   let curveDefinition: any = null;
   let curveInstance: any = null;
   let csvData: any[] = [];
+  let suppressErrorNotifications = false;
 
   // Progress management
   function updateProgress(step: number) {
@@ -437,6 +598,7 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   function showNotification(message: string, isError = false) {
+    if (isError && suppressErrorNotifications) return;
     const notification = document.getElementById('notification')!;
     const notificationText = document.getElementById('notification-text')!;
 
@@ -451,11 +613,29 @@ import Layout from '../../layouts/Layout.astro';
     }, 5000);
   }
 
+  function getUploadMode(): string {
+    return (document.querySelector('input[name="uploadMode"]:checked') as HTMLInputElement)?.value || 'new';
+  }
+
+  function updateInstanceSectionVisibility() {
+    const instanceSection = document.getElementById('instance-section');
+    if (!instanceSection) return;
+    if (getUploadMode() === 'existing') {
+      instanceSection.classList.add('hidden');
+    } else {
+      instanceSection.classList.remove('hidden');
+    }
+  }
+
   // Step 1: Create curve definition
   async function createCurveDefinition() {
     const productSelect = document.getElementById('product') as HTMLSelectElement;
     const productOther = document.getElementById('productOther') as HTMLInputElement;
     const productValue = productSelect.value === 'Other' ? productOther.value : productSelect.value;
+
+    const unitsSelect = document.getElementById('units') as HTMLSelectElement;
+    const unitsOther = document.getElementById('unitsOther') as HTMLInputElement;
+    const unitsValue = unitsSelect.value === 'Other' ? unitsOther.value : unitsSelect.value;
 
     const formData = {
       curveName: (document.getElementById('curveName') as HTMLInputElement).value,
@@ -464,11 +644,12 @@ import Layout from '../../layouts/Layout.astro';
       product: productValue,
       curveType: (document.getElementById('curveType') as HTMLSelectElement).value,
       batteryDuration: (document.getElementById('batteryDuration') as HTMLSelectElement).value,
-      granularity: (document.getElementById('granularityDef') as HTMLSelectElement).value
+      granularity: (document.getElementById('granularityDef') as HTMLSelectElement).value,
+      units: unitsValue
     };
 
     // Validate required fields
-    if (!formData.curveName || !formData.market || !formData.location || !formData.product || !formData.curveType || !formData.granularity) {
+    if (!formData.curveName || !formData.market || !formData.location || !formData.product || !formData.curveType || !formData.granularity || !formData.units) {
       showNotification('Please fill in all required definition fields', true);
       return false;
     }
@@ -505,9 +686,7 @@ import Layout from '../../layouts/Layout.astro';
       deliveryPeriodEnd: (document.getElementById('deliveryPeriodEnd') as HTMLInputElement).value,
       createdBy: (document.getElementById('createdBy') as HTMLInputElement).value,
       notes: (document.getElementById('notes') as HTMLTextAreaElement).value,
-      modelType: (document.getElementById('modelType') as HTMLInputElement).value,
-      scenario: (document.getElementById('scenario') as HTMLSelectElement).value,
-      degradationType: (document.getElementById('degradationType') as HTMLSelectElement).value
+      modelType: (document.getElementById('modelType') as HTMLInputElement).value
     };
 
     // Validate required fields
@@ -559,6 +738,9 @@ import Layout from '../../layouts/Layout.astro';
       const result = await response.json();
 
       if (response.ok) {
+        // Suppress any incidental error toasts during UI reset after success
+        suppressErrorNotifications = true;
+        setTimeout(() => { suppressErrorNotifications = false; }, 3000);
         showSuccessMessage(result);
         return true;
       } else {
@@ -663,24 +845,27 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   function resetForm() {
+    // Temporarily suppress error toasts that may fire from incidental reloads
+    suppressErrorNotifications = true;
+    setTimeout(() => { suppressErrorNotifications = false; }, 2000);
     // Reset global state
     curveDefinition = null;
     curveInstance = null;
     csvData = [];
     
-    // Reset form fields
-    document.querySelectorAll('input, select, textarea').forEach((element: any) => {
+    // Reset form fields (but preserve upload mode and other system settings)
+    document.querySelectorAll('input:not([name="uploadMode"]), select, textarea').forEach((element: any) => {
       if (element.id === 'batteryDuration') element.value = 'UNKNOWN';
       else if (element.id === 'scenario') element.value = 'BASE';
       else if (element.id === 'degradationType') element.value = 'NONE';
       else if (element.id === 'createdBy') element.value = 'Upload System';
-      else element.value = '';
+      else if (element.type !== 'file') element.value = '';
     });
 
     // Hide preview and success
     document.getElementById('csv-preview')?.classList.add('hidden');
     document.getElementById('success-message')?.classList.add('hidden');
-    document.getElementById('upload-final')!.disabled = true;
+    (document.getElementById('upload-final') as HTMLButtonElement)!.disabled = true;
 
     // Show step 1
     showStep(1);
@@ -688,6 +873,302 @@ import Layout from '../../layouts/Layout.astro';
 
   // Event listeners
   document.addEventListener('DOMContentLoaded', function() {
+    // Upload Mode handling
+    const uploadModeRadios = document.querySelectorAll('input[name="uploadMode"]');
+    const existingCurveSection = document.getElementById('existingCurveSection');
+    const newCurveSection = document.getElementById('newCurveSection');
+    
+    // List elements
+    const definitionFilter = document.getElementById('definitionFilter') as HTMLInputElement;
+    const definitionsList = document.getElementById('definitionsList');
+    const definitionCount = document.getElementById('definitionCount');
+    const selectedDefinitionBanner = document.getElementById('selectedDefinitionBanner');
+    
+    const instanceFilter = document.getElementById('instanceFilter') as HTMLInputElement;
+    const instancesList = document.getElementById('instancesList');
+    const instanceCount = document.getElementById('instanceCount');
+    const selectedInstanceBanner = document.getElementById('selectedInstanceBanner');
+
+    // State variables
+    let allDefinitions: any[] = [];
+    let allInstances: any[] = [];
+    let filteredDefinitions: any[] = [];
+    let filteredInstances: any[] = [];
+    let selectedDefinition: any = null;
+    let selectedInstance: any = null;
+
+    // Handle upload mode change
+    uploadModeRadios.forEach(radio => {
+      radio.addEventListener('change', function(e: any) {
+        if (e.target.value === 'existing') {
+          existingCurveSection?.classList.remove('hidden');
+          newCurveSection?.classList.add('hidden');
+          loadExistingDefinitions();
+        } else {
+          existingCurveSection?.classList.add('hidden');
+          newCurveSection?.classList.remove('hidden');
+          clearSelections();
+        }
+        updateInstanceSectionVisibility();
+      });
+    });
+
+    // Load existing definitions
+    async function loadExistingDefinitions() {
+      try {
+        const response = await fetch('/api/curves/definitions');
+        const data = await response.json();
+        console.log('Loaded definitions:', data); // Debug log
+        
+        if (Array.isArray(data)) {
+          allDefinitions = data;
+        } else if (data.definitions) {
+          allDefinitions = data.definitions;
+        } else {
+          console.error('Unexpected data format:', data);
+          allDefinitions = [];
+        }
+        
+        filteredDefinitions = [...allDefinitions];
+        renderDefinitionsList();
+      } catch (error) {
+        console.error('Error loading definitions:', error);
+        allDefinitions = [];
+        filteredDefinitions = [];
+        renderDefinitionsList();
+      }
+    }
+
+    // Definition filter functionality
+    definitionFilter?.addEventListener('input', function(e: any) {
+      const filterTerm = e.target.value.toLowerCase();
+      
+      filteredDefinitions = allDefinitions.filter(def => 
+        def.curveName.toLowerCase().includes(filterTerm) ||
+        def.market.toLowerCase().includes(filterTerm) ||
+        def.location.toLowerCase().includes(filterTerm) ||
+        def.product?.toLowerCase().includes(filterTerm) ||
+        def.curveType?.toLowerCase().includes(filterTerm)
+      );
+      
+      renderDefinitionsList();
+    });
+
+    function renderDefinitionsList() {
+      if (!definitionsList || !definitionCount) return;
+      
+      // Update count
+      definitionCount.textContent = `${filteredDefinitions.length} of ${allDefinitions.length}`;
+      
+      if (filteredDefinitions.length === 0) {
+        definitionsList.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No definitions found</div>';
+      } else {
+        definitionsList.innerHTML = filteredDefinitions.map(def => `
+          <div class="p-2 hover:bg-blue-50 cursor-pointer rounded border border-gray-200 definition-item ${selectedDefinition?.id == def.id ? 'bg-blue-100 border-blue-300' : ''}" data-definition-id="${def.id}">
+            <div class="font-medium text-gray-900 text-sm">${def.curveName}</div>
+            <div class="text-xs text-gray-600">${def.market} • ${def.location}</div>
+            <div class="text-xs text-gray-500">${def.product || 'N/A'} • ${def.batteryDuration} • ${def.granularity}</div>
+          </div>
+        `).join('');
+
+        // Add click handlers
+        document.querySelectorAll('.definition-item').forEach(item => {
+          item.addEventListener('click', function(this: HTMLElement) {
+            const definitionId = this.getAttribute('data-definition-id');
+            const definition = allDefinitions.find(d => d.id == definitionId);
+            selectDefinition(definition);
+          });
+        });
+      }
+    }
+
+    function selectDefinition(definition: any) {
+      console.log('selectDefinition called with:', definition);
+      selectedDefinition = definition;
+      selectedInstance = null; // Clear instance selection
+      
+      // Update banner
+      document.getElementById('selectedDefName')!.textContent = definition.curveName;
+      selectedDefinitionBanner?.classList.remove('hidden');
+      
+      // Clear instance banner
+      selectedInstanceBanner?.classList.add('hidden');
+      
+      // In existing mode, hide instance creation fields to reduce confusion
+      updateInstanceSectionVisibility();
+      
+      // Show preview
+      showSelectedCurvePreview();
+      
+      // Re-render to update selection highlighting
+      renderDefinitionsList();
+      renderInstancesList();
+      
+      // Load instances for this definition
+      console.log('Loading instances for definition:', definition.id);
+      loadInstancesForDefinition(definition.id);
+    }
+
+    // Instance filter functionality
+    instanceFilter?.addEventListener('input', function(e: any) {
+      const filterTerm = e.target.value.toLowerCase();
+      
+      filteredInstances = allInstances.filter(inst => 
+        inst.instanceVersion.toLowerCase().includes(filterTerm) ||
+        inst.status.toLowerCase().includes(filterTerm) ||
+        inst.createdBy?.toLowerCase().includes(filterTerm) ||
+        inst.modelType?.toLowerCase().includes(filterTerm)
+      );
+      
+      renderInstancesList();
+    });
+
+    function renderInstancesList() {
+      console.log('renderInstancesList called', { 
+        instancesList: !!instancesList, 
+        instanceCount: !!instanceCount,
+        allInstances: allInstances.length,
+        filteredInstances: filteredInstances.length 
+      });
+      
+      if (!instancesList || !instanceCount) {
+        console.log('Missing DOM elements:', { instancesList: !!instancesList, instanceCount: !!instanceCount });
+        return;
+      }
+      
+      // Update count
+      instanceCount.textContent = `${filteredInstances.length} of ${allInstances.length}`;
+      
+      if (filteredInstances.length === 0 && allInstances.length === 0) {
+        instancesList.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No instances for this definition</div>';
+      } else if (filteredInstances.length === 0) {
+        instancesList.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">No instances match filter</div>';
+      } else {
+        instancesList.innerHTML = filteredInstances.map(inst => `
+          <div class="p-2 hover:bg-green-50 cursor-pointer rounded border border-gray-200 instance-item ${selectedInstance?.id == inst.id ? 'bg-green-100 border-green-300' : ''}" data-instance-id="${inst.id}">
+            <div class="font-medium text-gray-900 text-sm">${inst.instanceVersion}</div>
+            <div class="text-xs text-gray-600">Status: ${inst.status} • ${new Date(inst.createdAt).toLocaleDateString()}</div>
+            <div class="text-xs text-gray-500">By: ${inst.createdBy}</div>
+          </div>
+        `).join('');
+
+        // Add click handlers
+        document.querySelectorAll('.instance-item').forEach(item => {
+          item.addEventListener('click', function(this: HTMLElement) {
+            const instanceId = this.getAttribute('data-instance-id');
+            const instance = allInstances.find(i => i.id == instanceId);
+            selectInstance(instance);
+          });
+        });
+      }
+    }
+
+    function selectInstance(instance: any) {
+      selectedInstance = instance;
+      
+      // Update banner
+      document.getElementById('selectedInstName')!.textContent = instance.instanceVersion;
+      selectedInstanceBanner?.classList.remove('hidden');
+      
+      // Hide the instance creation section when instance is selected
+      document.getElementById('instance-section')?.classList.add('hidden');
+      
+      // Show preview
+      showSelectedCurvePreview();
+      
+      // Re-render to update selection highlighting
+      renderInstancesList();
+    }
+
+    // Load instances for selected definition
+    async function loadInstancesForDefinition(definitionId: string) {
+      try {
+        if (instancesList) {
+          instancesList.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Loading instances...</div>';
+        }
+        if (instanceFilter) {
+          instanceFilter.disabled = true;
+        }
+        const response = await fetch(`/api/curves/instances?definitionId=${definitionId}`);
+        const data = await response.json();
+        console.log('Loaded instances:', data); // Debug log
+
+        // Support both { instances: [...] } and [...] shapes
+        const instancesPayload = Array.isArray(data) ? data : (Array.isArray(data.instances) ? data.instances : []);
+        allInstances = instancesPayload || [];
+        filteredInstances = [...allInstances];
+        
+        // Enable instance filter
+        if (instanceFilter) {
+          instanceFilter.disabled = false;
+          instanceFilter.placeholder = 'Filter instances...';
+        }
+        
+        renderInstancesList();
+      } catch (error) {
+        console.error('Error loading instances:', error);
+        allInstances = [];
+        filteredInstances = [];
+        renderInstancesList();
+      }
+    }
+
+    // Clear selection handlers
+    document.getElementById('clearDefinition')?.addEventListener('click', function() {
+      clearDefinitionSelection();
+    });
+
+    document.getElementById('clearInstance')?.addEventListener('click', function() {
+      clearInstanceSelection();
+    });
+
+    function clearDefinitionSelection() {
+      selectedDefinition = null;
+      selectedDefinitionBanner?.classList.add('hidden');
+      renderDefinitionsList();
+      clearInstanceSelection();
+      
+      // Disable instance filter and clear instances
+      if (instanceFilter) {
+        instanceFilter.disabled = true;
+        instanceFilter.placeholder = 'Select definition first';
+        instanceFilter.value = '';
+      }
+      allInstances = [];
+      filteredInstances = [];
+      instancesList!.innerHTML = '<div class="p-3 text-sm text-gray-500 text-center">Select a definition to see instances</div>';
+      instanceCount!.textContent = 'Select definition first';
+    }
+
+    function clearInstanceSelection() {
+      selectedInstance = null;
+      selectedInstanceBanner?.classList.add('hidden');
+      renderInstancesList();
+    }
+
+    function clearSelections() {
+      selectedDefinition = null;
+      selectedInstance = null;
+      allInstances = [];
+      filteredInstances = [];
+      
+      // Clear banners
+      selectedDefinitionBanner?.classList.add('hidden');
+      selectedInstanceBanner?.classList.add('hidden');
+      
+      // Hide preview
+      document.getElementById('selectedCurvePreview')?.classList.add('hidden');
+      
+      // Show/hide instance section based on mode
+      updateInstanceSectionVisibility();
+      
+      // Re-render lists
+      renderDefinitionsList();
+      renderInstancesList();
+    }
+
+
+
     // Product dropdown handling
     document.getElementById('product')?.addEventListener('change', function(e: any) {
       const productOther = document.getElementById('productOther') as HTMLInputElement;
@@ -698,6 +1179,19 @@ import Layout from '../../layouts/Layout.astro';
         productOther.classList.add('hidden');
         productOther.required = false;
         productOther.value = '';
+      }
+    });
+
+    // Units dropdown handling
+    document.getElementById('units')?.addEventListener('change', function(e: any) {
+      const unitsOther = document.getElementById('unitsOther') as HTMLInputElement;
+      if (e.target.value === 'Other') {
+        unitsOther.classList.remove('hidden');
+        unitsOther.required = true;
+      } else {
+        unitsOther.classList.add('hidden');
+        unitsOther.required = false;
+        unitsOther.value = '';
       }
     });
 
@@ -722,6 +1216,35 @@ import Layout from '../../layouts/Layout.astro';
     // Download template
     document.getElementById('download-template')?.addEventListener('click', function() {
       downloadCSVTemplate();
+    });
+
+    // Copy fields handlers
+    document.getElementById('copyDefinitionFields')?.addEventListener('click', function() {
+      copyDefinitionFields();
+    });
+
+    document.getElementById('copyInstanceFields')?.addEventListener('click', function() {
+      copyInstanceFields();
+    });
+
+    // Clear selection handlers
+    document.getElementById('clearDefinition')?.addEventListener('click', function() {
+      selectedDefinition = null;
+      selectedInstance = null;
+      selectedDefinitionBanner?.classList.add('hidden');
+      selectedInstanceBanner?.classList.add('hidden');
+      document.getElementById('selectedCurvePreview')?.classList.add('hidden');
+      document.getElementById('instance-section')?.classList.remove('hidden');
+      renderDefinitionsList();
+      renderInstancesList();
+    });
+
+    document.getElementById('clearInstance')?.addEventListener('click', function() {
+      selectedInstance = null;
+      selectedInstanceBanner?.classList.add('hidden');
+      document.getElementById('instance-section')?.classList.remove('hidden');
+      showSelectedCurvePreview();
+      renderInstancesList();
     });
 
     // Quick CSV upload
@@ -753,11 +1276,11 @@ import Layout from '../../layouts/Layout.astro';
         try {
           csvData = parseCSV(e.target.result);
           showCSVPreview(csvData);
-          document.getElementById('upload-final')!.disabled = false;
+          (document.getElementById('upload-final') as HTMLButtonElement)!.disabled = false;
         } catch (error: any) {
           showNotification(`CSV parsing error: ${error.message}`, true);
           csvData = [];
-          document.getElementById('upload-final')!.disabled = true;
+          (document.getElementById('upload-final') as HTMLButtonElement)!.disabled = true;
         }
       };
       reader.readAsText(file);
@@ -767,31 +1290,71 @@ import Layout from '../../layouts/Layout.astro';
     document.getElementById('upload-final')?.addEventListener('click', async function() {
       const button = this as HTMLButtonElement;
       button.disabled = true;
-      button.textContent = 'Creating curve...';
-
-      // Validate and create definition
-      if (!(await createCurveDefinition())) {
-        button.disabled = false;
-        button.textContent = 'Upload Complete Curve';
-        return;
-      }
-
-      button.textContent = 'Creating instance...';
       
-      // Validate and create instance
-      if (!(await createCurveInstance())) {
-        button.disabled = false;
-        button.textContent = 'Upload Complete Curve';
-        return;
-      }
-
-      button.textContent = 'Uploading data...';
-
-      // Upload data
+      const uploadMode = (document.querySelector('input[name="uploadMode"]:checked') as HTMLInputElement)?.value || 'new';
+      
+      if (uploadMode === 'existing') {
+        // Use existing curve
+        if (!selectedDefinition) {
+          alert('Please select a curve definition');
+          button.disabled = false;
+          return;
+        }
+        
+        // Set global variables for existing curve
+        curveDefinition = { id: selectedDefinition.id };
+        
+        if (selectedInstance) {
+          // Use existing instance
+          curveInstance = { id: selectedInstance.id };
+          button.textContent = 'Uploading data to existing curve instance...';
+        } else {
+          // No instance selected - create one first
+          button.textContent = 'Creating instance for existing definition...';
+          
+          // Create instance using existing definition
+          if (!(await createCurveInstance())) {
+            button.disabled = false;
+            button.textContent = 'Upload Complete Curve';
+            return;
+          }
+          
+          button.textContent = 'Uploading data to new instance...';
+        }
+        
+        // Upload data
       const success = await uploadPriceData();
       
       button.disabled = false;
       button.textContent = 'Upload Complete Curve';
+      } else {
+        // Create new curve
+        button.textContent = 'Creating curve...';
+
+        // Validate and create definition
+        if (!(await createCurveDefinition())) {
+          button.disabled = false;
+          button.textContent = 'Upload Complete Curve';
+          return;
+        }
+
+        button.textContent = 'Creating instance...';
+        
+        // Validate and create instance
+        if (!(await createCurveInstance())) {
+          button.disabled = false;
+          button.textContent = 'Upload Complete Curve';
+          return;
+        }
+
+        button.textContent = 'Uploading data...';
+
+        // Upload data
+        const success = await uploadPriceData();
+        
+        button.disabled = false;
+        button.textContent = 'Upload Complete Curve';
+      }
     });
 
     // Upload another
@@ -882,14 +1445,14 @@ import Layout from '../../layouts/Layout.astro';
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               curveInstanceId: parseInt(curveSelect.value),
-              data: parsedData
+              priceData: parsedData
             })
           });
 
           const result = await response.json();
 
           if (response.ok) {
-            showNotification(`Successfully uploaded ${result.recordsInserted} data points`);
+            showNotification(`Successfully uploaded ${result.recordsCreated} data points`);
             document.getElementById('quick-upload-modal')?.classList.add('hidden');
             
             // Reset form
@@ -912,6 +1475,89 @@ import Layout from '../../layouts/Layout.astro';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Upload CSV';
     }
+  }
+
+  function showSelectedCurvePreview() {
+    const previewSection = document.getElementById('selectedCurvePreview');
+    const previewContent = document.getElementById('previewContent');
+    
+    if (!selectedDefinition || !previewSection || !previewContent) return;
+    
+    let previewHtml = `
+      <div class="bg-white p-3 rounded border border-indigo-200">
+        <h4 class="font-medium text-indigo-800 mb-2">📊 Definition: ${selectedDefinition.curveName}</h4>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div><span class="font-medium">Market:</span> ${selectedDefinition.market}</div>
+          <div><span class="font-medium">Location:</span> ${selectedDefinition.location}</div>
+          <div><span class="font-medium">Product:</span> ${selectedDefinition.product || 'N/A'}</div>
+          <div><span class="font-medium">Type:</span> ${selectedDefinition.curveType}</div>
+          <div><span class="font-medium">Duration:</span> ${selectedDefinition.batteryDuration}</div>
+          <div><span class="font-medium">Granularity:</span> ${selectedDefinition.granularity}</div>
+        </div>
+      </div>
+    `;
+    
+    if (selectedInstance) {
+      previewHtml += `
+        <div class="bg-white p-3 rounded border border-purple-200">
+          <h4 class="font-medium text-purple-800 mb-2">📈 Instance: ${selectedInstance.instanceVersion}</h4>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div><span class="font-medium">Status:</span> ${selectedInstance.status}</div>
+            <div><span class="font-medium">Created:</span> ${new Date(selectedInstance.createdAt).toLocaleDateString()}</div>
+            <div><span class="font-medium">Model:</span> ${selectedInstance.modelType || 'N/A'}</div>
+            <div><span class="font-medium">Created By:</span> ${selectedInstance.createdBy}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    previewContent.innerHTML = previewHtml;
+    previewSection.classList.remove('hidden');
+  }
+
+  function copyDefinitionFields() {
+    if (!selectedDefinition) return;
+    
+    // Fill the definition form fields
+    const curveNameField = document.getElementById('curveName') as HTMLInputElement;
+    const marketField = document.getElementById('market') as HTMLSelectElement;
+    const locationField = document.getElementById('location') as HTMLInputElement;
+    const productField = document.getElementById('product') as HTMLSelectElement;
+    const curveTypeField = document.getElementById('curveType') as HTMLSelectElement;
+    const batteryDurationField = document.getElementById('batteryDuration') as HTMLSelectElement;
+    const granularityField = document.getElementById('granularityDef') as HTMLSelectElement;
+    const unitsField = document.getElementById('units') as HTMLSelectElement;
+    
+    if (curveNameField) curveNameField.value = selectedDefinition.curveName + ' (Copy)';
+    if (marketField) marketField.value = selectedDefinition.market;
+    if (locationField) locationField.value = selectedDefinition.location;
+    if (productField) productField.value = selectedDefinition.product || '';
+    if (curveTypeField) curveTypeField.value = selectedDefinition.curveType;
+    if (batteryDurationField) batteryDurationField.value = selectedDefinition.batteryDuration;
+    if (granularityField) granularityField.value = selectedDefinition.granularity;
+    if (unitsField) unitsField.value = selectedDefinition.units || '$/MWh';
+    
+    // Switch to new mode and show form
+    (document.querySelector('input[name="uploadMode"][value="new"]') as HTMLInputElement)?.click();
+    
+    alert('Definition fields copied! Make any needed changes and proceed with upload.');
+  }
+
+  function copyInstanceFields() {
+    if (!selectedInstance) return;
+    
+    // Fill the instance form fields
+    const instanceVersionField = document.getElementById('instanceVersion') as HTMLInputElement;
+    const modelTypeField = document.getElementById('modelType') as HTMLInputElement;
+    const createdByField = document.getElementById('createdBy') as HTMLInputElement;
+    const notesField = document.getElementById('notes') as HTMLTextAreaElement;
+    
+    if (instanceVersionField) instanceVersionField.value = selectedInstance.instanceVersion + ' (Copy)';
+    if (modelTypeField) modelTypeField.value = selectedInstance.modelType || '';
+    if (createdByField) createdByField.value = selectedInstance.createdBy || 'Upload System';
+    if (notesField) notesField.value = selectedInstance.notes || '';
+    
+    alert('Instance fields copied! Make any needed changes and proceed with upload.');
   }
 </script>
 

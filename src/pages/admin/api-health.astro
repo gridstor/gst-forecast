@@ -1,0 +1,480 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="API Health Check - Admin Tools">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">🔍 API Health Check</h1>
+          <p class="text-gray-600">Monitor and test all API endpoints for system health</p>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="flex gap-3">
+          <button id="run-all-tests" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+            🚀 Run All Tests
+          </button>
+          <button id="refresh-status" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+            🔄 Refresh
+          </button>
+          <a href="/admin/" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+            ← Back to Admin
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall Status -->
+    <div id="overall-status" class="mb-8 p-6 rounded-lg border-2">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">System Status</h2>
+          <p id="status-summary" class="text-gray-600">Click "Run All Tests" to check system health</p>
+        </div>
+        <div id="status-indicator" class="flex items-center space-x-2">
+          <div class="w-4 h-4 bg-gray-400 rounded-full"></div>
+          <span class="text-gray-600">Unknown</span>
+        </div>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="mt-4 bg-gray-200 rounded-full h-2 hidden" id="progress-container">
+        <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Test Results -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      
+      <!-- Core API Endpoints -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">🔧 Core APIs</h3>
+          <p class="text-sm text-gray-600">Essential system endpoints</p>
+        </div>
+        <div id="core-endpoints" class="p-6 space-y-4">
+          <!-- Test results will be populated here -->
+        </div>
+      </div>
+
+      <!-- Curve Management APIs -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">📊 Curve APIs</h3>
+          <p class="text-sm text-gray-600">Curve data management</p>
+        </div>
+        <div id="curve-endpoints" class="p-6 space-y-4">
+          <!-- Test results will be populated here -->
+        </div>
+      </div>
+
+      <!-- Upload APIs -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">📤 Upload APIs</h3>
+          <p class="text-sm text-gray-600">Data upload and creation</p>
+        </div>
+        <div id="upload-endpoints" class="p-6 space-y-4">
+          <!-- Test results will be populated here -->
+        </div>
+      </div>
+
+      <!-- Admin APIs -->
+      <div class="bg-white rounded-lg shadow-md">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-semibold text-gray-900">🛠️ Admin APIs</h3>
+          <p class="text-sm text-gray-600">Administrative functions</p>
+        </div>
+        <div id="admin-endpoints" class="p-6 space-y-4">
+          <!-- Test results will be populated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Logs -->
+    <div class="bg-white rounded-lg shadow-md">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h3 class="text-lg font-semibold text-gray-900">📋 Test Logs</h3>
+        <p class="text-sm text-gray-600">Detailed results and error messages</p>
+      </div>
+      <div id="test-logs" class="p-6">
+        <div class="text-center text-gray-500 py-8">
+          <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <p>No test logs yet</p>
+          <p class="text-sm">Run tests to see detailed results</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Summary for Easy Copying -->
+    <div id="error-summary-container" class="hidden bg-red-50 rounded-lg shadow-md border border-red-200">
+      <div class="px-6 py-4 border-b border-red-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-semibold text-red-900">🚨 Error Summary</h3>
+            <p class="text-sm text-red-700">Copy this summary to share with developers</p>
+          </div>
+          <button id="copy-errors" class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors">
+            📋 Copy Errors
+          </button>
+        </div>
+      </div>
+      <div id="error-summary" class="p-6">
+        <div class="bg-white rounded border p-4 font-mono text-sm">
+          <div id="error-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // Endpoint definitions
+  const endpoints = {
+    core: [
+      { name: 'Locations API', url: '/api/locations', method: 'GET', description: 'Get available locations' },
+      { name: 'Health Check', url: '/api/health', method: 'GET', description: 'Basic system health' }
+    ],
+    curve: [
+      { name: 'List Curves', url: '/api/curves/list', method: 'GET', description: 'Get all curve instances' },
+      { name: 'Curve Definitions', url: '/api/curves/definitions', method: 'GET', description: 'Get curve definitions' },
+      { name: 'Curves by Location', url: '/api/curves/by-location?location=CAISO-Goleta', method: 'GET', description: 'Get curves for specific location' }
+    ],
+    upload: [
+      { name: 'Create Definition (Test)', url: '/api/curve-upload/create-definition', method: 'POST', description: 'Test curve definition creation', testData: {
+        curveName: 'Health Check Test',
+        market: 'CAISO',
+        location: 'Test Location',
+        product: 'Market Price Forecast',
+        curveType: 'ENERGY_ARB',
+        batteryDuration: 'FOUR_H',
+        granularity: 'HOURLY',
+        createdBy: 'Health Check'
+      }},
+      { name: 'Upload Data Validation', url: '/api/curve-upload/upload-data', method: 'POST', description: 'Test data validation (expect error)', expectError: true, testData: {
+        curveInstanceId: 999999,
+        data: []
+      }}
+    ],
+    admin: [
+      { name: 'Activity Logs', url: '/api/admin/activity-logs', method: 'GET', description: 'Get system activity logs' },
+      { name: 'Delivery Requests', url: '/api/delivery-request/list', method: 'GET', description: 'Get delivery request list' },
+      { name: 'Health Check', url: '/api/health', method: 'GET', description: 'System health status' }
+    ]
+  };
+
+  let testResults = {};
+  let totalTests = 0;
+  let completedTests = 0;
+
+  // Calculate total tests
+  Object.values(endpoints).forEach(category => {
+    totalTests += category.length;
+  });
+
+  // Test individual endpoint
+  async function testEndpoint(endpoint) {
+    const startTime = Date.now();
+    try {
+      const options = {
+        method: endpoint.method,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      };
+
+      if (endpoint.testData) {
+        options.body = JSON.stringify(endpoint.testData);
+      }
+
+      const response = await fetch(endpoint.url, options);
+      const responseTime = Date.now() - startTime;
+      
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (e) {
+        responseData = await response.text();
+      }
+
+      const result = {
+        status: endpoint.expectError ? (response.ok ? 'unexpected-success' : 'success') : (response.ok ? 'success' : 'error'),
+        statusCode: response.status,
+        responseTime,
+        response: responseData,
+        timestamp: new Date().toISOString()
+      };
+
+      return result;
+    } catch (error) {
+      return {
+        status: 'error',
+        statusCode: 0,
+        responseTime: Date.now() - startTime,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // Update progress
+  function updateProgress() {
+    const progressBar = document.getElementById('progress-bar') as HTMLElement;
+    const progressContainer = document.getElementById('progress-container') as HTMLElement;
+    
+    if (progressContainer && progressBar) {
+      progressContainer.classList.remove('hidden');
+      const percentage = (completedTests / totalTests) * 100;
+      progressBar.style.width = `${percentage}%`;
+    }
+  }
+
+  // Update overall status
+  function updateOverallStatus() {
+    const indicator = document.getElementById('status-indicator');
+    const summary = document.getElementById('status-summary');
+    const overallStatus = document.getElementById('overall-status');
+    
+    if (!indicator || !summary || !overallStatus) return;
+    
+    const allResults = Object.values(testResults).flat();
+    const errorCount = allResults.filter(r => r.status === 'error').length;
+    const totalCount = allResults.length;
+    
+    let statusClass, statusText, indicatorColor;
+    
+    if (totalCount === 0) {
+      statusClass = 'border-gray-300 bg-gray-50';
+      statusText = 'Unknown';
+      indicatorColor = 'bg-gray-400';
+      summary.textContent = 'No tests run yet';
+    } else if (errorCount === 0) {
+      statusClass = 'border-green-300 bg-green-50';
+      statusText = 'Healthy';
+      indicatorColor = 'bg-green-500';
+      summary.textContent = `All ${totalCount} endpoints are working correctly`;
+    } else if (errorCount < totalCount / 2) {
+      statusClass = 'border-yellow-300 bg-yellow-50';
+      statusText = 'Warning';
+      indicatorColor = 'bg-yellow-500';
+      summary.textContent = `${errorCount} of ${totalCount} endpoints have issues`;
+    } else {
+      statusClass = 'border-red-300 bg-red-50';
+      statusText = 'Critical';
+      indicatorColor = 'bg-red-500';
+      summary.textContent = `${errorCount} of ${totalCount} endpoints are failing`;
+    }
+    
+    overallStatus.className = `mb-8 p-6 rounded-lg border-2 ${statusClass}`;
+    indicator.innerHTML = `<div class="w-4 h-4 ${indicatorColor} rounded-full"></div><span class="text-gray-600">${statusText}</span>`;
+  }
+
+  // Render endpoint result
+  function renderEndpointResult(endpoint, result) {
+    const statusIcon = result.status === 'success' ? '✅' : 
+                      result.status === 'error' ? '❌' : 
+                      result.status === 'unexpected-success' ? '⚠️' : '❓';
+    
+    const statusColor = result.status === 'success' ? 'text-green-600' : 
+                       result.status === 'error' ? 'text-red-600' : 
+                       'text-yellow-600';
+    
+    return `
+      <div class="border rounded-lg p-4 ${result.status === 'error' ? 'border-red-200 bg-red-50' : result.status === 'success' ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2">
+            <span class="text-lg">${statusIcon}</span>
+            <span class="font-medium text-gray-900">${endpoint.name}</span>
+          </div>
+          <div class="flex items-center space-x-2 text-sm">
+            <span class="${statusColor}">${result.statusCode}</span>
+            <span class="text-gray-500">${result.responseTime}ms</span>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mb-2">${endpoint.description}</p>
+        <div class="text-xs text-gray-500">
+          <span class="font-mono bg-gray-100 px-2 py-1 rounded">${endpoint.method} ${endpoint.url}</span>
+        </div>
+        ${result.error ? `<div class="mt-2 text-sm text-red-600 font-mono bg-red-100 p-2 rounded">${result.error}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // Update logs
+  function updateLogs() {
+    const logsContainer = document.getElementById('test-logs');
+    const allResults = [];
+    
+    Object.entries(testResults).forEach(([category, results]) => {
+      results.forEach((result, index) => {
+        allResults.push({
+          category,
+          endpoint: endpoints[category][index],
+          result
+        });
+      });
+    });
+    
+    if (allResults.length === 0) {
+      logsContainer.innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+          <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <p>No test logs yet</p>
+          <p class="text-sm">Run tests to see detailed results</p>
+        </div>
+      `;
+      return;
+    }
+    
+    const logHtml = allResults.map(({ category, endpoint, result }) => `
+      <div class="border-l-4 ${result.status === 'error' ? 'border-red-500' : result.status === 'success' ? 'border-green-500' : 'border-yellow-500'} pl-4 py-2">
+        <div class="flex items-center justify-between">
+          <span class="font-medium">${endpoint.name}</span>
+          <span class="text-sm text-gray-500">${new Date(result.timestamp).toLocaleTimeString()}</span>
+        </div>
+        <div class="text-sm text-gray-600 mt-1">
+          <span class="font-mono bg-gray-100 px-2 py-1 rounded mr-2">${endpoint.method} ${endpoint.url}</span>
+          <span class="${result.status === 'error' ? 'text-red-600' : result.status === 'success' ? 'text-green-600' : 'text-yellow-600'}">${result.statusCode}</span>
+          <span class="text-gray-500 ml-2">${result.responseTime}ms</span>
+        </div>
+        ${result.error ? `<div class="text-sm text-red-600 mt-1 font-mono bg-red-100 p-2 rounded">${result.error}</div>` : ''}
+        ${result.response && typeof result.response === 'object' ? `<details class="mt-2"><summary class="text-sm text-gray-600 cursor-pointer">Response Data</summary><pre class="text-xs bg-gray-100 p-2 rounded mt-1 overflow-x-auto">${JSON.stringify(result.response, null, 2)}</pre></details>` : ''}
+      </div>
+    `).join('');
+    
+    if (logsContainer) {
+      logsContainer.innerHTML = logHtml;
+    }
+    
+    // Update error summary
+    updateErrorSummary(allResults);
+  }
+
+  // Update error summary for easy copying
+  function updateErrorSummary(allResults) {
+    const errorResults = allResults.filter(({ result }) => result.status === 'error');
+    const errorContainer = document.getElementById('error-summary-container');
+    const errorText = document.getElementById('error-text');
+    
+    if (errorResults.length === 0) {
+      if (errorContainer) errorContainer.classList.add('hidden');
+      return;
+    }
+    
+    if (errorContainer) errorContainer.classList.remove('hidden');
+    
+    const errorSummary = errorResults.map(({ endpoint, result }) => 
+      `❌ ${endpoint.name} (${endpoint.method} ${endpoint.url}): ${result.statusCode} - ${result.error || 'Unknown error'}`
+    ).join('\n');
+    
+    const fullSummary = `API Health Check Errors (${new Date().toLocaleString()}):
+
+${errorSummary}
+
+Browser Console Errors:
+${errorResults.map(({ endpoint, result }) => 
+  `Failed to load resource: the server responded with a status of ${result.statusCode} (${result.statusCode === 500 ? 'Internal Server Error' : result.statusCode === 400 ? 'Bad Request' : result.statusCode === 404 ? 'Not Found' : 'Error'})
+:4321${endpoint.url}:1`
+).join('\n')}`;
+    
+    if (errorText) {
+      errorText.textContent = fullSummary;
+    }
+  }
+
+  // Run all tests
+  async function runAllTests() {
+    const button = document.getElementById('run-all-tests') as HTMLButtonElement;
+    if (!button) return;
+    
+    button.disabled = true;
+    button.textContent = '🔄 Running Tests...';
+    
+    completedTests = 0;
+    testResults = {};
+    
+    // Clear existing results
+    ['core', 'curve', 'upload', 'admin'].forEach(category => {
+      document.getElementById(`${category}-endpoints`).innerHTML = '<div class="text-center text-gray-500">Running tests...</div>';
+    });
+    
+    for (const [category, categoryEndpoints] of Object.entries(endpoints)) {
+      testResults[category] = [];
+      
+      for (let i = 0; i < categoryEndpoints.length; i++) {
+        const endpoint = categoryEndpoints[i];
+        const result = await testEndpoint(endpoint);
+        testResults[category].push(result);
+        completedTests++;
+        
+        updateProgress();
+        
+        // Update the specific category display
+        const categoryContainer = document.getElementById(`${category}-endpoints`);
+        if (categoryContainer) {
+          const resultHtml = testResults[category]?.map((r, idx) => 
+            renderEndpointResult(categoryEndpoints[idx], r)
+          ).join('') || '';
+          categoryContainer.innerHTML = resultHtml;
+        }
+        
+        updateOverallStatus();
+        updateLogs();
+        
+        // Small delay to make progress visible
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    if (button) {
+      button.disabled = false;
+      button.textContent = '✅ Tests Complete';
+      setTimeout(() => {
+        if (button) button.textContent = '🚀 Run All Tests';
+      }, 2000);
+    }
+  }
+
+  // Copy errors to clipboard
+  async function copyErrorsToClipboard() {
+    const errorText = document.getElementById('error-text');
+    if (!errorText || !errorText.textContent) return;
+    
+    try {
+      await navigator.clipboard.writeText(errorText.textContent);
+      const button = document.getElementById('copy-errors');
+      if (button) {
+        const originalText = button.textContent;
+        button.textContent = '✅ Copied!';
+        setTimeout(() => {
+          if (button) button.textContent = originalText;
+        }, 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = errorText.textContent;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('run-all-tests')?.addEventListener('click', runAllTests);
+    document.getElementById('refresh-status')?.addEventListener('click', runAllTests);
+    document.getElementById('copy-errors')?.addEventListener('click', copyErrorsToClipboard);
+  });
+</script>
+</Layout>

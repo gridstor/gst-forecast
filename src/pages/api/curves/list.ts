@@ -5,11 +5,8 @@ export const GET: APIRoute = async ({ request }) => {
   try {
     // Get all curve instances with their definition data
     const instances = await prisma.curveInstance.findMany({
-      where: {
-        isActive: true
-      },
       include: {
-        definition: {
+        curveDefinition: {
           select: {
             curveName: true,
             market: true,
@@ -27,11 +24,11 @@ export const GET: APIRoute = async ({ request }) => {
     // Format the data for the dropdown
     const curves = instances.map(instance => ({
       id: instance.id,
-      curveName: instance.definition.curveName,
-      market: instance.definition.market,
-      location: instance.definition.location,
-      product: instance.definition.product,
-      curveType: instance.definition.curveType,
+      curveName: instance.curveDefinition.curveName,
+      market: instance.curveDefinition.market,
+      location: instance.curveDefinition.location,
+      product: instance.curveDefinition.product,
+      curveType: instance.curveDefinition.curveType,
       instanceVersion: instance.instanceVersion,
       createdBy: instance.createdBy,
       scenario: instance.scenario,

@@ -369,6 +369,7 @@ model CurveInstance {
   // Relations
   curveDefinition  CurveDefinition     @relation(fields: [curveDefinitionId], references: [id])
   priceForecasts   PriceForecast[]
+  curveData        CurveData[]
   inputLineage     CurveInputLineage[]
   versionHistory   VersionHistory[]    @relation("CurrentInstance")
   previousVersions VersionHistory[]    @relation("PreviousInstance")
@@ -398,11 +399,7 @@ model PriceForecast {
   
   // Legacy/compatibility columns
   value           Float?   // Will map to valueP50 for backward compatibility
-  confidence      Float?
-  valueHigh       Float?   // Can map to valueP95
-  valueLow        Float?   // Can map to valueP5
-  valueP90        Float?   // Keep for additional granularity
-  valueP10        Float?   // Keep for additional granularity
+  pvalue          Int      // Main p-value identifier (typically 50)
   
   flags           String[]
 
@@ -413,6 +410,28 @@ model PriceForecast {
   @@index([curveInstanceId])
   @@index([timestamp])
   @@index([curveInstanceId, timestamp])
+  @@schema("Forecasts")
+}
+
+model CurveData {
+  id              Int      @id @default(autoincrement())
+  curveInstanceId Int
+  timestamp       DateTime @db.Timestamptz(6)
+
+  valueP5   Float?
+  valueP25  Float?
+  valueP50  Float
+  valueP75  Float?
+  valueP95  Float?
+
+  flags     String[]
+
+  // Relations
+  curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([curveInstanceId, timestamp])
+  @@index([curveInstanceId])
+  @@index([timestamp])
   @@schema("Forecasts")
 }
 

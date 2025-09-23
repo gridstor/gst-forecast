@@ -3,13 +3,14 @@ interface MarketSummaryProps {
 }
 
 export default function MarketSummary({ marketDistribution }: MarketSummaryProps) {
-  const total = Object.values(marketDistribution).reduce((sum, count) => sum + count, 0);
+  const safeMarketDistribution = marketDistribution || {};
+  const total = Object.values(safeMarketDistribution).reduce((sum, count) => sum + count, 0);
 
   return (
     <div>
       <h3 className="text-lg font-medium text-gray-900 mb-4">Market Distribution</h3>
       <div className="space-y-4">
-        {Object.entries(marketDistribution).map(([market, count]) => {
+        {Object.entries(safeMarketDistribution).map(([market, count]) => {
           const percentage = Math.round((count / total) * 100);
           return (
             <div key={market}>

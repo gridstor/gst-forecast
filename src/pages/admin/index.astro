@@ -160,6 +160,12 @@ try {
           >
             📋 Activity Logs
           </a>
+          <a
+            href="/admin/api-health"
+            class="block w-full bg-red-600 text-white text-center py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+          >
+            🔍 API Health Check
+          </a>
         </div>
       </div>
 
@@ -284,12 +290,12 @@ try {
         </div>
         <p class="text-gray-600 mb-4">Monitor and manage API endpoints</p>
         <div class="space-y-3">
-          <button
-            id="test-endpoints"
+          <a
+            href="/admin/api-health"
             class="block w-full bg-red-600 text-white text-center py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
           >
-            Test API Endpoints
-          </button>
+            🔍 API Health Dashboard
+          </a>
           <button
             id="view-logs"
             class="block w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
@@ -407,29 +413,7 @@ try {
       showNotification('Data export feature coming soon', 'info');
     });
 
-    // Test endpoints
-    document.getElementById('test-endpoints')?.addEventListener('click', async function() {
-      const endpoints = [
-        '/api/curves/list.json',
-        '/api/curves/definitions',
-        '/api/curves/by-location'
-      ];
-      
-      let allHealthy = true;
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(endpoint);
-          if (!response.ok) allHealthy = false;
-        } catch (error) {
-          allHealthy = false;
-        }
-      }
-      
-      showNotification(
-        allHealthy ? 'All API endpoints healthy' : 'Some API endpoints have issues',
-        allHealthy ? 'success' : 'error'
-      );
-    });
+    // Old test endpoints code removed - now using comprehensive API Health Dashboard
 
     // View logs
     document.getElementById('view-logs')?.addEventListener('click', function() {

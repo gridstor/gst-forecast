@@ -35,6 +35,11 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Attempt to extract units from CSV rows (first non-empty value)
+    const csvUnits = Array.isArray(priceData)
+      ? (priceData.find((r: any) => r && typeof r.units === 'string' && r.units.trim().length > 0)?.units || null)
+      : null;
+
     // Validate and prepare price data
     const validatedData = [];
     const errors = [];
@@ -75,6 +80,7 @@ export const POST: APIRoute = async ({ request }) => {
         pvalue,
         pValueColumnName,
         value,
+        // units: row.units || '$/MWh', // Units not supported in database schema
         flags: row.flags || []
       });
     }
@@ -98,11 +104,10 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Delete existing price forecasts for this instance (if any)
-    await prisma.$executeRaw`
-      DELETE FROM "Forecasts"."PriceForecast" 
-      WHERE "curveInstanceId" = ${parseInt(curveInstanceId)}
-    `;
+    // Delete existing curve data for this instance (if any)
+    await prisma.curveData.deleteMany({
+      where: { curveInstanceId: parseInt(curveInstanceId) }
+    });
 
     // Group data by timestamp to consolidate p-values
     const groupedData = new Map<string, any>();
@@ -120,6 +125,7 @@ export const POST: APIRoute = async ({ request }) => {
           valueP75: null,
           valueP95: null,
           value: null, // Legacy column
+          // units: record.units, // Units not supported in database schema
           flags: record.flags
         });
       }
@@ -147,37 +153,47 @@ export const POST: APIRoute = async ({ request }) => {
       }
     }
 
-    // Insert consolidated price forecasts
+    // Insert consolidated curve data
     let insertedCount = 0;
     for (const record of groupedData.values()) {
       // Ensure valueP50 is not null (required field)
       if (record.valueP50 === null) {
         // If no P50 provided, use any available value as fallback
         record.valueP50 = record.valueP5 || record.valueP25 || record.valueP75 || record.valueP95 || 0;
-        record.value = record.valueP50;
       }
       
-      await prisma.$executeRaw`
-        INSERT INTO "Forecasts"."PriceForecast" (
-          "curveInstanceId", "timestamp", "valueP5", "valueP25", "valueP50", 
-          "valueP75", "valueP95", "value", "flags"
-        ) VALUES (
-          ${record.curveInstanceId}, ${record.timestamp}, ${record.valueP5}, 
-          ${record.valueP25}, ${record.valueP50}, ${record.valueP75}, 
-          ${record.valueP95}, ${record.value}, ${record.flags}::text[]
-        )
-      `;
+      // Create the curve data record with only valid fields
+      await prisma.curveData.create({
+        data: {
+          curveInstanceId: record.curveInstanceId,
+          timestamp: record.timestamp,
+          valueP5: record.valueP5,
+          valueP25: record.valueP25,
+          valueP50: record.valueP50,
+          valueP75: record.valueP75,
+          valueP95: record.valueP95,
+          flags: record.flags
+        }
+      });
       insertedCount++;
     }
 
     const result = { count: insertedCount };
 
-    // Update instance status to ACTIVE
+    // Update instance status to ACTIVE and persist units into metadata if available
+    const nextMetadata: any = {
+      ...(curveInstance.metadata as any || {})
+    };
+    if (csvUnits) {
+      nextMetadata.units = csvUnits;
+    }
+
     await prisma.curveInstance.update({
       where: { id: parseInt(curveInstanceId) },
       data: { 
         status: 'ACTIVE',
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        metadata: nextMetadata
       }
     });
 

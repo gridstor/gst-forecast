@@ -519,8 +519,11 @@ try {
               <thead class="bg-gray-100">
                 <tr>
                   <th class="px-2 py-1 text-left font-medium text-gray-500">Timestamp</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">Value</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">P-Value</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500">P5</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500">P25</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500">P50</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500">P75</th>
+                  <th class="px-2 py-1 text-left font-medium text-gray-500">P95</th>
                   <th class="px-2 py-1 text-left font-medium text-gray-500">Units</th>
                 </tr>
               </thead>
@@ -528,8 +531,11 @@ try {
                 ${data.slice(0, 10).map((point: any) => `
                   <tr>
                     <td class="px-2 py-1 text-gray-900">${new Date(point.timestamp).toLocaleDateString()}</td>
-                    <td class="px-2 py-1 text-gray-900">${parseFloat(point.value).toFixed(4)}</td>
-                    <td class="px-2 py-1 text-gray-500">${point.pvalue || 'N/A'}</td>
+                    <td class="px-2 py-1 text-gray-900">${point.valueP5 != null ? parseFloat(point.valueP5).toFixed(4) : ''}</td>
+                    <td class="px-2 py-1 text-gray-900">${point.valueP25 != null ? parseFloat(point.valueP25).toFixed(4) : ''}</td>
+                    <td class="px-2 py-1 text-gray-900">${point.valueP50 != null ? parseFloat(point.valueP50).toFixed(4) : ''}</td>
+                    <td class="px-2 py-1 text-gray-900">${point.valueP75 != null ? parseFloat(point.valueP75).toFixed(4) : ''}</td>
+                    <td class="px-2 py-1 text-gray-900">${point.valueP95 != null ? parseFloat(point.valueP95).toFixed(4) : ''}</td>
                     <td class="px-2 py-1 text-gray-500">${point.units || 'N/A'}</td>
                   </tr>
                 `).join('')}
@@ -559,16 +565,18 @@ try {
       const result = await response.json();
 
       if (response.ok && result.priceData) {
-        // Convert to CSV
-        const headers = ['timestamp', 'value', 'pvalue', 'units', 'granularity'];
+        // Convert to CSV (all P-values)
+        const headers = ['timestamp', 'valueP5', 'valueP25', 'valueP50', 'valueP75', 'valueP95', 'units'];
         const csvContent = [
           headers.join(','),
           ...result.priceData.map((point: any) => [
             point.timestamp,
-            point.value,
-            point.pvalue || '',
-            point.units || '',
-            point.granularity || ''
+            point.valueP5 ?? '',
+            point.valueP25 ?? '',
+            point.valueP50 ?? '',
+            point.valueP75 ?? '',
+            point.valueP95 ?? '',
+            point.units || ''
           ].join(','))
         ].join('\n');
 

@@ -12,7 +12,6 @@ const createInstanceSchema = z.object({
   priceData: z.array(z.object({
     timestamp: z.string().transform(str => new Date(str)),
     value: z.number(),
-    confidence: z.number().optional(),
     valueHigh: z.number().optional(),
     valueLow: z.number().optional()
   })).optional().default([]),
@@ -114,12 +113,12 @@ export const POST: APIRoute = async ({ request }) => {
       // Insert price data if provided
       if (validatedData.priceData.length > 0) {
         const priceValues = validatedData.priceData.map(p => 
-          `(${instanceId}, '${p.timestamp.toISOString()}', ${p.value}, ${p.confidence || 'NULL'}, ${p.valueHigh || 'NULL'}, ${p.valueLow || 'NULL'})`
+          `(${instanceId}, '${p.timestamp.toISOString()}', ${p.value}, ${p.valueHigh || 'NULL'}, ${p.valueLow || 'NULL'})`
         ).join(',');
         
         await tx.$executeRawUnsafe(`
           INSERT INTO "PriceForecast" (
-            "curve_instance_id", "timestamp", "value", "confidence", "valueHigh", "valueLow"
+            "curve_instance_id", "timestamp", "value", "valueHigh", "valueLow"
           ) VALUES ${priceValues}
         `);
       }

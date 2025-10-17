@@ -72,33 +72,35 @@ try {
 ---
 
 <Layout title="Curve Tracker Dashboard">
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-8">
+  <!-- Page Header - Design System -->
+  <div class="mb-8">
+    <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold">Curve Tracker Dashboard</h1>
-        <p class="mt-2 text-gray-600">Track and manage your curve updates and schedules</p>
+        <h1 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Tracker Dashboard</h1>
+        <p class="text-base text-[#6B7280]">Track and manage your curve updates and schedules</p>
       </div>
-      <div class="space-x-4">
+      <div class="flex gap-3">
         <a
           href="/curve-tracker/upload"
-          class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-[#3B82F6] hover:bg-[#2563EB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] transition-colors"
         >
           Upload Curves
         </a>
         <a
           href="/curve-tracker/inventory"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="inline-flex items-center px-4 py-2 border border-[#E5E7EB] text-sm font-medium rounded-md text-[#6B7280] bg-white hover:bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] transition-colors"
         >
           View Inventory
         </a>
         <a
           href="/curve-tracker/calendar"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="inline-flex items-center px-4 py-2 border border-[#E5E7EB] text-sm font-medium rounded-md text-[#6B7280] bg-white hover:bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] transition-colors"
         >
           View Calendar
         </a>
       </div>
     </div>
+  </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       <StatusSummary
@@ -109,25 +111,25 @@ try {
       />
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-      <div class="lg:col-span-3">
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <FilterPanel client:load />
-          <CurveTable
-            client:load
-            initialCurves={curves}
-          />
-        </div>
-      </div>
-      <div class="lg:col-span-1">
-        <div class="bg-white rounded-lg shadow-md p-6">
-          <MarketSummary
-            client:load
-            marketDistribution={marketDistribution}
-          />
-        </div>
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    <div class="lg:col-span-3">
+      <div class="bg-white rounded-lg p-6 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <FilterPanel client:load />
+        <CurveTable
+          client:load
+          initialCurves={curves}
+        />
       </div>
     </div>
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-lg p-6 accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <MarketSummary
+          client:load
+          marketDistribution={marketDistribution}
+        />
+      </div>
+    </div>
+  </div>
   </div>
 </Layout>
 

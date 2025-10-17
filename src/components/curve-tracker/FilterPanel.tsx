@@ -48,13 +48,13 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
     options: string[]
   ) => (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">
         {label}
       </label>
       <select
         value={filters[key]}
         onChange={(e) => handleFilterChange(key, e.target.value)}
-        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+        className="block w-full rounded-md border border-[#E5E7EB] py-2 px-3 text-sm bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -66,8 +66,8 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
   );
 
   return (
-    <div className="bg-gray-50 p-4 rounded-lg mb-6">
-      <h2 className="text-lg font-semibold mb-4">Filter Curves</h2>
+    <div className="bg-[#F9FAFB] p-6 rounded-lg mb-6 border border-[#E5E7EB]">
+      <h2 className="text-lg font-semibold text-[#1F2937] mb-4">Filter Curves</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {renderSelect('Market', 'market', MARKETS)}
         {renderSelect('Location', 'location', LOCATIONS)}
@@ -79,7 +79,7 @@ export default function FilterPanel({ onFilterChange }: FilterPanelProps) {
       <div className="mt-4 flex justify-end">
         <button
           onClick={applyFilters}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="px-4 py-2 text-sm font-medium text-white bg-[#3B82F6] rounded-md hover:bg-[#2563EB] focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 transition-colors"
         >
           Apply Filters
         </button>

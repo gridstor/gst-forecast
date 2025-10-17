@@ -1,817 +1,433 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { query } from '../../lib/db';
-
-// Get all curve definitions with their instances and data counts
-let curveData = [];
-
-try {
-  const result = await query(`
-    SELECT 
-      cd.id as definition_id,
-      cd."curveName",
-      cd.market,
-      cd.location,
-      cd.product,
-      cd."curveType",
-      cd."batteryDuration",
-      cd.scenario,
-      cd.description,
-      cd."createdAt" as definition_created,
-      cd."createdBy" as definition_creator,
-      COUNT(DISTINCT ci.id) as instance_count,
-      COUNT(pf.id) as total_price_points,
-      MAX(pf."createdAt") as last_data_update
-    FROM "Forecasts"."CurveDefinition" cd
-    LEFT JOIN "Forecasts"."CurveInstance" ci ON cd.id = ci."curveDefinitionId"
-    LEFT JOIN "Forecasts"."PriceForecast" pf ON ci.id = pf."curveInstanceId"
-    WHERE cd."isActive" = true
-    GROUP BY cd.id, cd."curveName", cd.market, cd.location, cd.product, 
-             cd."curveType", cd."batteryDuration", cd.scenario, cd.description,
-             cd."createdAt", cd."createdBy"
-    ORDER BY cd."createdAt" DESC
-  `);
-  
-  curveData = result.rows;
-} catch (error) {
-  console.error('Error fetching curve data:', error);
-}
 ---
 
-<Layout title="Manage Curve Instances">
-  <div class="container mx-auto px-4 py-8">
-    <!-- Notification Area -->
-    <div id="notification" class="fixed top-4 right-4 z-50 hidden p-4 rounded-lg shadow-lg text-white">
-      <span id="notification-text"></span>
-    </div>
+<Layout title="Manage Curve Inventory">
+  <!-- Page Header - Design System -->
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Manage Curve Inventory</h1>
+    <p class="text-base text-[#6B7280]">View, edit, and delete curve definitions, instances, and data</p>
+  </div>
 
-    <h1 class="text-3xl font-bold mb-6">Curve Inventory Management</h1>
-    <p class="text-gray-600 mb-8">Complete CRUD operations for curve definitions, instances, and data with full management capabilities</p>
+  <div class="max-w-[1800px] mx-auto">
 
-    <!-- Data Structure Explanation -->
-    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-8 border border-blue-200">
-      <h2 class="text-xl font-semibold mb-4 text-blue-900">📊 Data Structure Overview</h2>
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="bg-white rounded-lg p-4 border-2 border-blue-300">
-          <div class="flex items-center mb-3">
-            <div class="w-8 h-8 bg-blue-500 rounded text-white flex items-center justify-center font-bold">1</div>
-            <h3 class="ml-3 font-semibold text-blue-900">Curve Definition</h3>
-          </div>
-          <p class="text-sm text-gray-600 mb-2"><strong>What it is:</strong> The template/metadata for a curve</p>
-          <p class="text-sm text-gray-600"><strong>Contains:</strong> Market, Location, Product Type, Duration, etc.</p>
-          <div class="mt-3 text-xs bg-blue-100 p-2 rounded">
-            <strong>Example:</strong> "ERCOT Channel View 2H Energy Revenue"
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg p-4 border-2 border-green-300">
-          <div class="flex items-center mb-3">
-            <div class="w-8 h-8 bg-green-500 rounded text-white flex items-center justify-center font-bold">2</div>
-            <h3 class="ml-3 font-semibold text-green-900">Curve Instance</h3>
-          </div>
-          <p class="text-sm text-gray-600 mb-2"><strong>What it is:</strong> A specific forecast run/version</p>
-          <p class="text-sm text-gray-600"><strong>Contains:</strong> Version, Date Range, Granularity, Run Info</p>
-          <div class="mt-3 text-xs bg-green-100 p-2 rounded">
-            <strong>Example:</strong> "2024-Q4" version covering 2028-2051
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg p-4 border-2 border-purple-300">
-          <div class="flex items-center mb-3">
-            <div class="w-8 h-8 bg-purple-500 rounded text-white flex items-center justify-center font-bold">3</div>
-            <h3 class="ml-3 font-semibold text-purple-900">Price Data</h3>
-          </div>
-          <p class="text-sm text-gray-600 mb-2"><strong>What it is:</strong> The actual forecast values</p>
-          <p class="text-sm text-gray-600"><strong>Contains:</strong> Timestamps, Values, P-values, Units</p>
-          <div class="mt-3 text-xs bg-purple-100 p-2 rounded">
-            <strong>Example:</strong> 115 annual points (23 years × 5 p-values)
-          </div>
-        </div>
+    <!-- Global Filters - Design System Card -->
+    <div class="bg-white rounded-lg p-6 mb-6 accent-border-gray" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div class="flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
+        <h2 class="text-lg font-semibold text-[#1F2937]">Global Filters</h2>
       </div>
-      
-      <div class="mt-4 flex items-center justify-center">
-        <div class="flex items-center space-x-2">
-          <div class="w-4 h-4 bg-blue-500 rounded"></div>
-          <span class="text-sm">Definition</span>
-          <svg class="w-6 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-          <div class="w-4 h-4 bg-green-500 rounded"></div>
-          <span class="text-sm">Instance(s)</span>
-          <svg class="w-6 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-          <div class="w-4 h-4 bg-purple-500 rounded"></div>
-          <span class="text-sm">Price Data</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-      <div class="flex flex-wrap gap-4 items-center">
-        <div class="flex-1 min-w-64">
-          <input
-            type="text"
-            id="searchFilter"
-            placeholder="🔍 Search by curve name, market, location..."
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div>
-          <select id="marketFilter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Market</label>
+          <select id="globalMarket" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
             <option value="">All Markets</option>
-            <option value="ERCOT">ERCOT</option>
             <option value="CAISO">CAISO</option>
+            <option value="ERCOT">ERCOT</option>
             <option value="PJM">PJM</option>
-            <option value="NYISO">NYISO</option>
           </select>
         </div>
         <div>
-          <select id="typeFilter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location</label>
+          <input type="text" id="globalLocation" placeholder="Any location" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] placeholder-[#9CA3AF] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Product</label>
+          <input type="text" id="globalProduct" placeholder="Any product" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] placeholder-[#9CA3AF] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Type</label>
+          <select id="globalCurveType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
             <option value="">All Types</option>
+            <option value="REVENUE">Revenue</option>
             <option value="ENERGY">Energy</option>
             <option value="AS">Ancillary Services</option>
-            <option value="REVENUE">Revenue</option>
           </select>
         </div>
-        <button
-          id="clearFilters"
-          class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-        >
-          Clear
-        </button>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Status</label>
+          <select id="globalStatus" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="">All</option>
+            <option value="ACTIVE">Active</option>
+            <option value="DRAFT">Draft</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center justify-between">
+        <button id="clearFilters" class="text-sm text-[#3B82F6] hover:text-[#2563EB] font-medium">Clear All Filters</button>
+        <span id="filterCount" class="text-sm text-[#6B7280] font-mono"></span>
       </div>
     </div>
 
-    <!-- Curve Definitions with Nested Data -->
-    <div class="space-y-6">
-      {curveData.map((curve) => (
-        <div class="curve-definition bg-white rounded-lg shadow-md border border-gray-200" data-curve-name={curve.curveName} data-market={curve.market} data-type={curve.curveType}>
-          <!-- Definition Header -->
-          <div class="p-6 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-              <div class="flex-1">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <h3 class="text-lg font-semibold text-gray-900">{curve.curveName || `Curve ${curve.definition_id}`}</h3>
-                  <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">ID: {curve.definition_id}</span>
-                </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                  <div><strong>Market:</strong> {curve.market}</div>
-                  <div><strong>Location:</strong> {curve.location}</div>
-                  <div><strong>Product:</strong> {curve.product}</div>
-                  <div><strong>Type:</strong> {curve.curveType}</div>
-                  {curve.batteryDuration && <div><strong>Duration:</strong> {curve.batteryDuration}</div>}
-                  {curve.scenario && <div><strong>Scenario:</strong> {curve.scenario}</div>}
-                </div>
-                {curve.description && (
-                  <p class="mt-2 text-sm text-gray-600 italic">{curve.description}</p>
-                )}
-              </div>
-              <div class="text-right">
-                <div class="text-sm text-gray-500 mb-2">
-                  <div><strong>{curve.instance_count}</strong> instances</div>
-                  <div><strong>{Number(curve.total_price_points).toLocaleString()}</strong> data points</div>
-                </div>
-                <div class="flex gap-2">
-                  <button
-                    onclick={`editDefinition(${curve.definition_id})`}
-                    class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                    title="Edit Definition"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onclick={`loadInstances(${curve.definition_id})`}
-                    class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                    title="View Instances"
-                  >
-                    Instances
-                  </button>
-                  <button
-                    onclick={`deleteDefinition(${curve.definition_id}, '${curve.curveName?.replace(/'/g, "\\'")}', ${curve.instance_count})`}
-                    class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                    title="Delete Definition"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Instances Container (Hidden by default) -->
-          <div id={`instances-${curve.definition_id}`} class="hidden">
-            <div class="p-4 bg-gray-50 border-b">
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                <h4 class="font-medium text-gray-900">Curve Instances</h4>
-                <div id={`instance-loading-${curve.definition_id}`} class="hidden">
-                  <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                </div>
-              </div>
-              <div id={`instances-list-${curve.definition_id}`}></div>
-            </div>
-          </div>
+    <!-- Three Column Layout - Design System Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- COLUMN 1: DEFINITIONS -->
+      <div class="bg-white rounded-lg overflow-hidden flex flex-col h-[700px] accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="px-6 py-4 border-b border-[#F3F4F6]">
+          <h2 class="text-lg font-semibold text-[#1F2937]">Curve Definitions</h2>
         </div>
-      ))}
-    </div>
-
-    {curveData.length === 0 && (
-      <div class="text-center py-12">
-        <div class="text-gray-400 text-6xl mb-4">📊</div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No Curve Definitions Found</h3>
-        <p class="text-gray-500">Upload some curves to get started!</p>
-        <a
-          href="/admin/upload"
-          class="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          Upload Curves
-        </a>
+        <div class="px-6 py-3 border-b border-[#F3F4F6] space-y-3">
+          <input type="text" id="defSearch" placeholder="Search..." class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white placeholder-[#9CA3AF] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+          <select id="defSort" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="recent">Recent First</option>
+            <option value="name">Name (A-Z)</option>
+            <option value="market">Market</option>
+          </select>
+        </div>
+        <div id="defList" class="flex-1 overflow-y-auto px-4 py-3"></div>
       </div>
-    )}
 
-    <!-- Edit Definition Modal -->
-    <div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
-      <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
-          <div class="p-6 border-b border-gray-200">
-            <h3 class="text-lg font-semibold text-gray-900">Edit Curve Definition</h3>
-          </div>
-          <div class="p-6">
-            <form id="editForm" class="space-y-4">
-              <input type="hidden" id="editDefinitionId" />
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Curve Name *</label>
-                  <input
-                    type="text"
-                    id="editCurveName"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Market *</label>
-                  <select id="editMarket" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                    <option value="">Select Market</option>
-                    <option value="CAISO">CAISO</option>
-                    <option value="ERCOT">ERCOT</option>
-                    <option value="PJM">PJM</option>
-                    <option value="NYISO">NYISO</option>
-                    <option value="ISO-NE">ISO-NE</option>
-                    <option value="MISO">MISO</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Location *</label>
-                  <input
-                    type="text"
-                    id="editLocation"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Product *</label>
-                  <input
-                    type="text"
-                    id="editProduct"
-                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Curve Type *</label>
-                  <select id="editCurveType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                    <option value="">Select Type</option>
-                    <option value="REVENUE">Revenue</option>
-                    <option value="REVENUE_OTHER">Revenue Other</option>
-                    <option value="ENERGY">Energy</option>
-                    <option value="ENERGY_ARB">Energy Arbitrage</option>
-                    <option value="AS">Ancillary Services</option>
-                    <option value="TB2">TB2</option>
-                    <option value="TB4">TB4</option>
-                    <option value="RA">Resource Adequacy</option>
-                    <option value="DA">Day-Ahead</option>
-                    <option value="RT">Real-Time</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Battery Duration</label>
-                  <select id="editBatteryDuration" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="UNKNOWN">Unknown</option>
-                    <option value="TWO_H">2 Hours</option>
-                    <option value="TWO_POINT_SIX_H">2.6 Hours</option>
-                    <option value="FOUR_H">4 Hours</option>
-                    <option value="EIGHT_H">8 Hours</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label class="block text-sm font-medium text-gray-700">Scenario</label>
-                  <select id="editScenario" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="BASE">Base</option>
-                    <option value="P50">P50</option>
-                    <option value="P90">P90</option>
-                    <option value="P10">P10</option>
-                    <option value="LOW">Low</option>
-                    <option value="HIGH">High</option>
-                    <option value="UPSIDE">Upside</option>
-                    <option value="DOWNSIDE">Downside</option>
-                    <option value="ACTUAL">Actual</option>
-                    <option value="TARGET">Target</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div>
-                <label class="block text-sm font-medium text-gray-700">Description</label>
-                <textarea
-                  id="editDescription"
-                  rows="3"
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  placeholder="Optional description for this curve..."
-                ></textarea>
-              </div>
-            </form>
-          </div>
-          <div class="px-6 py-3 bg-gray-50 flex justify-end gap-3">
-            <button
-              id="cancelEdit"
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              id="saveEdit"
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-            >
-              Save Changes
-            </button>
-          </div>
+      <!-- COLUMN 2: INSTANCES -->
+      <div class="bg-white rounded-lg overflow-hidden flex flex-col h-[700px] accent-border-green" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="px-6 py-4 border-b border-[#F3F4F6]">
+          <h2 class="text-lg font-semibold text-[#1F2937]">Curve Instances</h2>
         </div>
+        <div class="px-6 py-3 border-b border-[#F3F4F6] space-y-3">
+          <input type="text" id="instSearch" placeholder="Search..." class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white placeholder-[#9CA3AF] focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" disabled />
+          <select id="instSort" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" disabled>
+            <option value="recent">Recent First</option>
+            <option value="version">Version</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
+        <div id="instList" class="flex-1 overflow-y-auto px-4 py-3">
+          <div class="text-center text-[#6B7280] text-sm py-8">Select a definition first</div>
+        </div>
+      </div>
+
+      <!-- COLUMN 3: ACTIONS -->
+      <div class="bg-white rounded-lg overflow-hidden flex flex-col h-[700px] accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="px-6 py-4 border-b border-[#F3F4F6]">
+          <h2 class="text-lg font-semibold text-[#1F2937]">Actions</h2>
+        </div>
+        <div id="actionPanel" class="flex-1 overflow-y-auto px-6 py-4">
+          <div class="text-center text-[#6B7280] text-sm py-8">Select an item to see actions</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
+
+  <!-- Edit Definition Modal - Design System -->
+  <div id="editDefModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full" style="box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
+      <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-[#1F2937]">Edit Definition</h3>
+        <button id="closeEditDef" class="text-[#9CA3AF] hover:text-[#6B7280] transition-colors">✕</button>
+      </div>
+      <div class="px-6 py-4 grid grid-cols-2 gap-4">
+        <input type="hidden" id="editDefId" />
+        <div class="col-span-2">
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Name</label>
+          <input type="text" id="editDefName" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Market</label>
+          <select id="editDefMarket" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="CAISO">CAISO</option>
+            <option value="ERCOT">ERCOT</option>
+            <option value="PJM">PJM</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location</label>
+          <input type="text" id="editDefLocation" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
+        <button id="cancelEditDef" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+        <button id="saveEditDef" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Instance Modal - Design System -->
+  <div id="editInstModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full" style="box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
+      <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+        <h3 class="text-lg font-semibold text-[#1F2937]">Edit Instance</h3>
+        <button id="closeEditInst" class="text-[#9CA3AF] hover:text-[#6B7280] transition-colors">✕</button>
+      </div>
+      <div class="px-6 py-4 grid grid-cols-2 gap-4">
+        <input type="hidden" id="editInstId" />
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Version</label>
+          <input type="text" id="editInstVersion" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Status</label>
+          <select id="editInstStatus" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+            <option value="DRAFT">Draft</option>
+            <option value="ACTIVE">Active</option>
+            <option value="ARCHIVED">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
+        <button id="cancelEditInst" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+        <button id="saveEditInst" class="px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] font-medium transition-colors">Save</button>
       </div>
     </div>
   </div>
 </Layout>
 
 <script>
-  // Show notification
-  function showNotification(message: string, isError = false) {
-    const notification = document.getElementById('notification')!;
-    const notificationText = document.getElementById('notification-text')!;
-    
-    notificationText.textContent = message;
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white ${
-      isError ? 'bg-red-600' : 'bg-green-600'
-    }`;
-    notification.classList.remove('hidden');
-    
-    setTimeout(() => {
-      notification.classList.add('hidden');
-    }, 5000);
+  let allDefs: any[] = [];
+  let allInsts: any[] = [];
+  let selectedDef: any = null;
+  let selectedInst: any = null;
+
+  function toast(msg: string, type: 'success' | 'error' = 'success') {
+    const el = document.getElementById('toast')!;
+    el.textContent = msg;
+    el.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg text-white font-medium ${type === 'success' ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`;
+    el.style.boxShadow = '0 12px 30px rgba(0,0,0,0.1)';
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
   }
 
-  // Load instances for a curve definition
-  async function loadInstances(curveDefinitionId: number) {
-    const container = document.getElementById(`instances-${curveDefinitionId}`)!;
-    const loading = document.getElementById(`instance-loading-${curveDefinitionId}`)!;
-    const listContainer = document.getElementById(`instances-list-${curveDefinitionId}`)!;
-
-    // Toggle visibility
-    if (!container.classList.contains('hidden')) {
-      container.classList.add('hidden');
-      return;
-    }
-
-    // Show loading
-    loading.classList.remove('hidden');
-    container.classList.remove('hidden');
-
+  async function loadDefinitions() {
     try {
-      const response = await fetch(`/api/admin/delete-curve-instance?curveDefinitionId=${curveDefinitionId}`);
-      const result = await response.json();
-
-      if (response.ok) {
-        displayInstances(result.instances, curveDefinitionId);
-      } else {
-        listContainer.innerHTML = `<p class="text-red-500">Error: ${result.error}</p>`;
-      }
-    } catch (error) {
-      listContainer.innerHTML = '<p class="text-red-500">Network error occurred</p>';
-    } finally {
-      loading.classList.add('hidden');
+      const res = await fetch('/api/curves/definitions');
+      allDefs = await res.json();
+      renderDefinitions();
+    } catch (e) {
+      toast('Failed to load definitions', 'error');
     }
   }
 
-  // Display instances in the nested view
-  function displayInstances(instances: any[], curveDefinitionId: number) {
-    const container = document.getElementById(`instances-list-${curveDefinitionId}`)!;
+  function renderDefinitions() {
+    const container = document.getElementById('defList')!;
+    const search = (document.getElementById('defSearch') as HTMLInputElement).value.toLowerCase();
+    const sort = (document.getElementById('defSort') as HTMLSelectElement).value;
 
-    if (instances.length === 0) {
-      container.innerHTML = '<p class="text-gray-500 text-sm">No instances found for this curve definition</p>';
-      return;
+    let filtered = allDefs.filter(d => 
+      d.curveName.toLowerCase().includes(search) ||
+      d.market.toLowerCase().includes(search) ||
+      d.location.toLowerCase().includes(search)
+    );
+
+    filtered.sort((a, b) => {
+      if (sort === 'name') return a.curveName.localeCompare(b.curveName);
+      if (sort === 'market') return a.market.localeCompare(b.market);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    container.innerHTML = filtered.map(d => `
+      <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedDef?.id === d.id ? 'bg-[#EFF6FF] border-[#3B82F6]' : 'bg-white border-[#E5E7EB]'}" data-def-id="${d.id}">
+        <div class="font-semibold text-sm text-[#111827]">${d.curveName}</div>
+        <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.market} • ${d.location}</div>
+        <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.instanceCount || 0} instances</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-def-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        selectDefinition(allDefs.find(d => d.id == el.getAttribute('data-def-id')));
+      });
+    });
+  }
+
+  function selectDefinition(def: any) {
+    selectedDef = def;
+    selectedInst = null;
+    renderDefinitions();
+    loadInstances(def.id);
+    showDefActions(def);
+    (document.getElementById('instSearch') as HTMLInputElement).disabled = false;
+    (document.getElementById('instSort') as HTMLSelectElement).disabled = false;
+  }
+
+  async function loadInstances(defId: number) {
+    try {
+      const res = await fetch(`/api/curves/instances?definitionId=${defId}`);
+      const data = await res.json();
+      allInsts = data.instances || [];
+      renderInstances();
+    } catch (e) {
+      toast('Failed to load instances', 'error');
     }
+  }
 
-    container.innerHTML = `
+  function renderInstances() {
+    const container = document.getElementById('instList')!;
+    const search = (document.getElementById('instSearch') as HTMLInputElement).value.toLowerCase();
+    
+    let filtered = allInsts.filter(i =>
+      i.instanceVersion.toLowerCase().includes(search) ||
+      i.status?.toLowerCase().includes(search)
+    );
+
+    container.innerHTML = filtered.map(i => `
+      <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedInst?.id === i.id ? 'bg-[#ECFDF5] border-[#10B981]' : 'bg-white border-[#E5E7EB]'}" data-inst-id="${i.id}">
+        <div class="font-semibold text-sm text-[#111827]">${i.instanceVersion}</div>
+        <div class="text-xs text-[#6B7280] mt-1 font-mono">${i.status}</div>
+        <div class="text-xs text-[#6B7280] mt-1 font-mono">${new Date(i.createdAt).toLocaleDateString()}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-inst-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        selectInstance(allInsts.find(i => i.id == el.getAttribute('data-inst-id')));
+      });
+    });
+  }
+
+  function selectInstance(inst: any) {
+    selectedInst = inst;
+    renderInstances();
+    showInstActions(inst);
+  }
+
+  function showDefActions(def: any) {
+    const panel = document.getElementById('actionPanel')!;
+    panel.innerHTML = `
       <div class="space-y-4">
-        ${instances.map(instance => `
-          <div class="bg-white rounded-lg border border-gray-300 p-4">
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-3">
-                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                <h5 class="font-medium text-gray-900">Instance: ${instance.instanceVersion}</h5>
-                <span class="px-2 py-1 text-xs ${
-                  instance.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
-                  instance.status === 'DRAFT' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-gray-100 text-gray-800'
-                } rounded-full">
-                  ${instance.status}
-                </span>
-              </div>
-              <div class="flex items-center gap-2">
-                <button
-                  onclick="previewData(${curveDefinitionId}, ${instance.id})"
-                  class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                >
-                  Preview Data
-                </button>
-                <button
-                  onclick="downloadData(${curveDefinitionId}, ${instance.id})"
-                  class="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                >
-                  Download
-                </button>
-                <button
-                  onclick="deleteInstance(${instance.id}, '${instance.instanceVersion}', ${curveDefinitionId})"
-                  class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-600 mb-3">
-              <div><strong>Granularity:</strong> ${instance.granularity}</div>
-              <div><strong>Data Points:</strong> ${instance.pricePointCount}</div>
-              <div><strong>Created:</strong> ${new Date(instance.createdAt).toLocaleDateString()}</div>
-              <div><strong>Created By:</strong> ${instance.createdBy || 'N/A'}</div>
-            </div>
-            
-            <div class="text-xs text-gray-500">
-              <div><strong>Period:</strong> ${new Date(instance.deliveryPeriodStart).toLocaleDateString()} - ${new Date(instance.deliveryPeriodEnd).toLocaleDateString()}</div>
-            </div>
-            
-            <!-- Data Preview Container -->
-            <div id="data-preview-${instance.id}" class="hidden mt-4 p-4 bg-gray-50 rounded border">
-              <div class="flex items-center gap-2 mb-2">
-                <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
-                <h6 class="font-medium text-gray-900">Price Data Preview</h6>
-                <div id="data-loading-${instance.id}" class="hidden">
-                  <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                </div>
-              </div>
-              <div id="data-content-${instance.id}"></div>
-            </div>
+        <div class="p-4 bg-[#EFF6FF] rounded-lg border border-[#3B82F6]">
+          <h4 class="font-semibold text-[#1F2937] mb-3">Definition: ${def.curveName}</h4>
+          <div class="text-xs text-[#6B7280] space-y-2 font-mono">
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">ID:</span><span>${def.id}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Market:</span><span>${def.market}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Location:</span><span>${def.location}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Instances:</span><span>${def.instanceCount || 0}</span></div>
           </div>
-        `).join('')}
+        </div>
+        <button onclick="editDef(${def.id})" class="w-full px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Edit Definition</button>
+        <button onclick="deleteDef(${def.id}, '${def.curveName}')" class="w-full px-4 py-2 bg-[#EF4444] text-white rounded-md hover:bg-[#DC2626] font-medium transition-colors">Delete Definition</button>
       </div>
     `;
   }
 
-  // Preview data for an instance
-  async function previewData(curveDefinitionId: number, instanceId: number) {
-    const previewContainer = document.getElementById(`data-preview-${instanceId}`)!;
-    const loading = document.getElementById(`data-loading-${instanceId}`)!;
-    const content = document.getElementById(`data-content-${instanceId}`)!;
-
-    // Toggle visibility
-    if (!previewContainer.classList.contains('hidden')) {
-      previewContainer.classList.add('hidden');
-      return;
-    }
-
-    previewContainer.classList.remove('hidden');
-    loading.classList.remove('hidden');
-
-    try {
-      const response = await fetch(`/api/curves/data?curveInstanceId=${instanceId}&limit=10`);
-      const result = await response.json();
-
-      if (response.ok && result.priceData && result.priceData.length > 0) {
-        const data = result.priceData;
-        content.innerHTML = `
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 text-xs">
-              <thead class="bg-gray-100">
-                <tr>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">Timestamp</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">P5</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">P25</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">P50</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">P75</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">P95</th>
-                  <th class="px-2 py-1 text-left font-medium text-gray-500">Units</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">
-                ${data.slice(0, 10).map((point: any) => `
-                  <tr>
-                    <td class="px-2 py-1 text-gray-900">${new Date(point.timestamp).toLocaleDateString()}</td>
-                    <td class="px-2 py-1 text-gray-900">${point.valueP5 != null ? parseFloat(point.valueP5).toFixed(4) : ''}</td>
-                    <td class="px-2 py-1 text-gray-900">${point.valueP25 != null ? parseFloat(point.valueP25).toFixed(4) : ''}</td>
-                    <td class="px-2 py-1 text-gray-900">${point.valueP50 != null ? parseFloat(point.valueP50).toFixed(4) : ''}</td>
-                    <td class="px-2 py-1 text-gray-900">${point.valueP75 != null ? parseFloat(point.valueP75).toFixed(4) : ''}</td>
-                    <td class="px-2 py-1 text-gray-900">${point.valueP95 != null ? parseFloat(point.valueP95).toFixed(4) : ''}</td>
-                    <td class="px-2 py-1 text-gray-500">${point.units || 'N/A'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
+  function showInstActions(inst: any) {
+    const panel = document.getElementById('actionPanel')!;
+    panel.innerHTML = `
+      <div class="space-y-4">
+        <div class="p-4 bg-[#EFF6FF] rounded-lg border border-[#3B82F6]">
+          <h4 class="font-semibold text-[#1F2937] mb-2">Definition</h4>
+          <div class="text-sm text-[#111827] font-mono">${selectedDef.curveName}</div>
+        </div>
+        <div class="p-4 bg-[#ECFDF5] rounded-lg border border-[#10B981]">
+          <h4 class="font-semibold text-[#1F2937] mb-3">Instance: ${inst.instanceVersion}</h4>
+          <div class="text-xs text-[#6B7280] space-y-2 font-mono">
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">ID:</span><span>${inst.id}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Status:</span><span>${inst.status}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Period:</span><span>${inst.deliveryPeriodStart.split('T')[0]} to ${inst.deliveryPeriodEnd.split('T')[0]}</span></div>
           </div>
-          <div class="mt-2 text-xs text-gray-500">
-            Showing first 10 of ${data.length} data points
-          </div>
-        `;
-      } else {
-        content.innerHTML = '<p class="text-gray-500 text-sm">No price data found for this instance</p>';
-      }
-    } catch (error) {
-      content.innerHTML = '<p class="text-red-500 text-sm">Error loading data preview</p>';
-    } finally {
-      loading.classList.add('hidden');
-    }
+        </div>
+        <button onclick="editInst(${inst.id})" class="w-full px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] font-medium transition-colors">Edit Instance</button>
+        <button onclick="downloadInstData(${inst.id})" class="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] font-medium transition-colors">Download Data</button>
+        <button onclick="deleteInst(${inst.id}, '${inst.instanceVersion}')" class="w-full px-4 py-2 bg-[#EF4444] text-white rounded-md hover:bg-[#DC2626] font-medium transition-colors">Delete Instance</button>
+      </div>
+    `;
   }
 
-  // Download data for an instance
-  async function downloadData(curveDefinitionId: number, instanceId: number) {
+  async function deleteDef(id: number, name: string) {
+    if (!confirm(`Delete "${name}"? This will delete all instances and data.`)) return;
     try {
-      showNotification('Preparing download...', false);
-      
-      const response = await fetch(`/api/curves/data?curveInstanceId=${instanceId}`);
-      const result = await response.json();
-
-      if (response.ok && result.priceData) {
-        // Convert to CSV (all P-values)
-        const headers = ['timestamp', 'valueP5', 'valueP25', 'valueP50', 'valueP75', 'valueP95', 'units'];
-        const csvContent = [
-          headers.join(','),
-          ...result.priceData.map((point: any) => [
-            point.timestamp,
-            point.valueP5 ?? '',
-            point.valueP25 ?? '',
-            point.valueP50 ?? '',
-            point.valueP75 ?? '',
-            point.valueP95 ?? '',
-            point.units || ''
-          ].join(','))
-        ].join('\n');
-
-        // Create download
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `curve-instance-${instanceId}-data.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-
-        showNotification(`Downloaded ${result.priceData.length} data points`);
-      } else {
-        showNotification('No data available for download', true);
-      }
-    } catch (error) {
-      showNotification('Error downloading data', true);
-    }
-  }
-
-  // Delete instance
-  async function deleteInstance(instanceId: number, instanceVersion: string, curveDefinitionId: number) {
-    if (!confirm(`Are you sure you want to delete curve instance '${instanceVersion}' (ID: ${instanceId})?\n\nThis will permanently delete all associated price forecast data.`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/admin/delete-curve-instance', {
+      const res = await fetch('/api/admin/edit-curve-definition', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceId })
+        body: JSON.stringify({ id, performedBy: 'Admin' })
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        showNotification(result.message || 'Instance deleted successfully');
-        // Refresh the instances list
-        await loadInstances(curveDefinitionId);
-        // Reload the page to update counts
-        setTimeout(() => window.location.reload(), 1000);
+      if (res.ok) {
+        toast('Definition deleted');
+        await loadDefinitions();
+        selectedDef = null;
+        document.getElementById('actionPanel')!.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">Select an item</div>';
       } else {
-        showNotification(result.error || 'Failed to delete instance', true);
+        toast('Delete failed', 'error');
       }
-    } catch (error) {
-      showNotification('Network error occurred', true);
+    } catch (e) {
+      toast('Error deleting', 'error');
     }
   }
 
-  // Filter functions
-  function applyFilters() {
-    const searchTerm = (document.getElementById('searchFilter') as HTMLInputElement).value.toLowerCase();
-    const marketFilter = (document.getElementById('marketFilter') as HTMLSelectElement).value;
-    const typeFilter = (document.getElementById('typeFilter') as HTMLSelectElement).value;
-
-    const curveElements = document.querySelectorAll('.curve-definition');
-    
-    curveElements.forEach((element: Element) => {
-      const htmlElement = element as HTMLElement;
-      const curveName = htmlElement.dataset.curveName?.toLowerCase() || '';
-      const market = htmlElement.dataset.market || '';
-      const type = htmlElement.dataset.type || '';
-      
-      // Check if it matches all filters
-      const matchesSearch = searchTerm === '' || 
-        curveName.includes(searchTerm) || 
-        market.toLowerCase().includes(searchTerm) ||
-        (htmlElement.textContent || '').toLowerCase().includes(searchTerm);
-      
-      const matchesMarket = marketFilter === '' || market === marketFilter;
-      const matchesType = typeFilter === '' || type === typeFilter;
-      
-      if (matchesSearch && matchesMarket && matchesType) {
-        htmlElement.style.display = 'block';
-      } else {
-        htmlElement.style.display = 'none';
-      }
-    });
-  }
-
-  function clearFilters() {
-    (document.getElementById('searchFilter') as HTMLInputElement).value = '';
-    (document.getElementById('marketFilter') as HTMLSelectElement).value = '';
-    (document.getElementById('typeFilter') as HTMLSelectElement).value = '';
-    applyFilters();
-  }
-
-  // Edit curve definition
-  async function editDefinition(definitionId: number) {
+  async function deleteInst(id: number, version: string) {
+    if (!confirm(`Delete instance "${version}"? This will delete all data.`)) return;
     try {
-      // Fetch current definition data
-      const response = await fetch(`/api/curves/list`);
-      const result = await response.json();
-      
-      if (response.ok) {
-        const curve = result.curves?.find((c: any) => c.id === definitionId);
-        if (curve) {
-          // Populate the form
-          (document.getElementById('editDefinitionId') as HTMLInputElement).value = definitionId.toString();
-          (document.getElementById('editCurveName') as HTMLInputElement).value = curve.curveName || '';
-          (document.getElementById('editMarket') as HTMLSelectElement).value = curve.market || '';
-          (document.getElementById('editLocation') as HTMLInputElement).value = curve.location || '';
-          (document.getElementById('editProduct') as HTMLInputElement).value = curve.product || '';
-          (document.getElementById('editCurveType') as HTMLSelectElement).value = curve.curveType || '';
-          (document.getElementById('editBatteryDuration') as HTMLSelectElement).value = curve.batteryDuration || 'UNKNOWN';
-          (document.getElementById('editScenario') as HTMLSelectElement).value = curve.scenario || 'BASE';
-          (document.getElementById('editDescription') as HTMLTextAreaElement).value = curve.description || '';
-          
-          // Show modal
-          document.getElementById('editModal')!.classList.remove('hidden');
-        } else {
-          showNotification('Curve definition not found', true);
-        }
-      } else {
-        showNotification('Failed to fetch curve data', true);
-      }
-    } catch (error) {
-      showNotification('Error loading curve data', true);
-    }
-  }
-
-  // Save definition edits
-  async function saveDefinitionEdit() {
-    const formData = {
-      id: (document.getElementById('editDefinitionId') as HTMLInputElement).value,
-      curveName: (document.getElementById('editCurveName') as HTMLInputElement).value,
-      market: (document.getElementById('editMarket') as HTMLSelectElement).value,
-      location: (document.getElementById('editLocation') as HTMLInputElement).value,
-      product: (document.getElementById('editProduct') as HTMLInputElement).value,
-      curveType: (document.getElementById('editCurveType') as HTMLSelectElement).value,
-      batteryDuration: (document.getElementById('editBatteryDuration') as HTMLSelectElement).value,
-      scenario: (document.getElementById('editScenario') as HTMLSelectElement).value,
-      description: (document.getElementById('editDescription') as HTMLTextAreaElement).value,
-      updatedBy: 'Admin User'
-    };
-
-    // Validate required fields
-    if (!formData.curveName || !formData.market || !formData.location || !formData.product || !formData.curveType) {
-      showNotification('Please fill in all required fields', true);
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/admin/edit-curve-definition', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        showNotification('Curve definition updated successfully');
-        document.getElementById('editModal')!.classList.add('hidden');
-        // Reload the page to reflect changes
-        setTimeout(() => window.location.reload(), 1000);
-      } else {
-        showNotification(result.error || 'Failed to update curve definition', true);
-      }
-    } catch (error) {
-      showNotification('Network error occurred', true);
-    }
-  }
-
-  // Delete curve definition
-  async function deleteDefinition(definitionId: number, curveName: string, instanceCount: number) {
-    const confirmMessage = instanceCount > 0 
-      ? `Are you sure you want to delete "${curveName}"?\n\nThis will permanently delete:\n• The curve definition\n• ${instanceCount} curve instance(s)\n• All associated price forecast data\n\nThis action cannot be undone.`
-      : `Are you sure you want to delete "${curveName}"?\n\nThis action cannot be undone.`;
-
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/admin/edit-curve-definition', {
+      const res = await fetch('/api/admin/delete-curve-instance', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          id: definitionId,
-          performedBy: 'Admin User'
-        })
+        body: JSON.stringify({ instanceId: id })
       });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        showNotification(result.message || 'Curve definition deleted successfully');
-        // Reload the page to reflect changes
-        setTimeout(() => window.location.reload(), 1000);
+      if (res.ok) {
+        toast('Instance deleted');
+        await loadInstances(selectedDef.id);
+        selectedInst = null;
+        showDefActions(selectedDef);
       } else {
-        showNotification(result.error || 'Failed to delete curve definition', true);
+        toast('Delete failed', 'error');
       }
-    } catch (error) {
-      showNotification('Network error occurred', true);
+    } catch (e) {
+      toast('Error deleting', 'error');
     }
   }
 
-  // Close modal
-  function closeEditModal() {
-    document.getElementById('editModal')!.classList.add('hidden');
+  async function downloadInstData(instId: number) {
+    try {
+      const res = await fetch(`/api/curves/${instId}/data`);
+      const data = await res.json();
+      if (data.length === 0) {
+        toast('No data to download', 'error');
+        return;
+      }
+      const rows = [];
+      for (const point of data) {
+        const ts = point.flow_date_start;
+        if (point.valueP5 !== null) rows.push(`${ts},${point.valueP5},5,$/MWh`);
+        if (point.valueP25 !== null) rows.push(`${ts},${point.valueP25},25,$/MWh`);
+        if (point.valueP50 !== null) rows.push(`${ts},${point.valueP50},50,$/MWh`);
+        if (point.valueP75 !== null) rows.push(`${ts},${point.valueP75},75,$/MWh`);
+        if (point.valueP95 !== null) rows.push(`${ts},${point.valueP95},95,$/MWh`);
+      }
+      const csv = ['timestamp,value,pvalue,units', ...rows].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `instance_${instId}_data.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('Data downloaded');
+    } catch (e) {
+      toast('Download failed', 'error');
+    }
   }
 
-  // Make functions available globally
-  (window as any).loadInstances = loadInstances;
-  (window as any).previewData = previewData;
-  (window as any).downloadData = downloadData;
-  (window as any).deleteInstance = deleteInstance;
-  (window as any).editDefinition = editDefinition;
-  (window as any).deleteDefinition = deleteDefinition;
+  function editDef(id: number) {
+    toast('Edit feature coming soon');
+  }
 
-  // Event listeners
-  document.addEventListener('DOMContentLoaded', function() {
-    // Filter events
-    document.getElementById('searchFilter')?.addEventListener('input', applyFilters);
-    document.getElementById('marketFilter')?.addEventListener('change', applyFilters);
-    document.getElementById('typeFilter')?.addEventListener('change', applyFilters);
-    document.getElementById('clearFilters')?.addEventListener('click', clearFilters);
-    
-    // Modal events
-    document.getElementById('cancelEdit')?.addEventListener('click', closeEditModal);
-    document.getElementById('saveEdit')?.addEventListener('click', saveDefinitionEdit);
-    
-    // Close modal when clicking outside
-    document.getElementById('editModal')?.addEventListener('click', function(e) {
-      if (e.target === this) {
-        closeEditModal();
-      }
-    });
+  function editInst(id: number) {
+    toast('Edit feature coming soon');
+  }
+
+  (window as any).editDef = editDef;
+  (window as any).editInst = editInst;
+  (window as any).deleteDef = deleteDef;
+  (window as any).deleteInst = deleteInst;
+  (window as any).downloadInstData = downloadInstData;
+
+  document.getElementById('defSearch')?.addEventListener('input', renderDefinitions);
+  document.getElementById('defSort')?.addEventListener('change', renderDefinitions);
+  document.getElementById('instSearch')?.addEventListener('input', renderInstances);
+  document.getElementById('instSort')?.addEventListener('change', renderInstances);
+
+  document.getElementById('clearFilters')?.addEventListener('click', () => {
+    (document.getElementById('globalMarket') as HTMLSelectElement).value = '';
+    (document.getElementById('globalLocation') as HTMLInputElement).value = '';
+    (document.getElementById('globalProduct') as HTMLInputElement).value = '';
+    (document.getElementById('globalCurveType') as HTMLSelectElement).value = '';
+    (document.getElementById('globalStatus') as HTMLSelectElement).value = '';
+    renderDefinitions();
   });
-</script>
 
-<style>
-  /* Add any custom styles here */
-</style>
+  loadDefinitions();
+</script>
+</Layout>

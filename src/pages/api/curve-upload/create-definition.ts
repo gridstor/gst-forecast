@@ -37,8 +37,8 @@ export const POST: APIRoute = async ({ request }) => {
         market,
         location,
         product,
-        curveType,
-        batteryDuration: batteryDuration || 'UNKNOWN',
+        curveType: curveType as any,
+        batteryDuration: (batteryDuration || 'UNKNOWN') as any,
         granularity: granularity || 'MONTHLY'
       }
     });
@@ -51,8 +51,10 @@ export const POST: APIRoute = async ({ request }) => {
           market,
           location,
           product,
-          curveType,
-          batteryDuration: batteryDuration || 'UNKNOWN',
+          curveType: curveType as any, // Enum field
+          batteryDuration: (batteryDuration || 'UNKNOWN') as any, // Enum field
+          scenario: 'BASE' as any, // Default enum
+          degradationType: 'NONE' as any, // Default enum
           commodity,
           units,
           granularity: granularity || 'MONTHLY',
@@ -72,10 +74,12 @@ export const POST: APIRoute = async ({ request }) => {
 
   } catch (error) {
     console.error('Error creating curve definition:', error);
+    console.error('Error details:', error instanceof Error ? error.stack : error);
     return new Response(
       JSON.stringify({ 
         error: 'Failed to create curve definition',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );

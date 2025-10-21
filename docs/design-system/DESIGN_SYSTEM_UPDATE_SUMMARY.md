@@ -434,7 +434,7 @@ To verify the updates, check these pages:
 1. `/admin` - See the new navigation bar with lightning bolt
 2. `/admin/inventory` - See three-column cards with accent borders
 3. `/admin/upload` - See design system form styling
-4. `/curve-viewer` - See updated chart colors and card styling
+4. `/revenue-forecasts` - See updated chart colors and card styling
 5. `/curve-tracker` - See metric cards with progress bars
 
 Look for:

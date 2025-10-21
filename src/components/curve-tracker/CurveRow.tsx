@@ -14,7 +14,7 @@ export const CurveRow: React.FC<CurveRowProps> = ({ curve, streaks, onMarkUpdate
   const navigate = useNavigate();
 
   const handleViewCurve = () => {
-    navigate(`/curve-viewer/${curve.curve_id}`);
+    navigate(`/revenue-forecasts/${curve.curve_id}`);
   };
 
   const handleMarkUpdated = async () => {

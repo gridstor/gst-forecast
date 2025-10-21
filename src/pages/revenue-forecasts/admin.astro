@@ -3,18 +3,20 @@ import Layout from '../../layouts/Layout.astro';
 import { query } from '../../lib/db';
 import { prisma } from '../../lib/prisma';
 
-// Get recent curve activity
+// Get recent curve activity with instance IDs
 let recentActivity = [];
 try {
   const result = await query(`
     SELECT 
+      ci.id as "instanceId",
       cd."curveName",
       ci."instanceVersion",
       ci.status,
       ci."createdAt",
       ci."createdBy",
       cd.market,
-      cd.location
+      cd.location,
+      cd.units
     FROM "Forecasts"."CurveInstance" ci
     JOIN "Forecasts"."CurveDefinition" cd ON ci."curveDefinitionId" = cd.id
     ORDER BY ci."createdAt" DESC
@@ -24,6 +26,11 @@ try {
 } catch (error) {
   console.error('Error fetching activity:', error);
 }
+
+// Get the current month's start and end dates
+const today = new Date();
+const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
 // Fetch all curve schedules with their definitions for the calendar
 let schedules = [];
@@ -75,7 +82,8 @@ try {
         location: schedule.curveDefinition.location,
         market: schedule.curveDefinition.market,
         importance: schedule.importance,
-        status: run.status
+        status: run.status,
+        type: 'scheduled'
       });
     });
   });
@@ -83,10 +91,48 @@ try {
   console.error('Error fetching curve schedule:', error);
 }
 
-// Get the current month's start and end dates
-const today = new Date();
-const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+// Fetch recently uploaded curves for current month
+try {
+  const uploadedCurves = await prisma.curveInstance.findMany({
+    where: {
+      createdAt: {
+        gte: firstDayOfMonth,
+        lte: lastDayOfMonth
+      }
+    },
+    include: {
+      curveDefinition: {
+        select: {
+          curveName: true,
+          location: true,
+          market: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // Add uploaded curves to calendar
+  uploadedCurves.forEach(curve => {
+    const dateKey = curve.createdAt.toISOString().split('T')[0];
+    if (!schedulesByDate[dateKey]) {
+      schedulesByDate[dateKey] = [];
+    }
+    schedulesByDate[dateKey].push({
+      id: curve.id,
+      name: curve.curveDefinition.curveName,
+      location: curve.curveDefinition.location,
+      market: curve.curveDefinition.market,
+      instanceVersion: curve.instanceVersion,
+      status: curve.status,
+      type: 'uploaded'
+    });
+  });
+} catch (error) {
+  console.error('Error fetching uploaded curves:', error);
+}
 
 // Get all dates in the current month
 const datesInMonth = Array.from(
@@ -132,17 +178,54 @@ function getStatusClass(status: string): string {
     <!-- Activity Log -->
     <div class="bg-white rounded-lg p-6 mb-6 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
       <div class="space-y-2">
-        {recentActivity.slice(0, 5).map((activity) => (
-          <div class="flex items-center justify-between py-3 border-b border-[#F3F4F6] last:border-0">
-            <div class="flex-1">
-              <div class="font-medium text-[#111827] text-sm">{activity.curveName}</div>
-              <div class="text-xs text-[#6B7280] mt-1 font-mono">{activity.instanceVersion} • {activity.market} • {activity.location}</div>
+        {recentActivity.slice(0, 5).map((activity, index) => (
+          <div class="border-b border-[#F3F4F6] last:border-0">
+            <div 
+              class="flex items-center justify-between py-3 cursor-pointer hover:bg-[#F9FAFB] transition-colors rounded px-2"
+              onclick={`toggleActivity(${activity.instanceId}, ${index})`}
+            >
+              <div class="flex-1 flex items-center gap-2">
+                <svg id={`expand-icon-${index}`} class="w-4 h-4 text-[#9CA3AF] transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+                <div>
+                  <div class="font-medium text-[#111827] text-sm">{activity.curveName}</div>
+                  <div class="text-xs text-[#6B7280] mt-1 font-mono">{activity.instanceVersion} • {activity.market} • {activity.location}</div>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-[#6B7280] mb-1">{new Date(activity.createdAt).toLocaleDateString()}</div>
+                <span class={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono ${activity.status === 'ACTIVE' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#F9FAFB] text-[#6B7280]'}`}>
+                  {activity.status}
+                </span>
+              </div>
             </div>
-            <div class="text-right">
-              <div class="text-xs text-[#6B7280] mb-1">{new Date(activity.createdAt).toLocaleDateString()}</div>
-              <span class={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono ${activity.status === 'ACTIVE' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#F9FAFB] text-[#6B7280]'}`}>
-                {activity.status}
-              </span>
+            
+            <!-- Expandable Data Preview -->
+            <div id={`activity-data-${index}`} class="hidden px-2 pb-3 pt-1">
+              <div class="bg-[#F9FAFB] rounded-lg p-3 border border-[#E5E7EB]">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-xs font-semibold text-[#374151]">First 5 Data Points</h4>
+                  <span class="text-xs text-[#6B7280]" id={`data-loading-${index}`}>Loading...</span>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="min-w-full text-xs" id={`data-table-${index}`}>
+                    <thead class="bg-white">
+                      <tr>
+                        <th class="px-2 py-1.5 text-left font-medium text-[#6B7280]">Timestamp</th>
+                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P5</th>
+                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P25</th>
+                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P50</th>
+                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P75</th>
+                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P95</th>
+                      </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-[#E5E7EB]">
+                      <!-- Data will be loaded here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -199,10 +282,20 @@ function getStatusClass(status: string): string {
                 <div class="space-y-1">
                   {(schedulesByDate[date.toISOString().split('T')[0]] || []).map((schedule: any) => (
                     <div
-                      class={`block text-xs p-1.5 rounded border ${getImportanceClass(schedule.importance)} hover:opacity-75 transition-opacity`}
+                      class={`block text-xs p-1.5 rounded border ${
+                        schedule.type === 'uploaded' 
+                          ? 'bg-[#EFF6FF] border-[#3B82F6]' 
+                          : getImportanceClass(schedule.importance)
+                      } hover:opacity-75 transition-opacity`}
+                      title={schedule.type === 'uploaded' ? `Uploaded: ${schedule.instanceVersion}` : 'Scheduled Update'}
                     >
-                      <div class="font-medium truncate" title={`${schedule.name} - ${schedule.location}`}>
-                        {schedule.name}
+                      <div class="flex items-center gap-1">
+                        <span class="text-xs">
+                          {schedule.type === 'uploaded' ? '⬆️' : '📅'}
+                        </span>
+                        <div class="font-medium truncate flex-1" title={`${schedule.name} - ${schedule.location}`}>
+                          {schedule.name}
+                        </div>
                       </div>
                       <div class="flex items-center justify-between mt-0.5">
                         <span class="text-[0.65rem] text-gray-600 truncate">{schedule.location}</span>
@@ -221,9 +314,9 @@ function getStatusClass(status: string): string {
 
       <!-- Calendar Legend -->
       <div class="p-4 bg-[#F9FAFB] border-t border-[#E5E7EB]">
-        <div class="flex items-center justify-between">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="flex items-center gap-4">
-            <h4 class="text-sm font-medium text-[#6B7280]">Priority Levels:</h4>
+            <h4 class="text-sm font-medium text-[#374151]">📅 Scheduled:</h4>
             <div class="flex items-center gap-2">
               <div class="w-3 h-3 rounded bg-red-100 border border-red-200"></div>
               <span class="text-xs text-[#6B7280]">High</span>
@@ -237,8 +330,15 @@ function getStatusClass(status: string): string {
               <span class="text-xs text-[#6B7280]">Low</span>
             </div>
           </div>
-          <p class="text-xs text-[#6B7280]">Click any curve to view or edit schedule details</p>
+          <div class="flex items-center gap-4">
+            <h4 class="text-sm font-medium text-[#374151]">⬆️ Uploaded:</h4>
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 rounded bg-[#EFF6FF] border border-[#3B82F6]"></div>
+              <span class="text-xs text-[#6B7280]">Auto-populated from uploads</span>
+            </div>
+          </div>
         </div>
+        <p class="text-xs text-[#6B7280] mt-2">Uploaded curves appear automatically on calendar without manual scheduling</p>
       </div>
     </div>
   </section>
@@ -278,6 +378,13 @@ function getStatusClass(status: string): string {
 </Layout>
 
 <script>
+  // Declare global types
+  declare global {
+    interface Window {
+      toggleActivity: (instanceId: number, index: number) => Promise<void>;
+    }
+  }
+
   // Smooth scroll to sections
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (this: HTMLAnchorElement, e: Event) {
@@ -288,5 +395,74 @@ function getStatusClass(status: string): string {
       }
     });
   });
+
+  // Track expanded activities to avoid re-fetching
+  const expandedActivities = new Set<number>();
+
+  // Toggle activity data preview
+  async function toggleActivity(instanceId: number, index: number) {
+    const dataDiv = document.getElementById(`activity-data-${index}`);
+    const icon = document.getElementById(`expand-icon-${index}`);
+    
+    if (!dataDiv || !icon) return;
+    
+    // Toggle visibility
+    const isExpanding = dataDiv.classList.contains('hidden');
+    dataDiv.classList.toggle('hidden');
+    
+    // Rotate icon
+    if (isExpanding) {
+      icon.style.transform = 'rotate(90deg)';
+    } else {
+      icon.style.transform = 'rotate(0deg)';
+      return; // Don't fetch again when collapsing
+    }
+    
+    // Fetch data if not already loaded
+    if (!expandedActivities.has(instanceId)) {
+      try {
+        const response = await fetch(`/api/curves/instance/${instanceId}/preview`);
+        const result = await response.json();
+        
+        const loadingSpan = document.getElementById(`data-loading-${index}`);
+        const tbody = document.querySelector(`#data-table-${index} tbody`);
+        
+        if (!tbody) return;
+        
+        if (result.success && result.data && result.data.length > 0) {
+          tbody.innerHTML = result.data.map((row: any) => `
+            <tr class="hover:bg-[#F9FAFB]">
+              <td class="px-2 py-1.5 text-left text-[#374151]">${new Date(row.timestamp).toLocaleDateString()}</td>
+              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP5 !== null ? row.valueP5.toFixed(2) : '-'}</td>
+              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP25 !== null ? row.valueP25.toFixed(2) : '-'}</td>
+              <td class="px-2 py-1.5 text-right text-[#111827] font-semibold">${row.valueP50 !== null ? row.valueP50.toFixed(2) : '-'}</td>
+              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP75 !== null ? row.valueP75.toFixed(2) : '-'}</td>
+              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP95 !== null ? row.valueP95.toFixed(2) : '-'}</td>
+            </tr>
+          `).join('');
+          
+          if (loadingSpan) {
+            loadingSpan.textContent = `${result.count} rows • ${result.data[0].units}`;
+          }
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-2 text-center text-[#6B7280]">No data available</td></tr>';
+          if (loadingSpan) {
+            loadingSpan.textContent = 'No data';
+          }
+        }
+        
+        expandedActivities.add(instanceId);
+      } catch (error) {
+        console.error('Error fetching preview data:', error);
+        const tbody = document.querySelector(`#data-table-${index} tbody`);
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-2 text-center text-red-500">Error loading data</td></tr>';
+        }
+      }
+    }
+  }
+
+  // Make function available globally
+  window.toggleActivity = toggleActivity;
 </script>
 

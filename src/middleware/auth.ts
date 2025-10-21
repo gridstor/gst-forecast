@@ -21,15 +21,15 @@ export const authMiddleware: MiddlewareHandler = (context, next) => {
   const publicPaths = [
     '/dayzer',
     '/dayzer/',
-    '/curve-viewer',
-    '/curve-viewer/',
+    '/revenue-forecasts',
+    '/revenue-forecasts/',
     '/',
   ];
   
   // Paths that start with these prefixes are public
   const publicPrefixes = [
     '/dayzer/',
-    '/curve-viewer/',
+    '/revenue-forecasts/',
     '/_astro/',
     '/assets/',
     '/api/',

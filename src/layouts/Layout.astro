@@ -23,59 +23,73 @@ const currentPath = Astro.url.pathname;
 		<link rel="icon" type="image/svg+xml" href="/GST_logo.svg" />
 	</head>
 	<body class="bg-white">
-		<!-- Navigation Bar - GridStor Design System -->
+		<!-- Navigation Bar - GridStor Design System (Visual Styling from Figma) -->
 		<header class="bg-[#2A2A2A] text-white shadow-sm">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex justify-between items-center py-4">
 					<!-- Left: Logo + Navigation -->
 					<div class="flex items-center gap-8">
-						<!-- Lightning Bolt Icon + Long Term Outlook -->
-						<div class="flex items-center gap-3">
-							<a href="/" class="hover:opacity-80 transition-opacity" aria-label="Home">
-								<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" role="presentation">
-									<path d="M55 10L30 55H50L45 90L70 45H50L55 10Z" fill="#06B6D4" stroke="#06B6D4" stroke-width="2" stroke-linejoin="round"/>
-								</svg>
-							</a>
-							<span class="text-xl font-bold text-white">Long Term Outlook</span>
-						</div>
-
-					<!-- Navigation Links -->
-					<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">
-						<!-- Revenue Forecasts Dropdown -->
-						<div class="relative group">
-							<button 
-								class={`${currentPath.startsWith('/revenue-forecasts') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium flex items-center gap-1 py-2`}
-								aria-label="Revenue Forecasts Menu"
+						<!-- Logo: Lightning Bolt + Site Title (Figma styling) -->
+						<a href="/" class="flex items-center gap-3 text-xl font-bold hover:text-gray-300 transition-colors" aria-label="Home">
+							<!-- Lightning Bolt Icon (32x32px, cyan #06B6D4) -->
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 100 100"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg"
+								class="w-8 h-8"
+								role="presentation"
 							>
-								Revenue Forecasts
-								<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-								</svg>
-							</button>
-							<div class="absolute left-0 mt-1 pt-1 w-56 group-hover:block z-50">
-								<div class="bg-white rounded-lg shadow-xl border border-gray-200">
-									<a href="/revenue-forecasts" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg">
-										<div class="font-medium">Revenue Forecast Grapher</div>
-										<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>
-									</a>
-									<a href="/revenue-forecasts/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100">
-										<div class="font-medium">Forecast Admin</div>
-										<div class="text-xs text-gray-500 mt-0.5">Manage curves and schedules</div>
-									</a>
-									<a href="/revenue-forecasts/documentation" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100 rounded-b-lg">
-										<div class="font-medium">Documentation</div>
-										<div class="text-xs text-gray-500 mt-0.5">Schema and model docs</div>
-									</a>
+								<path
+									d="M55 10L30 55H50L45 90L70 45H50L55 10Z"
+									fill="#06B6D4"
+									stroke="#06B6D4"
+									stroke-width="2"
+									stroke-linejoin="round"
+								/>
+							</svg>
+							<span>Long Term Outlook</span>
+						</a>
+
+						<!-- Navigation Links (Figma styling: 16px Inter Medium, 32px gaps) -->
+						<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">
+							<!-- Revenue Forecasts Dropdown -->
+							<div class="relative group">
+								<button 
+									class={`${currentPath.startsWith('/revenue-forecasts') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium flex items-center gap-1 py-2`}
+									aria-label="Revenue Forecasts Menu"
+								>
+									Revenue Forecasts
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+									</svg>
+								</button>
+								<div class="absolute left-0 mt-1 pt-1 w-56 group-hover:block z-50">
+									<div class="bg-white rounded-lg shadow-xl border border-gray-200">
+										<a href="/revenue-forecasts" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg">
+											<div class="font-medium">Revenue Forecast Grapher</div>
+											<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>
+										</a>
+										<a href="/revenue-forecasts/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100">
+											<div class="font-medium">Forecast Admin</div>
+											<div class="text-xs text-gray-500 mt-0.5">Manage curves and schedules</div>
+										</a>
+										<a href="/revenue-forecasts/documentation" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100 rounded-b-lg">
+											<div class="font-medium">Documentation</div>
+											<div class="text-xs text-gray-500 mt-0.5">Schema and model docs</div>
+										</a>
+									</div>
 								</div>
 							</div>
-						</div>
-					</nav>
+						</nav>
 					</div>
 					
-					<!-- Right: Settings Dropdown -->
+					<!-- Right: Settings (Figma styling: 40x40px button) -->
 					<div class="flex items-center gap-2 ml-4">
 						<div class="relative group">
 							<button class="p-2 hover:bg-gray-700 rounded-md transition-colors" aria-label="Settings" title="Settings">
+								<!-- Settings Icon (20x20px) -->
 								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>

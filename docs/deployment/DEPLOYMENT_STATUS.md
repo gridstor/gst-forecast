@@ -12,9 +12,9 @@
    - `API_ROUTING_CONFIG.md` - API routing fix documentation
 
 ### 📋 Sub-Site Configuration (gridstor.netlify.app)
-- **This Repository:** GST-Forecast (Admin tools & Curve Viewer)
+- **This Repository:** GST-Forecast (Admin tools & Revenue Forecast Grapher)
 - **Deployed At:** `https://gridstor.netlify.app`
-- **Accessed Via:** `https://gridstoranalytics.com/admin/*`, `/curve-viewer/*`, etc.
+- **Accessed Via:** `https://gridstoranalytics.com/admin/*`, `/revenue-forecasts/*`, etc.
 - **Status:** ✅ Ready for deployment
 
 ---
@@ -85,8 +85,8 @@ Edit `netlify.toml` to add these redirects **BEFORE** any existing redirects:
   force = false
 
 [[redirects]]
-  from = "/curve-viewer/*"
-  to = "https://gridstor.netlify.app/curve-viewer/:splat"
+  from = "/revenue-forecasts/*"
+  to = "https://gridstor.netlify.app/revenue-forecasts/:splat"
   status = 200
   force = false
 
@@ -208,9 +208,9 @@ Your Repositories:
 ### Working Production URLs
 ```
 Main Entry Points:
-https://gridstoranalytics.com/admin/upload      ← Upload page
-https://gridstoranalytics.com/curve-viewer      ← View curves
-https://gridstoranalytics.com/admin/inventory   ← Manage curves
+https://gridstoranalytics.com/admin/upload        ← Upload page
+https://gridstoranalytics.com/revenue-forecasts   ← Revenue Forecast Grapher
+https://gridstoranalytics.com/admin/inventory     ← Manage curves
 
 API Endpoints:
 https://gridstoranalytics.com/api/curves/definitions

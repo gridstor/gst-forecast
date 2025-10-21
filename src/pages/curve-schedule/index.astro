@@ -106,157 +106,20 @@ function getStatusClass(status: string): string {
 }
 ---
 
-<Layout title="Curve Schedule Management">
+<Layout title="Curve Schedule">
   <div class="container mx-auto px-4 py-8 max-w-6xl">
     
-    <!-- Header -->
-    <div class="mb-8">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">📅 Curve Schedule Management</h1>
-          <p class="text-gray-600">View schedules, add notes, and create new delivery commitments all in one place.</p>
-        </div>
-        <div class="flex gap-3">
-          <a href="/revenue-forecasts/admin" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors">
-            ← Back to Admin
-          </a>
-        </div>
-      </div>
-      
-      <!-- Quick Actions -->
-      <div class="mt-4 flex gap-4">
-        <a href="/admin/docs" class="inline-flex items-center px-3 py-1.5 bg-blue-100 text-blue-700 text-sm rounded-md hover:bg-blue-200 transition-colors">
-          📚 View Documentation
-        </a>
-        <a href="/admin/upload" class="inline-flex items-center px-3 py-1.5 bg-green-100 text-green-700 text-sm rounded-md hover:bg-green-200 transition-colors">
-          📤 Upload Data Now
-        </a>
-      </div>
-    </div>
-
-    <!-- Simplified Workflow Overview -->
-    <div class="bg-gradient-to-r from-orange-50 to-yellow-50 rounded-lg p-6 mb-8 border border-orange-200">
-      <h2 class="text-xl font-bold text-gray-900 mb-4 text-center">⚡ Quick Start: Curve Delivery Workflow</h2>
-      
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <!-- Step 1 -->
-        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-          <div class="flex items-center mb-3">
-            <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold mr-3">1</div>
-            <h3 class="font-bold text-blue-700">Define What You Need</h3>
-          </div>
-          <p class="text-sm text-gray-700">
-            Create a <strong>curve definition</strong> specifying market, location, and product type. This describes WHAT kind of data you need.
-          </p>
-        </div>
-        
-        <!-- Step 2 -->
-        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-orange-500">
-          <div class="flex items-center mb-3">
-            <div class="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center font-bold mr-3">2</div>
-            <h3 class="font-bold text-orange-700">Set Delivery Date</h3>
-          </div>
-          <p class="text-sm text-gray-700">
-            Create a <strong>curve instance</strong> with WHO is providing it, WHEN it's due, and associate a delivery date to put it on the calendar.
-          </p>
-        </div>
-        
-        <!-- Step 3 -->
-        <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-          <div class="flex items-center mb-3">
-            <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold mr-3">3</div>
-            <h3 class="font-bold text-green-700">Upload Data Later</h3>
-          </div>
-          <p class="text-sm text-gray-700">
-            When data is ready, upload CSV files to fulfill the delivery commitment.
-          </p>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Key Concept - Moved outside workflow boxes for better visibility -->
-    <div class="max-w-4xl mx-auto mt-6">
-      <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-        <div class="flex items-start space-x-3">
-          <div class="text-2xl">💡</div>
-          <div>
-            <h4 class="font-bold text-gray-800 mb-2">Key Concept: Create Commitments Before Data</h4>
-            <p class="text-sm text-gray-700">
-              This workflow lets you create delivery requests and track deadlines <strong>before</strong> you have the actual forecast data. 
-              Perfect for managing vendor deliverables and internal forecasting schedules.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SECTION: EXISTING SCHEDULES -->
-    <section class="mb-8">
-      <div class="mb-4">
-        <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Existing Schedules</h2>
-        <p class="text-base text-[#6B7280]">View and manage all active curve schedules</p>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-md overflow-hidden" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-[#E5E7EB]">
-            <thead class="bg-[#F9FAFB]">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Curve Name</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Location</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Market</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Frequency</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Priority</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-[#E5E7EB]">
-              {schedules.length === 0 ? (
-                <tr>
-                  <td colspan="7" class="px-4 py-8 text-center text-[#6B7280]">
-                    No schedules found. Create your first schedule below.
-                  </td>
-                </tr>
-              ) : (
-                schedules.map((schedule: any) => (
-                  <tr class="hover:bg-[#F9FAFB] transition-colors">
-                    <td class="px-4 py-3 text-sm text-[#111827] font-medium">{schedule.curveDefinition.curveName}</td>
-                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.location}</td>
-                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.market}</td>
-                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.frequency}</td>
-                    <td class="px-4 py-3">
-                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        schedule.importance === 1 ? 'bg-red-100 text-red-800' :
-                        schedule.importance === 2 ? 'bg-orange-100 text-orange-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {schedule.importance === 1 ? 'High' : schedule.importance === 2 ? 'Medium' : 'Low'}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3">
-                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        schedule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {schedule.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                      <a href={`/curve-schedule/${schedule.id}/edit`} class="text-[#3B82F6] hover:text-[#2563EB] font-medium">
-                        Edit
-                      </a>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
     <!-- SECTION: CURVE SCHEDULE CALENDAR -->
     <section class="mb-8">
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Schedule Calendar</h1>
+          <p class="text-base text-[#6B7280]">View and manage scheduled curve updates and delivery periods</p>
+        </div>
+        <a href="/revenue-forecasts/admin" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors">
+          ← Back to Admin
+        </a>
+      </div>
       <div class="bg-white rounded-lg shadow-md overflow-hidden accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div class="p-6 border-b border-[#E5E7EB]">
           <div class="flex justify-between items-center">
@@ -383,16 +246,138 @@ function getStatusClass(status: string): string {
       </div>
     </section>
 
-    <!-- CREATE NEW SCHEDULE SECTION -->
-    <div class="mb-6">
-      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Create New Schedule</h2>
-      <p class="text-base text-[#6B7280]">Follow the steps below to create a new curve delivery commitment</p>
-    </div>
+    <!-- SECTION: EXISTING SCHEDULES -->
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Existing Schedules</h2>
+        <p class="text-base text-[#6B7280]">View and manage all active curve schedules</p>
+      </div>
 
-    <!-- Multi-Step Form -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-[#E5E7EB]">
+            <thead class="bg-[#F9FAFB]">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Curve Name</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Location</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Market</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Frequency</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Priority</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-[#E5E7EB]">
+              {schedules.length === 0 ? (
+                <tr>
+                  <td colspan="7" class="px-4 py-8 text-center text-[#6B7280]">
+                    No schedules found. Create your first schedule below.
+                  </td>
+                </tr>
+              ) : (
+                schedules.map((schedule: any) => (
+                  <tr class="hover:bg-[#F9FAFB] transition-colors">
+                    <td class="px-4 py-3 text-sm text-[#111827] font-medium">{schedule.curveDefinition.curveName}</td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.location}</td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.market}</td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.frequency}</td>
+                    <td class="px-4 py-3">
+                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        schedule.importance === 1 ? 'bg-red-100 text-red-800' :
+                        schedule.importance === 2 ? 'bg-orange-100 text-orange-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {schedule.importance === 1 ? 'High' : schedule.importance === 2 ? 'Medium' : 'Low'}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        schedule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {schedule.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                      <a href={`/curve-schedule/${schedule.id}/edit`} class="text-[#3B82F6] hover:text-[#2563EB] font-medium">
+                        Edit
+                      </a>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CREATE NEW SCHEDULE SECTION -->
+    <section class="mb-8">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Create New Schedule</h2>
+        <p class="text-base text-[#6B7280]">Select a curve definition and configure its delivery schedule</p>
+      </div>
+
+      <!-- Two Column Layout matching upload page methodology -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- COLUMN 1: CURVE DEFINITION SELECTION -->
+        <div class="bg-white rounded-lg overflow-hidden flex flex-col max-h-[600px] accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div class="px-6 py-4 border-b border-[#F3F4F6]">
+            <h3 class="text-lg font-semibold text-[#1F2937]">1. Select Curve Definition</h3>
+            <p class="text-sm text-[#6B7280] mt-1">Choose which curve to schedule</p>
+          </div>
+
+          <!-- Search -->
+          <div class="px-6 py-3 border-b border-gray-200">
+            <input 
+              type="text" 
+              id="scheduleDefSearch" 
+              placeholder="Search definitions..." 
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <!-- List -->
+          <div id="scheduleDefList" class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="text-center text-gray-500 text-sm py-8">Loading definitions...</div>
+          </div>
+
+          <!-- Create New -->
+          <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB]">
+            <a href="/admin/upload" class="block w-full px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] transition-colors text-sm font-medium text-center">
+              + Create New Definition
+            </a>
+            <p class="text-xs text-[#6B7280] mt-2 text-center">Or go to curve uploader to create</p>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: SCHEDULE CONFIGURATION -->
+        <div class="bg-white rounded-lg overflow-hidden flex flex-col max-h-[600px] accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div class="px-6 py-4 border-b border-[#F3F4F6]">
+            <h3 class="text-lg font-semibold text-[#1F2937]">2. Configure Schedule</h3>
+            <p class="text-sm text-[#6B7280] mt-1">Set delivery frequency and dates</p>
+          </div>
+
+          <div id="scheduleConfigPanel" class="flex-1 overflow-y-auto px-6 py-4">
+            <div class="text-center text-gray-500 text-sm py-8">Select a curve definition first</div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB]">
+            <button id="saveScheduleBtn" class="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors text-sm font-medium" disabled>
+              💾 Save Schedule
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OLD FORM (will be replaced by new methodology) -->
+    <div class="hidden">
     <form id="deliveryRequestForm" class="space-y-8">
       
-      <!-- STEP 1: Curve Definition Selection -->
+      <!-- STEP 1: Curve Definition Selection (HIDDEN) -->
       <div id="step1" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
         <div class="flex items-center mb-4">
           <span class="text-2xl mr-3">🏗️</span>
@@ -750,6 +735,7 @@ function getStatusClass(status: string): string {
         </div>
       </div>
     </form>
+    </section>
     
     <!-- Success/Error Messages -->
     <div id="notification" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white hidden">
@@ -796,11 +782,242 @@ function getStatusClass(status: string): string {
         </div>
       </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
   </div>
 
   <script src="/js/delivery-request-form-hierarchical.js" is:inline></script>
 
   <script>
+    // ==================== NEW SCHEDULE CREATION ====================
+    let selectedDefinitionId: number | null = null;
+    let allDefinitions: any[] = [];
+
+    // Fetch all curve definitions
+    async function loadDefinitions() {
+      try {
+        const response = await fetch('/api/curves/definitions');
+        const data = await response.json();
+        allDefinitions = data;
+        renderDefinitionsList(allDefinitions);
+      } catch (error) {
+        console.error('Error loading definitions:', error);
+        const list = document.getElementById('scheduleDefList');
+        if (list) {
+          list.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Error loading definitions</div>';
+        }
+      }
+    }
+
+    // Render definitions list
+    function renderDefinitionsList(definitions: any[]) {
+      const list = document.getElementById('scheduleDefList');
+      if (!list) return;
+
+      if (definitions.length === 0) {
+        list.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No definitions found.<br/>Create one using the button below.</div>';
+        return;
+      }
+
+      list.innerHTML = definitions.map(def => `
+        <div 
+          class="p-3 mb-2 border border-[#E5E7EB] rounded-md cursor-pointer hover:bg-[#EFF6FF] hover:border-[#3B82F6] transition-all ${selectedDefinitionId === def.id ? 'bg-[#EFF6FF] border-[#3B82F6] ring-2 ring-[#3B82F6]' : ''}"
+          onclick="selectDefinition(${def.id})"
+        >
+          <div class="font-medium text-sm text-[#111827]">${def.curveName}</div>
+          <div class="text-xs text-[#6B7280] mt-1">${def.market} • ${def.location} • ${def.product}</div>
+          <div class="text-xs text-[#6B7280] mt-1 font-mono">${def.curveType} | ${def.granularity}</div>
+        </div>
+      `).join('');
+    }
+
+    // Select definition
+    function selectDefinition(defId: number) {
+      selectedDefinitionId = defId;
+      const definition = allDefinitions.find(d => d.id === defId);
+      
+      renderDefinitionsList(allDefinitions);
+      showScheduleConfigPanel(definition);
+    }
+
+    // Show schedule configuration panel
+    function showScheduleConfigPanel(definition: any) {
+      const panel = document.getElementById('scheduleConfigPanel');
+      const saveBtn = document.getElementById('saveScheduleBtn') as HTMLButtonElement;
+      
+      if (!panel || !saveBtn) return;
+
+      saveBtn.disabled = false;
+
+      panel.innerHTML = `
+        <div class="space-y-4">
+          <!-- Selected Definition Info -->
+          <div class="bg-[#F9FAFB] rounded-lg p-4 border border-[#E5E7EB]">
+            <h4 class="font-medium text-sm text-[#111827] mb-2">Selected Curve:</h4>
+            <div class="text-xs text-[#6B7280]">
+              <div class="font-mono">${definition.curveName}</div>
+              <div class="mt-1">${definition.market} • ${definition.location}</div>
+            </div>
+          </div>
+
+          <!-- Schedule Settings -->
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Update Frequency *</label>
+            <select id="scheduleFrequency" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent">
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="BIWEEKLY">Bi-Weekly</option>
+              <option value="MONTHLY" selected>Monthly</option>
+              <option value="QUARTERLY">Quarterly</option>
+              <option value="ANNUAL">Annual</option>
+              <option value="ADHOC">Ad-hoc</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Week (for weekly schedules)</label>
+            <select id="scheduleDayOfWeek" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
+              <option value="">N/A</option>
+              <option value="1">Monday</option>
+              <option value="2">Tuesday</option>
+              <option value="3">Wednesday</option>
+              <option value="4">Thursday</option>
+              <option value="5">Friday</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Month (for monthly schedules)</label>
+            <input type="number" id="scheduleDayOfMonth" min="1" max="31" placeholder="e.g., 15" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Lead Time (days)</label>
+            <input type="number" id="scheduleLeadTime" value="0" min="0" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            <p class="text-xs text-[#9CA3AF] mt-1">Days before delivery period to prepare data</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Freshness Window (days)</label>
+            <input type="number" id="scheduleFreshness" value="30" min="1" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            <p class="text-xs text-[#9CA3AF] mt-1">How long data stays valid</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority Level *</label>
+            <select id="scheduleImportance" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+              <option value="1">High Priority (Red)</option>
+              <option value="2">Medium Priority (Orange)</option>
+              <option value="3" selected>Low Priority (Yellow)</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Responsible Team</label>
+            <input type="text" id="scheduleTeam" value="Market Analysis" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Notification Emails</label>
+            <input type="text" id="scheduleEmails" placeholder="email1@example.com, email2@example.com" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            <p class="text-xs text-[#9CA3AF] mt-1">Comma-separated list</p>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-[#6B7280] mb-2">Schedule Type</label>
+            <select id="scheduleType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+              <option value="REGULAR">Regular/Recurring</option>
+              <option value="ONEOFF">One-time</option>
+              <option value="CONDITIONAL">Conditional</option>
+            </select>
+          </div>
+        </div>
+      `;
+    }
+
+    // Search definitions
+    document.getElementById('scheduleDefSearch')?.addEventListener('input', (e) => {
+      const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+      const filtered = allDefinitions.filter(def => 
+        def.curveName.toLowerCase().includes(searchTerm) ||
+        def.market.toLowerCase().includes(searchTerm) ||
+        def.location.toLowerCase().includes(searchTerm) ||
+        def.product.toLowerCase().includes(searchTerm)
+      );
+      renderDefinitionsList(filtered);
+    });
+
+    // Save schedule
+    document.getElementById('saveScheduleBtn')?.addEventListener('click', async () => {
+      if (!selectedDefinitionId) return;
+
+      const frequency = (document.getElementById('scheduleFrequency') as HTMLSelectElement)?.value;
+      const dayOfWeek = (document.getElementById('scheduleDayOfWeek') as HTMLSelectElement)?.value;
+      const dayOfMonth = (document.getElementById('scheduleDayOfMonth') as HTMLInputElement)?.value;
+      const leadTime = (document.getElementById('scheduleLeadTime') as HTMLInputElement)?.value;
+      const freshness = (document.getElementById('scheduleFreshness') as HTMLInputElement)?.value;
+      const importance = (document.getElementById('scheduleImportance') as HTMLSelectElement)?.value;
+      const team = (document.getElementById('scheduleTeam') as HTMLInputElement)?.value;
+      const emails = (document.getElementById('scheduleEmails') as HTMLInputElement)?.value;
+      const scheduleType = (document.getElementById('scheduleType') as HTMLSelectElement)?.value;
+
+      const emailArray = emails ? emails.split(',').map(e => e.trim()).filter(e => e) : [];
+
+      const scheduleData = {
+        curveDefinitionId: selectedDefinitionId,
+        frequency,
+        dayOfWeek: dayOfWeek ? parseInt(dayOfWeek) : null,
+        dayOfMonth: dayOfMonth ? parseInt(dayOfMonth) : null,
+        leadTimeDays: parseInt(leadTime || '0'),
+        freshnessDays: parseInt(freshness || '30'),
+        importance: parseInt(importance || '3'),
+        responsibleTeam: team || 'Market Analysis',
+        notificationEmails: emailArray,
+        scheduleType: scheduleType || 'REGULAR'
+      };
+
+      try {
+        const response = await fetch('/api/curve-schedule/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(scheduleData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showToast('Schedule created successfully!', 'success');
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          showToast(result.message || 'Error creating schedule', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showToast('Failed to create schedule', 'error');
+      }
+    });
+
+    function showToast(message: string, type: 'success' | 'error') {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+
+      toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      }`;
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // Load definitions on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDefinitions();
+    });
+
     // ==================== MONTH NAVIGATION ====================
     // Get current year and month from URL or use today
     const urlParams = new URLSearchParams(window.location.search);

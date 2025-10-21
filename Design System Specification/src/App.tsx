@@ -24,14 +24,14 @@ import { BarChartExample } from './components/templates/BarChartExample';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       {/* Navigation Bar */}
       <NavigationBar
         currentPath="/"
         onSettingsClick={() => alert('Settings clicked!')}
       />
       {/* Market Performance Overview Section */}
-      <section className="py-12">
+      <section className="py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeader
             title="Market Performance Overview"

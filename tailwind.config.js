@@ -10,6 +10,7 @@ export default {
         'gs-dark': '#2A2A2A',
         'gs-blue': '#34D5ED',
         'gs-light': '#FFFFFF',
+        'background': '#F9FAFB', // Light gray page background (Figma v1.2)
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],

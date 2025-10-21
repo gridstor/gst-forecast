@@ -68,7 +68,7 @@
   
   /* Existing shadcn tokens */
   --font-size: 16px;
-  --background: #ffffff;
+  --background: #F9FAFB;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);

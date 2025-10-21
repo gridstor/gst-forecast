@@ -27,10 +27,18 @@ try {
   console.error('Error fetching activity:', error);
 }
 
-// Get the current month's start and end dates
+// Get the current month's start and end dates (with URL param support)
+const urlParams = new URL(Astro.request.url).searchParams;
+const yearParam = urlParams.get('year');
+const monthParam = urlParams.get('month');
+
 const today = new Date();
-const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+const currentYear = yearParam ? parseInt(yearParam) : today.getFullYear();
+const currentMonth = monthParam ? parseInt(monthParam) - 1 : today.getMonth();
+
+const displayDate = new Date(currentYear, currentMonth, 1);
+const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
 // Fetch all curve schedules with their definitions for the calendar
 let schedules = [];
@@ -54,8 +62,8 @@ try {
       scheduleRuns: {
         where: {
           runDate: {
-            gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-            lte: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth
           }
         },
         select: {
@@ -137,7 +145,7 @@ try {
 // Get all dates in the current month
 const datesInMonth = Array.from(
   { length: lastDayOfMonth.getDate() },
-  (_, i) => new Date(today.getFullYear(), today.getMonth(), i + 1)
+  (_, i) => new Date(currentYear, currentMonth, i + 1)
 );
 
 // Get the day of week for the first day (0 = Sunday)
@@ -245,17 +253,32 @@ function getStatusClass(status: string): string {
     <div class="bg-white rounded-lg shadow-md overflow-hidden accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
       <div class="p-6 border-b border-[#E5E7EB]">
         <div class="flex justify-between items-center">
-          <h3 class="text-lg font-semibold text-[#1F2937]">
-            {today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          <div class="flex items-center gap-4">
+            <button 
+              id="prevMonth" 
+              class="p-2 hover:bg-[#F3F4F6] rounded-md transition-colors"
+              title="Previous Month"
+            >
+              <svg class="w-5 h-5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+              </svg>
+            </button>
+          <h3 id="currentMonth" class="text-lg font-semibold text-[#1F2937] min-w-[180px] text-center">
+            {displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
           </h3>
-          <div class="flex gap-3">
-            <a href="/curve-schedule/create-enhanced" class="inline-flex items-center px-3 py-2 bg-[#3B82F6] text-white text-sm rounded-md hover:bg-[#2563EB] transition-colors">
-              + New Schedule
-            </a>
-            <a href="/curve-schedule/manage" class="inline-flex items-center px-3 py-2 bg-[#10B981] text-white text-sm rounded-md hover:bg-[#059669] transition-colors">
-              Manage Schedules
-            </a>
+            <button 
+              id="nextMonth" 
+              class="p-2 hover:bg-[#F3F4F6] rounded-md transition-colors"
+              title="Next Month"
+            >
+              <svg class="w-5 h-5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
           </div>
+          <a href="/curve-schedule" class="inline-flex items-center px-4 py-2 bg-[#8B5CF6] text-white text-sm rounded-md hover:bg-[#7C3AED] transition-colors font-medium">
+            New/Manage Schedules
+          </a>
         </div>
       </div>
 
@@ -267,18 +290,39 @@ function getStatusClass(status: string): string {
         ))}
       </div>
 
-      <div class="grid grid-cols-7 gap-px bg-[#E5E7EB]">
+      <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-[#E5E7EB]">
         {calendarDays.map((date) => (
-          <div class={`bg-white min-h-[120px] p-2 ${
-            date && date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
-              ? 'ring-2 ring-inset ring-[#3B82F6] bg-[#EFF6FF]'
-              : ''
-          }`}>
+          <div 
+            class={`bg-white min-h-[120px] p-2 ${
+              date && date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+                ? 'ring-2 ring-inset ring-[#3B82F6] bg-[#EFF6FF]'
+                : ''
+            }`}
+            data-date={date ? date.toISOString().split('T')[0] : ''}
+          >
             {date && (
               <div>
-                <div class="font-medium text-sm text-[#111827] mb-2">
-                  {date.getDate()}
+                <div class="flex items-center justify-between mb-2">
+                  <div class="font-medium text-sm text-[#111827]">
+                    {date.getDate()}
+                  </div>
+                  <button 
+                    class="add-note-btn p-0.5 hover:bg-[#E5E7EB] rounded transition-colors group"
+                    data-date={date.toISOString().split('T')[0]}
+                    title="Add note"
+                    onclick="event.stopPropagation(); openNoteModal(this.dataset.date);"
+                  >
+                    <svg class="w-3.5 h-3.5 text-[#8B5CF6] group-hover:text-[#7C3AED]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                  </button>
                 </div>
+                
+                <!-- Notes container -->
+                <div class="notes-container space-y-1 mb-1" data-date={date.toISOString().split('T')[0]}>
+                </div>
+                
+                <!-- Schedules -->
                 <div class="space-y-1">
                   {(schedulesByDate[date.toISOString().split('T')[0]] || []).map((schedule: any) => (
                     <div
@@ -375,6 +419,45 @@ function getStatusClass(status: string): string {
 
   <!-- Toast Notification -->
   <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
+
+  <!-- Note Modal -->
+  <div id="noteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div class="p-6 border-b border-[#E5E7EB]">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-[#1F2937]">Add Note</h3>
+          <button onclick="closeNoteModal()" class="text-[#6B7280] hover:text-[#374151] transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <p id="noteModalDate" class="text-sm text-[#6B7280] mt-1"></p>
+      </div>
+      <div class="p-6">
+        <textarea 
+          id="noteTextarea" 
+          rows="4" 
+          class="w-full border border-[#E5E7EB] rounded-md px-3 py-2 text-sm text-[#111827] focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6] focus:ring-opacity-50 outline-none resize-none"
+          placeholder="Enter your note here..."
+        ></textarea>
+      </div>
+      <div class="p-6 border-t border-[#E5E7EB] flex justify-end gap-3">
+        <button 
+          onclick="closeNoteModal()" 
+          class="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#374151] transition-colors"
+        >
+          Cancel
+        </button>
+        <button 
+          onclick="saveNote()" 
+          class="px-4 py-2 text-sm font-medium bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors"
+        >
+          Save Note
+        </button>
+      </div>
+    </div>
+  </div>
 </Layout>
 
 <script>
@@ -382,6 +465,10 @@ function getStatusClass(status: string): string {
   declare global {
     interface Window {
       toggleActivity: (instanceId: number, index: number) => Promise<void>;
+      openNoteModal: (date: string) => void;
+      closeNoteModal: () => void;
+      saveNote: () => void;
+      deleteNote: (date: string, timestamp: number) => void;
     }
   }
 
@@ -464,5 +551,206 @@ function getStatusClass(status: string): string {
 
   // Make function available globally
   window.toggleActivity = toggleActivity;
+
+  // ==================== MONTH NAVIGATION ====================
+  // Get current year and month from URL or use today
+  const urlParams = new URLSearchParams(window.location.search);
+  const yearParam = urlParams.get('year');
+  const monthParam = urlParams.get('month');
+  
+  const today = new Date();
+  let currentYear = yearParam ? parseInt(yearParam) : today.getFullYear();
+  let currentMonth = monthParam ? parseInt(monthParam) - 1 : today.getMonth();
+  
+  let currentDate = new Date(currentYear, currentMonth, 1);
+
+  function updateCalendar(year: number, month: number) {
+    // Reload page with new date query params
+    const url = new URL(window.location.href);
+    url.searchParams.set('year', year.toString());
+    url.searchParams.set('month', (month + 1).toString());
+    window.location.href = url.toString();
+  }
+
+  document.getElementById('prevMonth')?.addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    updateCalendar(currentDate.getFullYear(), currentDate.getMonth());
+  });
+
+  document.getElementById('nextMonth')?.addEventListener('click', () => {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    updateCalendar(currentDate.getFullYear(), currentDate.getMonth());
+  });
+
+  // ==================== NOTES FUNCTIONALITY ====================
+  interface CalendarNote {
+    date: string;
+    text: string;
+    timestamp: number;
+  }
+
+  let currentNoteDate: string = '';
+  const NOTES_STORAGE_KEY = 'calendar_notes';
+
+  // Load notes from localStorage
+  function loadNotes(): Record<string, CalendarNote[]> {
+    const stored = localStorage.getItem(NOTES_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  }
+
+  // Save notes to localStorage
+  function saveNotesToStorage(notes: Record<string, CalendarNote[]>) {
+    localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+  }
+
+  // Open note modal
+  function openNoteModal(date: string) {
+    currentNoteDate = date;
+    const modal = document.getElementById('noteModal');
+    const dateDisplay = document.getElementById('noteModalDate');
+    const textarea = document.getElementById('noteTextarea') as HTMLTextAreaElement;
+    
+    if (modal && dateDisplay && textarea) {
+      const dateObj = new Date(date + 'T00:00:00');
+      dateDisplay.textContent = dateObj.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      textarea.value = '';
+      modal.classList.remove('hidden');
+    }
+  }
+
+  // Close note modal
+  function closeNoteModal() {
+    const modal = document.getElementById('noteModal');
+    const textarea = document.getElementById('noteTextarea') as HTMLTextAreaElement;
+    
+    if (modal && textarea) {
+      modal.classList.add('hidden');
+      textarea.value = '';
+      currentNoteDate = '';
+    }
+  }
+
+  // Save note
+  function saveNote() {
+    const textarea = document.getElementById('noteTextarea') as HTMLTextAreaElement;
+    
+    if (!textarea || !currentNoteDate || !textarea.value.trim()) {
+      return;
+    }
+
+    const notes = loadNotes();
+    
+    if (!notes[currentNoteDate]) {
+      notes[currentNoteDate] = [];
+    }
+
+    const newNote: CalendarNote = {
+      date: currentNoteDate,
+      text: textarea.value.trim(),
+      timestamp: Date.now()
+    };
+
+    notes[currentNoteDate].push(newNote);
+    saveNotesToStorage(notes);
+    
+    // Display the note
+    displayNoteInCalendar(currentNoteDate, newNote);
+    
+    closeNoteModal();
+  }
+
+  // Display note in calendar
+  function displayNoteInCalendar(date: string, note: CalendarNote) {
+    const container = document.querySelector(`.notes-container[data-date="${date}"]`);
+    
+    if (container) {
+      const noteEl = document.createElement('div');
+      noteEl.className = 'bg-[#FEF3C7] border border-[#F59E0B] rounded p-1.5 text-xs group relative';
+      noteEl.innerHTML = `
+        <div class="flex items-start justify-between gap-1">
+          <div class="flex-1 min-w-0">
+            <div class="text-[#92400E] break-words">${escapeHtml(note.text)}</div>
+          </div>
+          <button 
+            class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-[#92400E] hover:text-[#78350F]"
+            onclick="deleteNote('${date}', ${note.timestamp})"
+            title="Delete note"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `;
+      container.appendChild(noteEl);
+    }
+  }
+
+  // Delete note
+  function deleteNote(date: string, timestamp: number) {
+    const notes = loadNotes();
+    
+    if (notes[date]) {
+      notes[date] = notes[date].filter(note => note.timestamp !== timestamp);
+      
+      if (notes[date].length === 0) {
+        delete notes[date];
+      }
+      
+      saveNotesToStorage(notes);
+      
+      // Reload notes for this date
+      const container = document.querySelector(`.notes-container[data-date="${date}"]`);
+      if (container) {
+        container.innerHTML = '';
+        if (notes[date]) {
+          notes[date].forEach(note => displayNoteInCalendar(date, note));
+        }
+      }
+    }
+  }
+
+  // HTML escape function
+  function escapeHtml(text: string): string {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Load all notes on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    const notes = loadNotes();
+    
+    Object.entries(notes).forEach(([date, dateNotes]) => {
+      dateNotes.forEach(note => {
+        displayNoteInCalendar(date, note);
+      });
+    });
+  });
+
+  // Make functions globally available
+  window.openNoteModal = openNoteModal;
+  window.closeNoteModal = closeNoteModal;
+  window.saveNote = saveNote;
+  window.deleteNote = deleteNote;
+
+  // Close modal on ESC key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeNoteModal();
+    }
+  });
+
+  // Close modal when clicking outside
+  document.getElementById('noteModal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      closeNoteModal();
+    }
+  });
 </script>
 

@@ -40,7 +40,7 @@ import Layout from '../../layouts/Layout.astro';
             <h3 class="font-bold text-blue-700">Define What You Need</h3>
           </div>
           <p class="text-sm text-gray-700">
-            Create a curve definition (market, location, product) and instance (who's providing it, when it's due).
+            Create a <strong>curve definition</strong> specifying market, location, and product type. This describes WHAT kind of data you need.
           </p>
         </div>
         
@@ -51,7 +51,7 @@ import Layout from '../../layouts/Layout.astro';
             <h3 class="font-bold text-orange-700">Set Delivery Date</h3>
           </div>
           <p class="text-sm text-gray-700">
-            Track when the data will be ready. Create commitment without having the actual data yet.
+            Create a <strong>curve instance</strong> with WHO is providing it, WHEN it's due, and associate a delivery date to put it on the calendar.
           </p>
         </div>
         
@@ -66,9 +66,11 @@ import Layout from '../../layouts/Layout.astro';
           </p>
         </div>
       </div>
-      
-      <!-- Key Concept -->
-      <div class="bg-white rounded-lg p-4 border border-gray-200">
+    </div>
+    
+    <!-- Key Concept - Moved outside workflow boxes for better visibility -->
+    <div class="max-w-4xl mx-auto mt-6 mb-8">
+      <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
         <div class="flex items-start space-x-3">
           <div class="text-2xl">💡</div>
           <div>

@@ -22,7 +22,7 @@ const currentPath = Astro.url.pathname;
 		<!-- GST Logo Favicon -->
 		<link rel="icon" type="image/svg+xml" href="/GST_logo.svg" />
 	</head>
-	<body class="bg-white">
+	<body class="bg-background">
 		<!-- Navigation Bar - GridStor Design System (Visual Styling from Figma) -->
 		<header class="bg-[#2A2A2A] text-white shadow-sm">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -118,6 +118,9 @@ const currentPath = Astro.url.pathname;
 <style is:global>
 	/* GridStor Design System - Design Tokens */
 	:root {
+		/* Background (Updated to light gray per Figma spec v1.2) */
+		--background: #F9FAFB;
+		
 		/* Typography */
 		--font-primary: 'Inter', system-ui, sans-serif;
 		--font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
@@ -187,11 +190,12 @@ const currentPath = Astro.url.pathname;
 	
 	html {
 		font-family: var(--font-primary);
-		background: var(--gs-white);
+		background: var(--background);
 	}
 
 	body {
 		font-family: var(--font-primary);
+		background: var(--background);
 	}
 
 	/* Monospace font for numbers and code */

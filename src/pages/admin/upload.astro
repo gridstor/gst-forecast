@@ -413,6 +413,11 @@ import Layout from '../../layouts/Layout.astro';
 </Layout>
 
 <script>
+  // Check for URL parameters (from calendar click)
+  const urlParams = new URLSearchParams(window.location.search);
+  const curveIdFromCalendar = urlParams.get('curveId');
+  const fromCalendar = urlParams.get('fromCalendar') === 'true';
+
   // State
   let allDefs: any[] = [];
   let allInsts: any[] = [];
@@ -435,6 +440,16 @@ import Layout from '../../layouts/Layout.astro';
       const res = await fetch('/api/curves/definitions');
       allDefs = await res.json();
       renderDefinitions();
+      
+      // Auto-select curve if coming from calendar
+      if (fromCalendar && curveIdFromCalendar) {
+        const curveId = parseInt(curveIdFromCalendar);
+        const matchingDef = allDefs.find(def => def.id === curveId);
+        if (matchingDef) {
+          selectDefinition(matchingDef);
+          toast('Curve pre-selected from calendar', 'success');
+        }
+      }
     } catch (e) {
       toast('Failed to load definitions', 'error');
       console.error(e);

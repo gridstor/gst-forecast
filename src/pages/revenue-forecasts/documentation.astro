@@ -1,0 +1,161 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Revenue Forecast Documentation">
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Revenue Forecast Documentation</h1>
+    <p class="text-base text-[#6B7280]">System documentation, technical resources, and model methodologies</p>
+  </div>
+
+  <!-- SECTION: DOCUMENTATION -->
+  <section class="mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <a href="/admin/docs" class="bg-white rounded-lg p-6 accent-border-blue transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="flex items-center gap-3 mb-3">
+          <svg class="w-5 h-5 text-[#3B82F6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+          </svg>
+          <h3 class="font-semibold text-[#1F2937]">Curves Schema</h3>
+        </div>
+        <p class="text-[#6B7280] text-sm">Database schema for CurveDefinition, CurveInstance, and CurveData tables</p>
+      </a>
+
+      <div class="bg-white rounded-lg p-6 accent-border-purple transition-all duration-200" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="flex items-center gap-3 mb-3">
+          <svg class="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <h3 class="font-semibold text-[#1F2937]">Model Documentation</h3>
+        </div>
+        <p class="text-[#6B7280] text-sm">Forecast models, methodologies, and calculation details</p>
+      </div>
+
+      <div class="bg-white rounded-lg p-6 accent-border-green transition-all duration-200" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="flex items-center gap-3 mb-3">
+          <svg class="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+          </svg>
+          <h3 class="font-semibold text-[#1F2937]">Code & Data Flow</h3>
+        </div>
+        <p class="text-[#6B7280] text-sm">Code documentation, data sources, and system architecture</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quick Reference Section -->
+  <section class="mb-12">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Quick Reference</h2>
+      <p class="text-base text-[#6B7280]">Common documentation tasks and resources</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Database Reference -->
+      <div class="bg-white rounded-lg p-6 border-l-4 border-[#3B82F6]" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 class="text-lg font-semibold text-[#1F2937] mb-3">Database Reference</h3>
+        <div class="space-y-2">
+          <div class="text-sm">
+            <span class="font-mono text-xs bg-[#F3F4F6] px-2 py-1 rounded text-[#111827]">CurveDefinition</span>
+            <p class="text-[#6B7280] mt-1">Base curve metadata and specifications</p>
+          </div>
+          <div class="text-sm">
+            <span class="font-mono text-xs bg-[#F3F4F6] px-2 py-1 rounded text-[#111827]">CurveInstance</span>
+            <p class="text-[#6B7280] mt-1">Versioned curve runs and execution details</p>
+          </div>
+          <div class="text-sm">
+            <span class="font-mono text-xs bg-[#F3F4F6] px-2 py-1 rounded text-[#111827]">CurveData</span>
+            <p class="text-[#6B7280] mt-1">Time-series price forecast data points</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Model Types -->
+      <div class="bg-white rounded-lg p-6 border-l-4 border-[#8B5CF6]" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <h3 class="text-lg font-semibold text-[#1F2937] mb-3">Model Types</h3>
+        <div class="space-y-2">
+          <div class="text-sm">
+            <span class="font-medium text-[#111827]">Fundamental Models</span>
+            <p class="text-[#6B7280] mt-1">Supply-demand based forecasting</p>
+          </div>
+          <div class="text-sm">
+            <span class="font-medium text-[#111827]">Statistical Models</span>
+            <p class="text-[#6B7280] mt-1">Time-series and regression analysis</p>
+          </div>
+          <div class="text-sm">
+            <span class="font-medium text-[#111827]">Hybrid Approaches</span>
+            <p class="text-[#6B7280] mt-1">Combined methodologies</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Flow Diagram -->
+  <section class="mb-12">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">System Data Flow</h2>
+      <p class="text-base text-[#6B7280]">High-level overview of the forecast generation process</p>
+    </div>
+
+    <div class="bg-white rounded-lg p-8 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <!-- Step 1 -->
+        <div class="flex-1 text-center">
+          <div class="w-16 h-16 bg-[#3B82F6] text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+            1
+          </div>
+          <h4 class="font-semibold text-[#111827] mb-2">Data Collection</h4>
+          <p class="text-sm text-[#6B7280]">Market data, weather, demand patterns</p>
+        </div>
+
+        <div class="text-[#3B82F6] hidden md:block">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="flex-1 text-center">
+          <div class="w-16 h-16 bg-[#10B981] text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+            2
+          </div>
+          <h4 class="font-semibold text-[#111827] mb-2">Model Execution</h4>
+          <p class="text-sm text-[#6B7280]">Run forecast models and scenarios</p>
+        </div>
+
+        <div class="text-[#10B981] hidden md:block">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="flex-1 text-center">
+          <div class="w-16 h-16 bg-[#8B5CF6] text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+            3
+          </div>
+          <h4 class="font-semibold text-[#111827] mb-2">Data Storage</h4>
+          <p class="text-sm text-[#6B7280]">Store curves and metadata</p>
+        </div>
+
+        <div class="text-[#8B5CF6] hidden md:block">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+          </svg>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="flex-1 text-center">
+          <div class="w-16 h-16 bg-[#F59E0B] text-white rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+            4
+          </div>
+          <h4 class="font-semibold text-[#111827] mb-2">Visualization</h4>
+          <p class="text-sm text-[#6B7280]">Display on revenue forecast grapher</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+

@@ -1,155 +1,16 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { query } from '../../lib/db';
-
-// Get recent curve activity
-let recentActivity = [];
-try {
-  const result = await query(`
-    SELECT 
-      cd."curveName",
-      ci."instanceVersion",
-      ci.status,
-      ci."createdAt",
-      ci."createdBy",
-      cd.market,
-      cd.location
-    FROM "Forecasts"."CurveInstance" ci
-    JOIN "Forecasts"."CurveDefinition" cd ON ci."curveDefinitionId" = cd.id
-    ORDER BY ci."createdAt" DESC
-    LIMIT 10
-  `);
-  recentActivity = result.rows;
-} catch (error) {
-  console.error('Error fetching activity:', error);
-}
 ---
 
-<Layout title="Admin">
+<Layout title="Development Operations">
   <!-- Page Header -->
   <div class="mb-8">
-    <h1 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Admin Dashboard</h1>
-    <p class="text-base text-[#6B7280]">Manage curves, schedules, and system operations</p>
+    <h1 class="text-3xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Development Operations</h1>
+    <p class="text-base text-[#6B7280]">System health monitoring, diagnostics, and operational tools</p>
   </div>
-
-  <!-- SECTION: CURVE SCHEDULE -->
-  <section class="mb-12">
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Schedule</h2>
-      <p class="text-base text-[#6B7280]">Recent curve activity and schedule management</p>
-    </div>
-    
-    <!-- Latest Activity Log -->
-    <div class="bg-white rounded-lg p-6 mb-6 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-      <h3 class="text-lg font-semibold text-[#1F2937] mb-4">Latest Curve Activity</h3>
-      <div class="space-y-2">
-        {recentActivity.slice(0, 5).map((activity) => (
-          <div class="flex items-center justify-between py-3 border-b border-[#F3F4F6] last:border-0">
-            <div class="flex-1">
-              <div class="font-medium text-[#111827] text-sm">{activity.curveName}</div>
-              <div class="text-xs text-[#6B7280] mt-1 font-mono">{activity.instanceVersion} • {activity.market} • {activity.location}</div>
-            </div>
-            <div class="text-right">
-              <div class="text-xs text-[#6B7280] mb-1">{new Date(activity.createdAt).toLocaleDateString()}</div>
-              <span class={`inline-flex items-center px-2 py-0.5 rounded text-xs font-mono ${activity.status === 'ACTIVE' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#F9FAFB] text-[#6B7280]'}`}>
-                {activity.status}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <a href="/admin/curve-logs" class="mt-4 inline-block text-sm text-[#3B82F6] hover:text-[#2563EB] font-medium">View All Activity →</a>
-    </div>
-
-    <!-- Calendar View Card -->
-    <div class="bg-white rounded-lg p-6 accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-lg font-semibold text-[#1F2937]">Curve Schedule Calendar</h3>
-        <a href="/admin/curve-schedule" class="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] text-sm font-medium transition-colors">
-          Open Full Calendar
-        </a>
-      </div>
-      <p class="text-[#6B7280] text-sm">View and manage scheduled curve updates and delivery periods</p>
-    </div>
-  </section>
-
-  <!-- SECTION: CURVE MANAGEMENT -->
-  <section class="mb-12">
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Management</h2>
-      <p class="text-base text-[#6B7280]">Upload and manage curve definitions and instances</p>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <a href="/admin/upload" class="bg-white rounded-lg p-6 accent-border-blue transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="flex items-center gap-3 mb-4">
-          <svg class="w-6 h-6 text-[#3B82F6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-          </svg>
-          <h3 class="text-lg font-semibold text-[#1F2937]">Upload New Curves</h3>
-        </div>
-        <p class="text-[#6B7280] text-sm">Create curve definitions, instances, and upload price data</p>
-      </a>
-
-      <a href="/admin/inventory" class="bg-white rounded-lg p-6 accent-border-green transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="flex items-center gap-3 mb-4">
-          <svg class="w-6 h-6 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
-          </svg>
-          <h3 class="text-lg font-semibold text-[#1F2937]">Manage Inventory</h3>
-        </div>
-        <p class="text-[#6B7280] text-sm">View, edit, and delete curves, instances, and data</p>
-      </a>
-    </div>
-  </section>
-
-  <!-- SECTION: DOCUMENTATION -->
-  <section class="mb-12">
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Documentation</h2>
-      <p class="text-base text-[#6B7280]">System documentation and technical resources</p>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <a href="/admin/docs" class="bg-white rounded-lg p-6 accent-border-blue transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="flex items-center gap-3 mb-3">
-          <svg class="w-5 h-5 text-[#3B82F6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
-          </svg>
-          <h3 class="font-semibold text-[#1F2937]">Curves Schema</h3>
-        </div>
-        <p class="text-[#6B7280] text-sm">Database schema for CurveDefinition, CurveInstance, and CurveData tables</p>
-      </a>
-
-      <div class="bg-white rounded-lg p-6 accent-border-purple transition-all duration-200" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="flex items-center gap-3 mb-3">
-          <svg class="w-5 h-5 text-[#8B5CF6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-          </svg>
-          <h3 class="font-semibold text-[#1F2937]">Model Documentation</h3>
-        </div>
-        <p class="text-[#6B7280] text-sm">Forecast models, methodologies, and calculation details</p>
-      </div>
-
-      <div class="bg-white rounded-lg p-6 accent-border-green transition-all duration-200" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-        <div class="flex items-center gap-3 mb-3">
-          <svg class="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-          </svg>
-          <h3 class="font-semibold text-[#1F2937]">Code & Data Flow</h3>
-        </div>
-        <p class="text-[#6B7280] text-sm">Code documentation, data sources, and system architecture</p>
-      </div>
-    </div>
-  </section>
 
   <!-- SECTION: DEVELOPMENT OPS -->
   <section class="mb-12">
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Development Operations</h2>
-      <p class="text-base text-[#6B7280]">System health monitoring and diagnostics</p>
-    </div>
-    
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <a href="/admin/db-health" class="bg-white rounded-lg p-6 accent-border-green transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <div class="flex items-center gap-3 mb-4">
@@ -173,19 +34,30 @@ try {
     </div>
   </section>
 
-  <!-- Toast Notification -->
-  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
-</Layout>
+  <!-- System Information -->
+  <section class="mb-12">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">System Information</h2>
+      <p class="text-base text-[#6B7280]">Environment and operational status overview</p>
+    </div>
 
-<script>
-  // Smooth scroll to sections
-  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function (this: HTMLAnchorElement, e: Event) {
-      e.preventDefault();
-      const target = document.querySelector(this.getAttribute('href')!);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  });
-</script>
+    <div class="bg-white rounded-lg p-6 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <h3 class="text-sm font-medium text-[#6B7280] mb-2">Environment</h3>
+          <p class="text-lg font-semibold text-[#111827]">Production</p>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-[#6B7280] mb-2">Deployment Status</h3>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#ECFDF5] text-[#059669]">
+            Active
+          </span>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-[#6B7280] mb-2">Last Check</h3>
+          <p class="text-lg font-semibold text-[#111827]">Just now</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -47,6 +47,7 @@ export const GET: APIRoute = async ({ url }) => {
     });
   } catch (error) {
     console.error('Error fetching instance:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch instance',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -54,6 +55,8 @@ export const GET: APIRoute = async ({ url }) => {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
+  } finally {
+    await prisma.$disconnect();
   }
 };
 
@@ -119,13 +122,17 @@ export const PUT: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     console.error('Error updating instance:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(JSON.stringify({ 
       error: 'Failed to update instance',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
+  } finally {
+    await prisma.$disconnect();
   }
 };
 
@@ -152,6 +159,7 @@ export const DELETE: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     console.error('Error deleting instance:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(JSON.stringify({ 
       error: 'Failed to delete instance',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -159,6 +167,8 @@ export const DELETE: APIRoute = async ({ request }) => {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
+  } finally {
+    await prisma.$disconnect();
   }
 };
 

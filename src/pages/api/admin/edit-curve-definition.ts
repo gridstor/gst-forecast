@@ -131,13 +131,17 @@ export const PUT: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     console.error('Error updating definition:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(JSON.stringify({ 
       error: 'Failed to update definition',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
+  } finally {
+    await prisma.$disconnect();
   }
 };
 

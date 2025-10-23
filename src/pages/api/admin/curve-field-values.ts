@@ -41,28 +41,20 @@ export const GET: APIRoute = async () => {
       timezones: [...new Set(definitions.map(d => d.timezone).filter(Boolean))].sort(),
     };
 
-    // Also include enum values from the schema as defaults/options
-    const enumValues = {
-      curveTypes: ['REVENUE', 'REVENUE_OTHER', 'ENERGY', 'ENERGY_ARB', 'AS', 'TB2', 'TB4', 'RA', 'DA', 'RT', 'OTHER'],
-      batteryDurations: ['TWO_H', 'TWO_POINT_SIX_H', 'FOUR_H', 'EIGHT_H', 'UNKNOWN', 'OTHER'],
-      scenarios: ['BASE', 'LOW', 'HIGH', 'P50', 'P90', 'P10', 'DOWNSIDE', 'UPSIDE', 'WORST', 'BEST', 'ACTUAL', 'TARGET', 'LOWER_BOUND', 'UPPER_BOUND', 'OTHER'],
-      degradationTypes: ['NONE', 'YEAR_1', 'YEAR_2', 'YEAR_5', 'YEAR_10', 'YEAR_15', 'YEAR_20', 'CUSTOM', 'OTHER'],
-      granularities: ['HOURLY', 'DAILY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']
-    };
-
-    // Merge unique database values with enum values (database values take precedence)
+    // Use ONLY database values - keep it clean and show only what's actually in use
+    // If no values exist, provide minimal sensible defaults
     const allValues = {
-      markets: uniqueValues.markets.length > 0 ? uniqueValues.markets : ['CAISO', 'ERCOT', 'PJM', 'MISO', 'NYISO', 'SPP'],
+      markets: uniqueValues.markets.length > 0 ? uniqueValues.markets : ['CAISO', 'ERCOT', 'PJM'],
       locations: uniqueValues.locations,
       products: uniqueValues.products,
-      commodities: uniqueValues.commodities.length > 0 ? uniqueValues.commodities : ['Energy', 'Capacity', 'Ancillary Services'],
-      curveTypes: [...new Set([...uniqueValues.curveTypes, ...enumValues.curveTypes])].sort(),
-      batteryDurations: [...new Set([...uniqueValues.batteryDurations, ...enumValues.batteryDurations])].sort(),
-      scenarios: [...new Set([...uniqueValues.scenarios, ...enumValues.scenarios])].sort(),
-      degradationTypes: [...new Set([...uniqueValues.degradationTypes, ...enumValues.degradationTypes])].sort(),
-      units: uniqueValues.units.length > 0 ? uniqueValues.units : ['$/MWh', '$/kW-month', 'MWh', 'MW'],
-      granularities: [...new Set([...uniqueValues.granularities, ...enumValues.granularities])].sort(),
-      timezones: uniqueValues.timezones.length > 0 ? uniqueValues.timezones : ['UTC', 'America/Los_Angeles', 'America/Chicago', 'America/New_York'],
+      commodities: uniqueValues.commodities.length > 0 ? uniqueValues.commodities : ['Energy'],
+      curveTypes: uniqueValues.curveTypes.length > 0 ? uniqueValues.curveTypes : ['REVENUE'],
+      batteryDurations: uniqueValues.batteryDurations.length > 0 ? uniqueValues.batteryDurations : ['UNKNOWN'],
+      scenarios: uniqueValues.scenarios.length > 0 ? uniqueValues.scenarios : ['BASE'],
+      degradationTypes: uniqueValues.degradationTypes.length > 0 ? uniqueValues.degradationTypes : ['NONE'],
+      units: uniqueValues.units.length > 0 ? uniqueValues.units : ['$/MWh'],
+      granularities: uniqueValues.granularities.length > 0 ? uniqueValues.granularities : ['MONTHLY'],
+      timezones: uniqueValues.timezones.length > 0 ? uniqueValues.timezones : ['UTC'],
     };
 
     // Also provide statistics
@@ -85,6 +77,7 @@ export const GET: APIRoute = async () => {
     });
   } catch (error) {
     console.error('Error fetching curve field values:', error);
+    console.error('Error details:', error instanceof Error ? error.stack : 'No stack trace');
     return new Response(JSON.stringify({ 
       error: 'Failed to fetch field values',
       details: error instanceof Error ? error.message : 'Unknown error'

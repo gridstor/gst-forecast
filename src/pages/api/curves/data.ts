@@ -20,16 +20,11 @@ export const GET: APIRoute = async ({ url }) => {
     if (curveInstanceId) {
       console.log(`Fetching curve data for instance ID: ${curveInstanceId}`);
       
-      // Query by specific curve instance ID (CurveData)
+      // Query by specific curve instance ID (CurveData) - TALL FORMAT with PIVOT
+      // Using FILTER for conditional aggregation to pivot tall to wide format
       result = await query(`
         SELECT 
-          cd.id,
           cd."timestamp",
-          cd."valueP5",
-          cd."valueP25", 
-          cd."valueP50",
-          cd."valueP75",
-          cd."valueP95",
           cd."curveInstanceId",
           ci."curveDefinitionId" as curve_id,
           def."curveName" as curve_name,
@@ -38,22 +33,33 @@ export const GET: APIRoute = async ({ url }) => {
           def."curveType" as curve_type,
           def."createdBy" as curve_creator,
           def.units,
-          ci.metadata
+          ci.metadata,
+          MAX(cd.id) as id,
+          MAX(cd.value) FILTER (WHERE cd."pValue" = 5) as "valueP5",
+          MAX(cd.value) FILTER (WHERE cd."pValue" = 25) as "valueP25",
+          MAX(cd.value) FILTER (WHERE cd."pValue" = 50) as "valueP50",
+          MAX(cd.value) FILTER (WHERE cd."pValue" = 75) as "valueP75",
+          MAX(cd.value) FILTER (WHERE cd."pValue" = 95) as "valueP95"
         FROM "Forecasts"."CurveData" cd
         JOIN "Forecasts"."CurveInstance" ci ON cd."curveInstanceId" = ci.id
         JOIN "Forecasts"."CurveDefinition" def ON ci."curveDefinitionId" = def.id
         WHERE ci.id = $1
+        GROUP BY cd."timestamp", cd."curveInstanceId", ci."curveDefinitionId", 
+                 def."curveName", def.location, def.market, def."curveType", 
+                 def."createdBy", def.units, ci.metadata
         ORDER BY cd."timestamp" ASC
       `, [curveInstanceId]);
     } else {
       console.log(`Fetching curve data for definition IDs: ${curveIds.join(', ')}, aggregation: ${aggregation}`);
       
-      // Query by curve definition IDs (original logic)
+      // Query by curve definition IDs - TALL FORMAT
+      // For general curve viewing, just get P50 values (or any available p-value)
       result = await query(`
         SELECT 
           pf.id,
           pf."timestamp",
           pf.value,
+          pf."pValue",
           pf."curveInstanceId",
           ci."curveDefinitionId" as curve_id,
           cd."curveName" as curve_name,
@@ -64,7 +70,7 @@ export const GET: APIRoute = async ({ url }) => {
         FROM "Forecasts"."PriceForecast" pf
         JOIN "Forecasts"."CurveInstance" ci ON pf."curveInstanceId" = ci.id
         JOIN "Forecasts"."CurveDefinition" cd ON ci."curveDefinitionId" = cd.id
-        WHERE cd.id = ANY($1)
+        WHERE cd.id = ANY($1) AND pf."pValue" = 50
         ORDER BY pf."timestamp" ASC
       `, [curveIds]);
     }

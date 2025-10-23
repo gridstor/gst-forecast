@@ -115,63 +115,273 @@ import Layout from '../../layouts/Layout.astro';
   <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
 
   <!-- Edit Definition Modal - Design System -->
-  <div id="editDefModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg max-w-2xl w-full" style="box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
+  <div id="editDefModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-lg max-w-4xl w-full my-8" style="box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
       <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-[#1F2937]">Edit Definition</h3>
+        <h3 class="text-lg font-semibold text-[#1F2937]">Edit Curve Definition</h3>
         <button id="closeEditDef" class="text-[#9CA3AF] hover:text-[#6B7280] transition-colors">✕</button>
       </div>
-      <div class="px-6 py-4 grid grid-cols-2 gap-4">
+      <div class="px-6 py-4 max-h-[70vh] overflow-y-auto">
         <input type="hidden" id="editDefId" />
-        <div class="col-span-2">
-          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Name</label>
-          <input type="text" id="editDefName" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        
+        <!-- Basic Info -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Basic Information</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div class="col-span-2">
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Name *</label>
+              <input type="text" id="editDefName" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Market *</label>
+              <select id="editDefMarket" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="CAISO">CAISO</option>
+                <option value="ERCOT">ERCOT</option>
+                <option value="PJM">PJM</option>
+                <option value="MISO">MISO</option>
+                <option value="NYISO">NYISO</option>
+                <option value="SPP">SPP</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location *</label>
+              <input type="text" id="editDefLocation" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Product *</label>
+              <input type="text" id="editDefProduct" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Commodity</label>
+              <input type="text" id="editDefCommodity" placeholder="Energy" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Market</label>
-          <select id="editDefMarket" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
-            <option value="CAISO">CAISO</option>
-            <option value="ERCOT">ERCOT</option>
-            <option value="PJM">PJM</option>
-          </select>
+
+        <!-- Curve Characteristics -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Curve Characteristics</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Type *</label>
+              <select id="editDefCurveType" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="REVENUE">Revenue</option>
+                <option value="REVENUE_OTHER">Revenue Other</option>
+                <option value="ENERGY">Energy</option>
+                <option value="ENERGY_ARB">Energy Arbitrage</option>
+                <option value="AS">Ancillary Services</option>
+                <option value="TB2">2-Hour Battery</option>
+                <option value="TB4">4-Hour Battery</option>
+                <option value="RA">Resource Adequacy</option>
+                <option value="DA">Day-Ahead</option>
+                <option value="RT">Real-Time</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Battery Duration</label>
+              <select id="editDefBatteryDuration" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="TWO_H">2H</option>
+                <option value="TWO_POINT_SIX_H">2.6H</option>
+                <option value="FOUR_H">4H</option>
+                <option value="EIGHT_H">8H</option>
+                <option value="UNKNOWN">Unknown</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Scenario</label>
+              <select id="editDefScenario" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="BASE">Base</option>
+                <option value="LOW">Low</option>
+                <option value="HIGH">High</option>
+                <option value="P50">P50</option>
+                <option value="P90">P90</option>
+                <option value="P10">P10</option>
+                <option value="DOWNSIDE">Downside</option>
+                <option value="UPSIDE">Upside</option>
+                <option value="WORST">Worst</option>
+                <option value="BEST">Best</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Degradation Type</label>
+              <select id="editDefDegradationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="NONE">None</option>
+                <option value="YEAR_1">Year 1</option>
+                <option value="YEAR_2">Year 2</option>
+                <option value="YEAR_5">Year 5</option>
+                <option value="YEAR_10">Year 10</option>
+                <option value="YEAR_15">Year 15</option>
+                <option value="YEAR_20">Year 20</option>
+                <option value="CUSTOM">Custom</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location</label>
-          <input type="text" id="editDefLocation" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+
+        <!-- Data Settings -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Data Settings</h4>
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Units</label>
+              <input type="text" id="editDefUnits" placeholder="$/MWh" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Granularity</label>
+              <select id="editDefGranularity" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUAL">Annual</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Timezone</label>
+              <input type="text" id="editDefTimezone" placeholder="UTC" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Description & Status -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Additional Details</h4>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Description</label>
+              <textarea id="editDefDescription" rows="3" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"></textarea>
+            </div>
+            <div class="flex items-center">
+              <input type="checkbox" id="editDefIsActive" class="w-4 h-4 text-[#3B82F6] border-[#E5E7EB] rounded focus:ring-[#3B82F6]" />
+              <label for="editDefIsActive" class="ml-2 text-sm text-[#6B7280]">Active</label>
+            </div>
+          </div>
         </div>
       </div>
       <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
         <button id="cancelEditDef" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
-        <button id="saveEditDef" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Save</button>
+        <button id="saveEditDef" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Save Changes</button>
       </div>
     </div>
   </div>
 
   <!-- Edit Instance Modal - Design System -->
-  <div id="editInstModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white rounded-lg max-w-2xl w-full" style="box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
+  <div id="editInstModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-lg max-w-4xl w-full my-8" style="box-shadow: 0 12px 30px rgba(0,0,0,0.1);">
       <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
-        <h3 class="text-lg font-semibold text-[#1F2937]">Edit Instance</h3>
+        <h3 class="text-lg font-semibold text-[#1F2937]">Edit Curve Instance</h3>
         <button id="closeEditInst" class="text-[#9CA3AF] hover:text-[#6B7280] transition-colors">✕</button>
       </div>
-      <div class="px-6 py-4 grid grid-cols-2 gap-4">
+      <div class="px-6 py-4 max-h-[70vh] overflow-y-auto">
         <input type="hidden" id="editInstId" />
-        <div>
-          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Version</label>
-          <input type="text" id="editInstVersion" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+        
+        <!-- Basic Info -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Basic Information</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Instance Version *</label>
+              <input type="text" id="editInstVersion" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Status *</label>
+              <select id="editInstStatus" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="DRAFT">Draft</option>
+                <option value="PENDING_APPROVAL">Pending Approval</option>
+                <option value="APPROVED">Approved</option>
+                <option value="ACTIVE">Active</option>
+                <option value="SUPERSEDED">Superseded</option>
+                <option value="EXPIRED">Expired</option>
+                <option value="FAILED">Failed</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Run Type</label>
+              <select id="editInstRunType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="MANUAL">Manual</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="TRIGGERED">Triggered</option>
+                <option value="BACKFILL">Backfill</option>
+                <option value="CORRECTION">Correction</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Created By</label>
+              <input type="text" id="editInstCreatedBy" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Status</label>
-          <select id="editInstStatus" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
-            <option value="DRAFT">Draft</option>
-            <option value="ACTIVE">Active</option>
-            <option value="ARCHIVED">Archived</option>
-          </select>
+
+        <!-- Dates -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Dates</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Delivery Period Start *</label>
+              <input type="datetime-local" id="editInstDeliveryStart" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Delivery Period End *</label>
+              <input type="datetime-local" id="editInstDeliveryEnd" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Forecast Run Date *</label>
+              <input type="datetime-local" id="editInstForecastRunDate" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Freshness Start Date *</label>
+              <input type="datetime-local" id="editInstFreshnessStart" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div class="col-span-2">
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Freshness End Date (optional)</label>
+              <input type="datetime-local" id="editInstFreshnessEnd" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Info -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Model Information</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Model Type</label>
+              <input type="text" id="editInstModelType" placeholder="e.g., Prophet, ARIMA, Custom" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Model Version</label>
+              <input type="text" id="editInstModelVersion" placeholder="e.g., 2.1.0" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Approval Info -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Approval Information</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Approved By</label>
+              <input type="text" id="editInstApprovedBy" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Approved At</label>
+              <input type="datetime-local" id="editInstApprovedAt" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Notes</h4>
+          <textarea id="editInstNotes" rows="3" placeholder="Add any notes about this instance..." class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all"></textarea>
         </div>
       </div>
       <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
         <button id="cancelEditInst" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
-        <button id="saveEditInst" class="px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] font-medium transition-colors">Save</button>
+        <button id="saveEditInst" class="px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] font-medium transition-colors">Save Changes</button>
       </div>
     </div>
   </div>
@@ -371,21 +581,31 @@ import Layout from '../../layouts/Layout.astro';
 
   async function downloadInstData(instId: number) {
     try {
-      const res = await fetch(`/api/curves/${instId}/data`);
-      const data = await res.json();
-      if (data.length === 0) {
+      // Using the curve data API with curveInstanceId parameter
+      const res = await fetch(`/api/curves/data?curveInstanceId=${instId}`);
+      const response = await res.json();
+      
+      if (!response.priceData || response.priceData.length === 0) {
         toast('No data to download', 'error');
         return;
       }
+      
       const rows = [];
-      for (const point of data) {
-        const ts = point.flow_date_start;
-        if (point.valueP5 !== null) rows.push(`${ts},${point.valueP5},5,$/MWh`);
-        if (point.valueP25 !== null) rows.push(`${ts},${point.valueP25},25,$/MWh`);
-        if (point.valueP50 !== null) rows.push(`${ts},${point.valueP50},50,$/MWh`);
-        if (point.valueP75 !== null) rows.push(`${ts},${point.valueP75},75,$/MWh`);
-        if (point.valueP95 !== null) rows.push(`${ts},${point.valueP95},95,$/MWh`);
+      for (const point of response.priceData) {
+        const ts = point.timestamp;
+        // Export all available p-values
+        if (point.valueP5 !== null && point.valueP5 !== undefined) 
+          rows.push(`${ts},${point.valueP5},5,${point.units || '$/MWh'}`);
+        if (point.valueP25 !== null && point.valueP25 !== undefined) 
+          rows.push(`${ts},${point.valueP25},25,${point.units || '$/MWh'}`);
+        if (point.valueP50 !== null && point.valueP50 !== undefined) 
+          rows.push(`${ts},${point.valueP50},50,${point.units || '$/MWh'}`);
+        if (point.valueP75 !== null && point.valueP75 !== undefined) 
+          rows.push(`${ts},${point.valueP75},75,${point.units || '$/MWh'}`);
+        if (point.valueP95 !== null && point.valueP95 !== undefined) 
+          rows.push(`${ts},${point.valueP95},95,${point.units || '$/MWh'}`);
       }
+      
       const csv = ['timestamp,value,pvalue,units', ...rows].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -396,16 +616,92 @@ import Layout from '../../layouts/Layout.astro';
       URL.revokeObjectURL(url);
       toast('Data downloaded');
     } catch (e) {
+      console.error('Download error:', e);
       toast('Download failed', 'error');
     }
   }
 
-  function editDef(id: number) {
-    toast('Edit feature coming soon');
+  async function editDef(id: number) {
+    try {
+      const res = await fetch(`/api/admin/edit-curve-definition?id=${id}`);
+      const def = await res.json();
+      
+      // Populate form
+      (document.getElementById('editDefId') as HTMLInputElement).value = def.id;
+      (document.getElementById('editDefName') as HTMLInputElement).value = def.curveName || '';
+      (document.getElementById('editDefMarket') as HTMLSelectElement).value = def.market || 'CAISO';
+      (document.getElementById('editDefLocation') as HTMLInputElement).value = def.location || '';
+      (document.getElementById('editDefProduct') as HTMLInputElement).value = def.product || '';
+      (document.getElementById('editDefCommodity') as HTMLInputElement).value = def.commodity || 'Energy';
+      (document.getElementById('editDefCurveType') as HTMLSelectElement).value = def.curveType || 'REVENUE';
+      (document.getElementById('editDefBatteryDuration') as HTMLSelectElement).value = def.batteryDuration || 'UNKNOWN';
+      (document.getElementById('editDefScenario') as HTMLSelectElement).value = def.scenario || 'BASE';
+      (document.getElementById('editDefDegradationType') as HTMLSelectElement).value = def.degradationType || 'NONE';
+      (document.getElementById('editDefUnits') as HTMLInputElement).value = def.units || '$/MWh';
+      (document.getElementById('editDefGranularity') as HTMLSelectElement).value = def.granularity || 'MONTHLY';
+      (document.getElementById('editDefTimezone') as HTMLInputElement).value = def.timezone || 'UTC';
+      (document.getElementById('editDefDescription') as HTMLTextAreaElement).value = def.description || '';
+      (document.getElementById('editDefIsActive') as HTMLInputElement).checked = def.isActive ?? true;
+      
+      // Show modal
+      document.getElementById('editDefModal')!.classList.remove('hidden');
+    } catch (e) {
+      console.error('Error loading definition:', e);
+      toast('Failed to load definition data', 'error');
+    }
   }
 
-  function editInst(id: number) {
-    toast('Edit feature coming soon');
+  async function editInst(id: number) {
+    try {
+      const res = await fetch(`/api/admin/edit-curve-instance?id=${id}`);
+      const inst = await res.json();
+      
+      // Populate form
+      (document.getElementById('editInstId') as HTMLInputElement).value = inst.id;
+      (document.getElementById('editInstVersion') as HTMLInputElement).value = inst.instanceVersion || '';
+      (document.getElementById('editInstStatus') as HTMLSelectElement).value = inst.status || 'DRAFT';
+      (document.getElementById('editInstRunType') as HTMLSelectElement).value = inst.runType || 'MANUAL';
+      (document.getElementById('editInstCreatedBy') as HTMLInputElement).value = inst.createdBy || '';
+      
+      // Dates - convert to local datetime format
+      if (inst.deliveryPeriodStart) {
+        (document.getElementById('editInstDeliveryStart') as HTMLInputElement).value = 
+          new Date(inst.deliveryPeriodStart).toISOString().slice(0, 16);
+      }
+      if (inst.deliveryPeriodEnd) {
+        (document.getElementById('editInstDeliveryEnd') as HTMLInputElement).value = 
+          new Date(inst.deliveryPeriodEnd).toISOString().slice(0, 16);
+      }
+      if (inst.forecastRunDate) {
+        (document.getElementById('editInstForecastRunDate') as HTMLInputElement).value = 
+          new Date(inst.forecastRunDate).toISOString().slice(0, 16);
+      }
+      if (inst.freshnessStartDate) {
+        (document.getElementById('editInstFreshnessStart') as HTMLInputElement).value = 
+          new Date(inst.freshnessStartDate).toISOString().slice(0, 16);
+      }
+      if (inst.freshnessEndDate) {
+        (document.getElementById('editInstFreshnessEnd') as HTMLInputElement).value = 
+          new Date(inst.freshnessEndDate).toISOString().slice(0, 16);
+      }
+      
+      (document.getElementById('editInstModelType') as HTMLInputElement).value = inst.modelType || '';
+      (document.getElementById('editInstModelVersion') as HTMLInputElement).value = inst.modelVersion || '';
+      (document.getElementById('editInstApprovedBy') as HTMLInputElement).value = inst.approvedBy || '';
+      
+      if (inst.approvedAt) {
+        (document.getElementById('editInstApprovedAt') as HTMLInputElement).value = 
+          new Date(inst.approvedAt).toISOString().slice(0, 16);
+      }
+      
+      (document.getElementById('editInstNotes') as HTMLTextAreaElement).value = inst.notes || '';
+      
+      // Show modal
+      document.getElementById('editInstModal')!.classList.remove('hidden');
+    } catch (e) {
+      console.error('Error loading instance:', e);
+      toast('Failed to load instance data', 'error');
+    }
   }
 
   (window as any).editDef = editDef;
@@ -426,6 +722,114 @@ import Layout from '../../layouts/Layout.astro';
     (document.getElementById('globalCurveType') as HTMLSelectElement).value = '';
     (document.getElementById('globalStatus') as HTMLSelectElement).value = '';
     renderDefinitions();
+  });
+
+  // Edit Definition Modal Handlers
+  document.getElementById('closeEditDef')?.addEventListener('click', () => {
+    document.getElementById('editDefModal')!.classList.add('hidden');
+  });
+  
+  document.getElementById('cancelEditDef')?.addEventListener('click', () => {
+    document.getElementById('editDefModal')!.classList.add('hidden');
+  });
+  
+  document.getElementById('saveEditDef')?.addEventListener('click', async () => {
+    const id = (document.getElementById('editDefId') as HTMLInputElement).value;
+    const data = {
+      id: parseInt(id),
+      curveName: (document.getElementById('editDefName') as HTMLInputElement).value,
+      market: (document.getElementById('editDefMarket') as HTMLSelectElement).value,
+      location: (document.getElementById('editDefLocation') as HTMLInputElement).value,
+      product: (document.getElementById('editDefProduct') as HTMLInputElement).value,
+      commodity: (document.getElementById('editDefCommodity') as HTMLInputElement).value,
+      curveType: (document.getElementById('editDefCurveType') as HTMLSelectElement).value,
+      batteryDuration: (document.getElementById('editDefBatteryDuration') as HTMLSelectElement).value,
+      scenario: (document.getElementById('editDefScenario') as HTMLSelectElement).value,
+      degradationType: (document.getElementById('editDefDegradationType') as HTMLSelectElement).value,
+      units: (document.getElementById('editDefUnits') as HTMLInputElement).value,
+      granularity: (document.getElementById('editDefGranularity') as HTMLSelectElement).value,
+      timezone: (document.getElementById('editDefTimezone') as HTMLInputElement).value,
+      description: (document.getElementById('editDefDescription') as HTMLTextAreaElement).value,
+      isActive: (document.getElementById('editDefIsActive') as HTMLInputElement).checked,
+      performedBy: 'Admin'
+    };
+    
+    try {
+      const res = await fetch('/api/admin/edit-curve-definition', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        toast('Definition updated successfully');
+        document.getElementById('editDefModal')!.classList.add('hidden');
+        await loadDefinitions();
+        if (selectedDef && selectedDef.id == id) {
+          const updated = allDefs.find(d => d.id == id);
+          if (updated) selectDefinition(updated);
+        }
+      } else {
+        const error = await res.json();
+        toast(error.error || 'Failed to update definition', 'error');
+      }
+    } catch (e) {
+      console.error('Error saving definition:', e);
+      toast('Error saving definition', 'error');
+    }
+  });
+
+  // Edit Instance Modal Handlers
+  document.getElementById('closeEditInst')?.addEventListener('click', () => {
+    document.getElementById('editInstModal')!.classList.add('hidden');
+  });
+  
+  document.getElementById('cancelEditInst')?.addEventListener('click', () => {
+    document.getElementById('editInstModal')!.classList.add('hidden');
+  });
+  
+  document.getElementById('saveEditInst')?.addEventListener('click', async () => {
+    const id = (document.getElementById('editInstId') as HTMLInputElement).value;
+    const data = {
+      id: parseInt(id),
+      instanceVersion: (document.getElementById('editInstVersion') as HTMLInputElement).value,
+      status: (document.getElementById('editInstStatus') as HTMLSelectElement).value,
+      runType: (document.getElementById('editInstRunType') as HTMLSelectElement).value,
+      createdBy: (document.getElementById('editInstCreatedBy') as HTMLInputElement).value,
+      deliveryPeriodStart: (document.getElementById('editInstDeliveryStart') as HTMLInputElement).value,
+      deliveryPeriodEnd: (document.getElementById('editInstDeliveryEnd') as HTMLInputElement).value,
+      forecastRunDate: (document.getElementById('editInstForecastRunDate') as HTMLInputElement).value,
+      freshnessStartDate: (document.getElementById('editInstFreshnessStart') as HTMLInputElement).value,
+      freshnessEndDate: (document.getElementById('editInstFreshnessEnd') as HTMLInputElement).value || null,
+      modelType: (document.getElementById('editInstModelType') as HTMLInputElement).value,
+      modelVersion: (document.getElementById('editInstModelVersion') as HTMLInputElement).value,
+      approvedBy: (document.getElementById('editInstApprovedBy') as HTMLInputElement).value,
+      approvedAt: (document.getElementById('editInstApprovedAt') as HTMLInputElement).value || null,
+      notes: (document.getElementById('editInstNotes') as HTMLTextAreaElement).value,
+      performedBy: 'Admin'
+    };
+    
+    try {
+      const res = await fetch('/api/admin/edit-curve-instance', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (res.ok) {
+        toast('Instance updated successfully');
+        document.getElementById('editInstModal')!.classList.add('hidden');
+        await loadInstances(selectedDef.id);
+        const updated = allInsts.find(i => i.id == id);
+        if (updated) selectInstance(updated);
+      } else {
+        const error = await res.json();
+        toast(error.error || 'Failed to update instance', 'error');
+      }
+    } catch (e) {
+      console.error('Error saving instance:', e);
+      toast('Error saving instance', 'error');
+    }
   });
 
   loadDefinitions();

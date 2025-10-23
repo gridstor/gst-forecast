@@ -389,26 +389,19 @@ model PriceForecast {
   id              Int      @id @default(autoincrement())
   curveInstanceId Int
   timestamp       DateTime @db.Timestamptz(6)
-  
-  // P-Value columns (consolidated from separate instances)
-  valueP5         Float?   // 5th percentile
-  valueP25        Float?   // 25th percentile  
-  valueP50        Float    // 50th percentile (median/base case)
-  valueP75        Float?   // 75th percentile
-  valueP95        Float?   // 95th percentile
-  
-  // Legacy/compatibility columns
-  value           Float?   // Will map to valueP50 for backward compatibility
-  pvalue          Int      // Main p-value identifier (typically 50)
-  
-  flags           String[]
+  pValue          Int      // The percentile: 5, 25, 50, 75, 95, etc.
+  value           Float    // The actual value for this p-value
+  flags           String[] @default([])
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
   curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
 
-  @@unique([curveInstanceId, timestamp])
+  @@unique([curveInstanceId, timestamp, pValue])
   @@index([curveInstanceId])
   @@index([timestamp])
+  @@index([pValue])
   @@index([curveInstanceId, timestamp])
   @@schema("Forecasts")
 }
@@ -417,21 +410,20 @@ model CurveData {
   id              Int      @id @default(autoincrement())
   curveInstanceId Int
   timestamp       DateTime @db.Timestamptz(6)
-
-  valueP5   Float?
-  valueP25  Float?
-  valueP50  Float
-  valueP75  Float?
-  valueP95  Float?
-
-  flags     String[]
+  pValue          Int      // The percentile: 5, 25, 50, 75, 95, etc.
+  value           Float    // The actual value for this p-value
+  flags           String[] @default([])
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
   curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
 
-  @@unique([curveInstanceId, timestamp])
+  @@unique([curveInstanceId, timestamp, pValue])
   @@index([curveInstanceId])
   @@index([timestamp])
+  @@index([pValue])
+  @@index([curveInstanceId, timestamp])
   @@schema("Forecasts")
 }
 

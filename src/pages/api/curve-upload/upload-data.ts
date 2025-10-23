@@ -70,17 +70,14 @@ export const POST: APIRoute = async ({ request }) => {
         continue;
       }
 
-      // Handle p-value mapping to columns
+      // Handle p-value (default to 50 if not specified)
       const pvalue = row.pvalue ? parseInt(row.pvalue) : 50;
-      const pValueColumnName = `valueP${pvalue}`;
       
       validatedData.push({
         curveInstanceId: parseInt(curveInstanceId),
         timestamp,
-        pvalue,
-        pValueColumnName,
+        pValue: pvalue,
         value,
-        // units: row.units || '$/MWh', // Units not supported in database schema
         flags: row.flags || []
       });
     }
@@ -109,74 +106,13 @@ export const POST: APIRoute = async ({ request }) => {
       where: { curveInstanceId: parseInt(curveInstanceId) }
     });
 
-    // Group data by timestamp to consolidate p-values
-    const groupedData = new Map<string, any>();
+    // Insert curve data using tall format - one row per (timestamp, pValue) combination
+    // Use createMany for better performance
+    await prisma.curveData.createMany({
+      data: validatedData
+    });
     
-    for (const record of validatedData) {
-      const timestampKey = record.timestamp.toISOString();
-      
-      if (!groupedData.has(timestampKey)) {
-        groupedData.set(timestampKey, {
-          curveInstanceId: record.curveInstanceId,
-          timestamp: record.timestamp,
-          valueP5: null,
-          valueP25: null,
-          valueP50: null,
-          valueP75: null,
-          valueP95: null,
-          value: null, // Legacy column
-          // units: record.units, // Units not supported in database schema
-          flags: record.flags
-        });
-      }
-      
-      const existingRecord = groupedData.get(timestampKey);
-      
-      // Set the appropriate p-value column
-      switch (record.pvalue) {
-        case 5:
-          existingRecord.valueP5 = record.value;
-          break;
-        case 25:
-          existingRecord.valueP25 = record.value;
-          break;
-        case 50:
-          existingRecord.valueP50 = record.value;
-          existingRecord.value = record.value; // Also set legacy column
-          break;
-        case 75:
-          existingRecord.valueP75 = record.value;
-          break;
-        case 95:
-          existingRecord.valueP95 = record.value;
-          break;
-      }
-    }
-
-    // Insert consolidated curve data
-    let insertedCount = 0;
-    for (const record of groupedData.values()) {
-      // Ensure valueP50 is not null (required field)
-      if (record.valueP50 === null) {
-        // If no P50 provided, use any available value as fallback
-        record.valueP50 = record.valueP5 || record.valueP25 || record.valueP75 || record.valueP95 || 0;
-      }
-      
-      // Create the curve data record with only valid fields
-      await prisma.curveData.create({
-        data: {
-          curveInstanceId: record.curveInstanceId,
-          timestamp: record.timestamp,
-          valueP5: record.valueP5,
-          valueP25: record.valueP25,
-          valueP50: record.valueP50,
-          valueP75: record.valueP75,
-          valueP95: record.valueP95,
-          flags: record.flags
-        }
-      });
-      insertedCount++;
-    }
+    const insertedCount = validatedData.length;
 
     const result = { count: insertedCount };
 

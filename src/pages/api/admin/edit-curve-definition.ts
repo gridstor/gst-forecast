@@ -52,6 +52,8 @@ export const GET: APIRoute = async ({ url }) => {
 export const PUT: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
+    console.log('Edit request received with body:', JSON.stringify(body, null, 2));
+    
     const { 
       id, 
       curveName,
@@ -77,6 +79,16 @@ export const PUT: APIRoute = async ({ request }) => {
         headers: { 'Content-Type': 'application/json' }
       });
     }
+    
+    console.log('Parsed fields:', {
+      id,
+      curveName,
+      market,
+      curveType,
+      batteryDuration,
+      scenario,
+      degradationType
+    });
 
     // Check if curve name is being changed and if new name already exists
     if (curveName) {
@@ -117,10 +129,15 @@ export const PUT: APIRoute = async ({ request }) => {
     if (description !== undefined) updateData.description = description;
     if (isActive !== undefined) updateData.isActive = isActive;
 
+    console.log('Update data prepared:', JSON.stringify(updateData, null, 2));
+    console.log('Updating definition with ID:', parseInt(id));
+
     const updated = await prisma.curveDefinition.update({
       where: { id: parseInt(id) },
       data: updateData
     });
+    
+    console.log('✓ Update successful for definition:', updated.id);
 
     // Log the change in audit log (if you have one)
     // await prisma.auditLog.create({...})

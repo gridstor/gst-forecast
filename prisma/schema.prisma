@@ -316,10 +316,10 @@ model CurveDefinition {
   market          String          @db.VarChar(50)
   location        String          @db.VarChar(100)
   product         String          @db.VarChar(100)
-  curveType       CurveType
-  batteryDuration BatteryDuration @default(UNKNOWN)
-  scenario        ScenarioType    @default(BASE)
-  degradationType DegradationType @default(NONE)
+  curveType       String          @default("REVENUE") @db.VarChar(100)  // Changed from enum to String
+  batteryDuration String          @default("UNKNOWN") @db.VarChar(50)   // Changed from enum to String
+  scenario        String          @default("BASE") @db.VarChar(100)     // Changed from enum to String
+  degradationType String          @default("NONE") @db.VarChar(100)     // Changed from enum to String
   commodity       String          @default("Energy") @db.VarChar(50)
   units           String          @default("$/MWh") @db.VarChar(50)
   granularity     String          @default("MONTHLY") @db.VarChar(20)  // MOVED FROM INSTANCE
@@ -337,8 +337,8 @@ model CurveDefinition {
   defaultInputs DefaultCurveInput[]
 
   @@index([market, location])
-  @@index([curveType, batteryDuration, scenario])
-  @@index([granularity])  // NEW INDEX
+  @@index([curveType, batteryDuration, scenario])  // Still useful for searching
+  @@index([granularity])
   @@index([isActive])
   @@index([createdAt])
   @@schema("Forecasts")

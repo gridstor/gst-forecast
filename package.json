@@ -35,7 +35,7 @@
     "@fullcalendar/interaction": "^6.1.11",
     "@fullcalendar/react": "^6.1.11",
     "@fullcalendar/timegrid": "^6.1.11",
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "^6.18.0",
     "@types/pg": "^8.11.14",
     "astro": "^5.14.7",
     "chart.js": "^4.4.7",

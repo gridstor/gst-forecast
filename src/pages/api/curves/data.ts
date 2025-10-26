@@ -20,12 +20,35 @@ export const GET: APIRoute = async ({ url }) => {
     if (curveInstanceId) {
       console.log(`Fetching curve data for instance ID: ${curveInstanceId}`);
       
-      // Query by specific curve instance ID (CurveData) - TALL FORMAT with PIVOT
-      // Using FILTER for conditional aggregation to pivot tall to wide format
+      // First check if instance exists
+      const instanceCheck = await query(`
+        SELECT id, "curveDefinitionId"
+        FROM "Forecasts"."CurveInstance"
+        WHERE id = $1
+      `, [curveInstanceId]);
+      
+      if (instanceCheck.rows.length === 0) {
+        return new Response(JSON.stringify({
+          priceData: [],
+          totalCount: 0,
+          message: `No instance found with ID ${curveInstanceId}`
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Query by specific curve instance ID (CurveData has pivoted columns)
       result = await query(`
         SELECT 
           cd."timestamp",
           cd."curveInstanceId",
+          cd.id,
+          cd."valueP5",
+          cd."valueP25",
+          cd."valueP50",
+          cd."valueP75",
+          cd."valueP95",
           ci."curveDefinitionId" as curve_id,
           def."curveName" as curve_name,
           def.location,
@@ -33,20 +56,11 @@ export const GET: APIRoute = async ({ url }) => {
           def."curveType" as curve_type,
           def."createdBy" as curve_creator,
           def.units,
-          ci.metadata,
-          MAX(cd.id) as id,
-          MAX(cd.value) FILTER (WHERE cd."pValue" = 5) as "valueP5",
-          MAX(cd.value) FILTER (WHERE cd."pValue" = 25) as "valueP25",
-          MAX(cd.value) FILTER (WHERE cd."pValue" = 50) as "valueP50",
-          MAX(cd.value) FILTER (WHERE cd."pValue" = 75) as "valueP75",
-          MAX(cd.value) FILTER (WHERE cd."pValue" = 95) as "valueP95"
+          ci.metadata
         FROM "Forecasts"."CurveData" cd
         JOIN "Forecasts"."CurveInstance" ci ON cd."curveInstanceId" = ci.id
         JOIN "Forecasts"."CurveDefinition" def ON ci."curveDefinitionId" = def.id
         WHERE ci.id = $1
-        GROUP BY cd."timestamp", cd."curveInstanceId", ci."curveDefinitionId", 
-                 def."curveName", def.location, def.market, def."curveType", 
-                 def."createdBy", def.units, ci.metadata
         ORDER BY cd."timestamp" ASC
       `, [curveInstanceId]);
     } else {

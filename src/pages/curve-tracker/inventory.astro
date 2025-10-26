@@ -39,15 +39,15 @@ import Layout from '../../layouts/Layout.astro';
           </select>
         </div>
         <div>
-          <label for="markTypeFilter" class="block text-sm font-medium text-gray-700 mb-1">Mark Type</label>
-          <select id="markTypeFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+          <label for="curveTypeFilter" class="block text-sm font-medium text-gray-700 mb-1">Curve Type</label>
+          <select id="curveTypeFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
             <option value="">All Types</option>
           </select>
         </div>
         <div>
-          <label for="markCaseFilter" class="block text-sm font-medium text-gray-700 mb-1">Mark Case</label>
-          <select id="markCaseFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
-            <option value="">All Cases</option>
+          <label for="commodityFilter" class="block text-sm font-medium text-gray-700 mb-1">Commodity</label>
+          <select id="commodityFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Commodities</option>
           </select>
         </div>
       </div>
@@ -92,7 +92,7 @@ import Layout from '../../layouts/Layout.astro';
             </svg>
           </div>
           <div class="ml-4">
-            <h3 class="text-sm font-medium text-gray-500">Price Points</h3>
+            <h3 class="text-sm font-medium text-gray-500">Total Instances</h3>
             <p id="totalPricePoints" class="text-2xl font-bold text-gray-900">-</p>
           </div>
         </div>
@@ -141,13 +141,13 @@ import Layout from '../../layouts/Layout.astro';
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curve ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curve Name</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mark Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mark Case</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mark Date</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price Points</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instance Types</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instances</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -186,12 +186,40 @@ import Layout from '../../layouts/Layout.astro';
 
     async function loadCurves() {
       try {
-        const response = await fetch('/api/curves/list');
+        // Load curve definitions with their instances
+        const response = await fetch('/api/curves/definitions');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        allCurves = await response.json();
+        const definitions = await response.json();
+        
+        // Fetch instances for each definition
+        const curvesWithInstances = await Promise.all(
+          definitions.map(async (def) => {
+            try {
+              const instancesResp = await fetch(`/api/curves/instances?definitionId=${def.id}`);
+              const instances = instancesResp.ok ? await instancesResp.json() : [];
+              
+              // Extract unique curve types and commodities from instances
+              const types = [...new Set(instances.map(i => i.curveType).filter(Boolean))];
+              const commodities = [...new Set(instances.map(i => i.commodity).filter(Boolean))];
+              
+              return {
+                ...def,
+                instances,
+                instanceCount: instances.length,
+                curveTypes: types,
+                commodities: commodities
+              };
+            } catch (err) {
+              console.error(`Error loading instances for definition ${def.id}:`, err);
+              return { ...def, instances: [], instanceCount: 0, curveTypes: [], commodities: [] };
+            }
+          })
+        );
+        
+        allCurves = curvesWithInstances;
         filteredCurves = [...allCurves];
         
         updateStats();
@@ -218,26 +246,30 @@ import Layout from '../../layouts/Layout.astro';
     function updateStats() {
       const totalCurves = allCurves.length;
       const totalMarkets = new Set(allCurves.map(c => c.market)).size;
-      const totalPricePoints = allCurves.reduce((sum, c) => sum + parseInt(c.price_points || 0), 0);
+      const totalInstances = allCurves.reduce((sum, c) => sum + (c.instanceCount || 0), 0);
       const lastUpdated = allCurves.length > 0 ? 
-        new Date(Math.max(...allCurves.map(c => new Date(c.created_at)))).toLocaleDateString() : 'N/A';
+        new Date(Math.max(...allCurves.map(c => new Date(c.createdAt)))).toLocaleDateString() : 'N/A';
 
       document.getElementById('totalCurves').textContent = totalCurves;
       document.getElementById('totalMarkets').textContent = totalMarkets;
-      document.getElementById('totalPricePoints').textContent = totalPricePoints.toLocaleString();
+      document.getElementById('totalPricePoints').textContent = totalInstances;
       document.getElementById('lastUpdated').textContent = lastUpdated;
     }
 
     function populateFilters() {
       const markets = [...new Set(allCurves.map(c => c.market).filter(Boolean))].sort();
       const locations = [...new Set(allCurves.map(c => c.location).filter(Boolean))].sort();
-      const markTypes = [...new Set(allCurves.map(c => c.mark_type).filter(Boolean))].sort();
-      const markCases = [...new Set(allCurves.map(c => c.mark_case).filter(Boolean))].sort();
+      
+      // Collect all curve types and commodities from all instances
+      const allCurveTypes = allCurves.flatMap(c => c.curveTypes || []);
+      const allCommodities = allCurves.flatMap(c => c.commodities || []);
+      const curveTypes = [...new Set(allCurveTypes)].sort();
+      const commodities = [...new Set(allCommodities)].sort();
 
       populateSelectOptions('marketFilter', markets);
       populateSelectOptions('locationFilter', locations);
-      populateSelectOptions('markTypeFilter', markTypes);
-      populateSelectOptions('markCaseFilter', markCases);
+      populateSelectOptions('curveTypeFilter', curveTypes);
+      populateSelectOptions('commodityFilter', commodities);
     }
 
     function populateSelectOptions(selectId, options) {
@@ -263,7 +295,7 @@ import Layout from '../../layouts/Layout.astro';
     }
 
     function setupFilters() {
-      const filters = ['marketFilter', 'locationFilter', 'markTypeFilter', 'markCaseFilter'];
+      const filters = ['marketFilter', 'locationFilter', 'curveTypeFilter', 'commodityFilter'];
       filters.forEach(filterId => {
         document.getElementById(filterId).addEventListener('change', applyFilters);
       });
@@ -272,14 +304,14 @@ import Layout from '../../layouts/Layout.astro';
     function applyFilters() {
       const marketFilter = document.getElementById('marketFilter').value;
       const locationFilter = document.getElementById('locationFilter').value;
-      const markTypeFilter = document.getElementById('markTypeFilter').value;
-      const markCaseFilter = document.getElementById('markCaseFilter').value;
+      const curveTypeFilter = document.getElementById('curveTypeFilter').value;
+      const commodityFilter = document.getElementById('commodityFilter').value;
 
       filteredCurves = allCurves.filter(curve => {
         return (!marketFilter || curve.market === marketFilter) &&
                (!locationFilter || curve.location === locationFilter) &&
-               (!markTypeFilter || curve.mark_type === markTypeFilter) &&
-               (!markCaseFilter || curve.mark_case === markCaseFilter);
+               (!curveTypeFilter || (curve.curveTypes && curve.curveTypes.includes(curveTypeFilter))) &&
+               (!commodityFilter || (curve.commodities && curve.commodities.includes(commodityFilter)));
       });
 
       renderTable();
@@ -291,17 +323,35 @@ import Layout from '../../layouts/Layout.astro';
 
       filteredCurves.forEach(curve => {
         const row = document.createElement('tr');
+        
+        // Format instance types as badges
+        const typeBadges = (curve.curveTypes || []).map(type => 
+          `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1">${type}</span>`
+        ).join('');
+        
+        const commodityBadges = (curve.commodities || []).map(commodity => 
+          `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-1">${commodity}</span>`
+        ).join('');
+        
+        const instanceTypes = typeBadges || commodityBadges || 
+          '<span class="text-gray-400 text-xs italic">No instances</span>';
+        
         row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${curve.curve_id}</td>
+          <td class="px-6 py-4 text-sm font-medium text-gray-900">
+            <div class="font-semibold">${curve.curveName}</div>
+            <div class="text-xs text-gray-500">${curve.product || 'N/A'}</div>
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.market || 'N/A'}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.location || 'N/A'}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.mark_type || 'N/A'}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.mark_case || 'N/A'}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(curve.mark_date)}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.price_points || 0}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.product || 'N/A'}</td>
+          <td class="px-6 py-4 text-sm">${instanceTypes}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <span class="font-medium">${curve.instanceCount || 0}</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(curve.createdAt)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <a href="/curve-tracker/viewer?curve=${curve.curve_id}" class="text-blue-600 hover:text-blue-900 mr-4">View</a>
-            <button onclick="exportCurve(${curve.curve_id})" class="text-green-600 hover:text-green-900">Export</button>
+            <a href="/curve-tracker/viewer?definitionId=${curve.id}" class="text-blue-600 hover:text-blue-900 mr-4">View</a>
+            <button onclick="exportCurve(${curve.id})" class="text-green-600 hover:text-green-900">Export</button>
           </td>
         `;
         tbody.appendChild(row);

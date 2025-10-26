@@ -1,6 +1,59 @@
 import type { APIRoute } from 'astro';
 import { prisma } from '../../../lib/prisma';
 
+// GET endpoint to check setup status
+export const GET: APIRoute = async () => {
+  try {
+    // Check if delivery tables exist
+    const tableCheck = await prisma.$queryRaw`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'Forecasts' 
+        AND table_name = 'CurveDeliveryRequest'
+      ) as table_exists
+    `;
+    
+    const tableExists = (tableCheck as any)[0]?.table_exists;
+    
+    if (!tableExists) {
+      return new Response(JSON.stringify({
+        isSetup: false,
+        message: 'Delivery management tables not found. Run POST to setup.',
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check for delivery requests
+    const requestCount = await prisma.$queryRaw`
+      SELECT COUNT(*)::int as count 
+      FROM "Forecasts"."CurveDeliveryRequest"
+    `;
+    
+    return new Response(JSON.stringify({
+      isSetup: true,
+      requestCount: (requestCount as any)[0]?.count || 0,
+      message: 'Delivery management system is ready'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error('Error checking delivery setup:', error);
+    return new Response(JSON.stringify({
+      isSetup: false,
+      error: 'Failed to check setup status',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+};
+
+// POST endpoint to create setup
 export const POST: APIRoute = async () => {
   try {
     console.log('🚀 Setting up delivery management tables...');

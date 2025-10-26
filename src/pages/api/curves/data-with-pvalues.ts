@@ -16,7 +16,20 @@ export const GET: APIRoute = async ({ url }) => {
 
     const instanceIds = instanceIdsParam.split(',').map(Number);
 
-    // Fetch curve data with all p-values
+    // First check if any instances exist
+    const instanceCheck = await query(`
+      SELECT id FROM "Forecasts"."CurveInstance"
+      WHERE id = ANY($1)
+    `, [instanceIds]);
+    
+    if (instanceCheck.rows.length === 0) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Fetch curve data with all p-values (CurveData has pivoted columns)
     const result = await query(`
       SELECT 
         cd."timestamp",
@@ -43,11 +56,11 @@ export const GET: APIRoute = async ({ url }) => {
 
     const dataPoints = result.rows.map(row => ({
       timestamp: row.timestamp?.toISOString() ?? '',
-      valueP5: row.valueP5,
-      valueP25: row.valueP25,
-      valueP50: row.valueP50,
-      valueP75: row.valueP75,
-      valueP95: row.valueP95,
+      valueP5: row.valueP5 ?? null,
+      valueP25: row.valueP25 ?? null,
+      valueP50: row.valueP50 ?? null,
+      valueP75: row.valueP75 ?? null,
+      valueP95: row.valueP95 ?? null,
       instanceId: row.instanceId,
       instanceVersion: row.instanceVersion,
       curveName: row.curveName,

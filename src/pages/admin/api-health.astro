@@ -135,37 +135,49 @@ import Layout from '../../layouts/Layout.astro';
 </Layout>
 
 <script>
-  // Endpoint definitions
+  // Endpoint definitions - Updated with all current endpoints
   const endpoints = {
     core: [
-      { name: 'Locations API', url: '/api/locations', method: 'GET', description: 'Get available locations' },
-      { name: 'Health Check', url: '/api/health', method: 'GET', description: 'Basic system health' }
+      { name: 'Database Test', url: '/api/admin/test-prisma', method: 'GET', description: 'Test Prisma database connection' },
+      { name: 'Field Values (Autocomplete)', url: '/api/admin/curve-field-values', method: 'GET', description: 'Get unique field values for autocomplete' },
+      { name: 'Curve Locations', url: '/api/curves/locations', method: 'GET', description: 'Get available curve locations' },
+      { name: 'By Location Enhanced', url: '/api/curves/by-location-enhanced?market=CAISO&location=Houston', method: 'GET', description: 'Enhanced location-based curve query (requires params)' }
     ],
     curve: [
-      { name: 'List Curves', url: '/api/curves/list', method: 'GET', description: 'Get all curve instances' },
-      { name: 'Curve Definitions', url: '/api/curves/definitions', method: 'GET', description: 'Get curve definitions' },
-      { name: 'Curves by Location', url: '/api/curves/by-location?location=CAISO-Goleta', method: 'GET', description: 'Get curves for specific location' }
+      { name: 'List Curve Definitions', url: '/api/curves/definitions', method: 'GET', description: 'Get all curve definitions' },
+      { name: 'List Curve Instances', url: '/api/curves/instances?definitionId=1', method: 'GET', description: 'Get instances for a definition' },
+      { name: 'Curve Data', url: '/api/curves/data?curveInstanceId=1', method: 'GET', description: 'Get curve data points (may return empty if no data)' },
+      { name: 'Curve Data with P-Values', url: '/api/curves/data-with-pvalues?instanceIds=1', method: 'GET', description: 'Get data with all p-values (may return empty if no data)' },
+      { name: 'Curves by Location', url: '/api/curves/by-location?location=Houston', method: 'GET', description: 'Get curves for specific location' }
     ],
     upload: [
-      { name: 'Create Definition (Test)', url: '/api/curve-upload/create-definition', method: 'POST', description: 'Test curve definition creation', testData: {
-        curveName: 'Health Check Test',
+      { name: 'Create Definition', url: '/api/curve-upload/create-definition', method: 'POST', description: 'Create new curve definition', skipTest: true, testData: {
+        curveName: 'API_Health_Test_' + Date.now(),
         market: 'CAISO',
         location: 'Test Location',
-        product: 'Market Price Forecast',
-        curveType: 'ENERGY_ARB',
+        product: 'Test Product',
+        curveType: 'REVENUE',
         batteryDuration: 'FOUR_H',
-        granularity: 'HOURLY',
+        scenario: 'BASE',
+        degradationType: 'NONE',
+        commodity: 'Energy',
+        granularity: 'MONTHLY',
+        units: '$/MWh',
+        timezone: 'UTC',
         createdBy: 'Health Check'
       }},
-      { name: 'Upload Data Validation', url: '/api/curve-upload/upload-data', method: 'POST', description: 'Test data validation (expect error)', expectError: true, testData: {
+      { name: 'Create Instance', url: '/api/curve-upload/create-instance', method: 'POST', description: 'Create new curve instance', skipTest: true },
+      { name: 'Upload Data (Validation)', url: '/api/curve-upload/upload-data', method: 'POST', description: 'Data upload endpoint validation', expectError: true, testData: {
         curveInstanceId: 999999,
-        data: []
+        priceData: []
       }}
     ],
     admin: [
-      { name: 'Activity Logs', url: '/api/admin/activity-logs', method: 'GET', description: 'Get system activity logs' },
-      { name: 'Delivery Requests', url: '/api/delivery-request/list', method: 'GET', description: 'Get delivery request list' },
-      { name: 'Health Check', url: '/api/health', method: 'GET', description: 'System health status' }
+      { name: 'Get Definition for Edit', url: '/api/admin/edit-curve-definition?id=11', method: 'GET', description: 'Fetch definition for editing' },
+      { name: 'Get Instance for Edit', url: '/api/admin/edit-curve-instance?id=1', method: 'GET', description: 'Fetch instance for editing (may return 404 if no data)' },
+      { name: 'Delete Instance (Dry Run)', url: '/api/admin/edit-curve-instance', method: 'DELETE', description: 'Instance deletion endpoint', skipTest: true },
+      { name: 'Delivery Request List', url: '/api/delivery-request/list', method: 'GET', description: 'Get delivery request list' },
+      { name: 'Delivery Request Setup Status', url: '/api/delivery-request/setup', method: 'GET', description: 'Check delivery management setup status' }
     ]
   };
 
@@ -173,13 +185,24 @@ import Layout from '../../layouts/Layout.astro';
   let totalTests = 0;
   let completedTests = 0;
 
-  // Calculate total tests
+  // Calculate total tests (excluding skipped tests)
   Object.values(endpoints).forEach(category => {
-    totalTests += category.length;
+    totalTests += category.filter(e => !e.skipTest).length;
   });
 
   // Test individual endpoint
   async function testEndpoint(endpoint) {
+    // Skip destructive or creation tests
+    if (endpoint.skipTest) {
+      return {
+        status: 'skipped',
+        statusCode: 0,
+        responseTime: 0,
+        response: 'Test skipped (destructive operation)',
+        timestamp: new Date().toISOString()
+      };
+    }
+
     const startTime = Date.now();
     try {
       const options = {
@@ -197,10 +220,15 @@ import Layout from '../../layouts/Layout.astro';
       const responseTime = Date.now() - startTime;
       
       let responseData;
+      const contentType = response.headers.get('content-type');
       try {
-        responseData = await response.json();
+        if (contentType?.includes('application/json')) {
+          responseData = await response.json();
+        } else {
+          responseData = await response.text();
+        }
       } catch (e) {
-        responseData = await response.text();
+        responseData = { parseError: 'Could not parse response' };
       }
 
       const result = {
@@ -245,11 +273,13 @@ import Layout from '../../layouts/Layout.astro';
     
     const allResults = Object.values(testResults).flat();
     const errorCount = allResults.filter(r => r.status === 'error').length;
-    const totalCount = allResults.length;
+    const successCount = allResults.filter(r => r.status === 'success').length;
+    const skippedCount = allResults.filter(r => r.status === 'skipped').length;
+    const testedCount = allResults.length - skippedCount;
     
     let statusClass, statusText, indicatorColor;
     
-    if (totalCount === 0) {
+    if (testedCount === 0) {
       statusClass = 'border-gray-300 bg-gray-50';
       statusText = 'Unknown';
       indicatorColor = 'bg-gray-400';
@@ -258,17 +288,17 @@ import Layout from '../../layouts/Layout.astro';
       statusClass = 'border-green-300 bg-green-50';
       statusText = 'Healthy';
       indicatorColor = 'bg-green-500';
-      summary.textContent = `All ${totalCount} endpoints are working correctly`;
-    } else if (errorCount < totalCount / 2) {
+      summary.textContent = `All ${successCount} tested endpoints working correctly${skippedCount > 0 ? ` (${skippedCount} skipped)` : ''}`;
+    } else if (errorCount < testedCount / 2) {
       statusClass = 'border-yellow-300 bg-yellow-50';
       statusText = 'Warning';
       indicatorColor = 'bg-yellow-500';
-      summary.textContent = `${errorCount} of ${totalCount} endpoints have issues`;
+      summary.textContent = `${errorCount} of ${testedCount} endpoints have issues`;
     } else {
       statusClass = 'border-red-300 bg-red-50';
       statusText = 'Critical';
       indicatorColor = 'bg-red-500';
-      summary.textContent = `${errorCount} of ${totalCount} endpoints are failing`;
+      summary.textContent = `${errorCount} of ${testedCount} endpoints are failing`;
     }
     
     overallStatus.className = `mb-8 p-6 rounded-lg border-2 ${statusClass}`;
@@ -279,22 +309,29 @@ import Layout from '../../layouts/Layout.astro';
   function renderEndpointResult(endpoint, result) {
     const statusIcon = result.status === 'success' ? '✅' : 
                       result.status === 'error' ? '❌' : 
+                      result.status === 'skipped' ? '⏭️' :
                       result.status === 'unexpected-success' ? '⚠️' : '❓';
     
     const statusColor = result.status === 'success' ? 'text-green-600' : 
                        result.status === 'error' ? 'text-red-600' : 
+                       result.status === 'skipped' ? 'text-gray-500' :
                        'text-yellow-600';
     
+    const borderClass = result.status === 'error' ? 'border-red-200 bg-red-50' : 
+                       result.status === 'success' ? 'border-green-200 bg-green-50' : 
+                       result.status === 'skipped' ? 'border-gray-200 bg-gray-50' :
+                       'border-yellow-200 bg-yellow-50';
+    
     return `
-      <div class="border rounded-lg p-4 ${result.status === 'error' ? 'border-red-200 bg-red-50' : result.status === 'success' ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}">
+      <div class="border rounded-lg p-4 ${borderClass}">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center space-x-2">
             <span class="text-lg">${statusIcon}</span>
             <span class="font-medium text-gray-900">${endpoint.name}</span>
           </div>
           <div class="flex items-center space-x-2 text-sm">
-            <span class="${statusColor}">${result.statusCode}</span>
-            <span class="text-gray-500">${result.responseTime}ms</span>
+            ${result.statusCode > 0 ? `<span class="${statusColor}">${result.statusCode}</span>` : ''}
+            ${result.responseTime > 0 ? `<span class="text-gray-500">${result.responseTime}ms</span>` : ''}
           </div>
         </div>
         <p class="text-sm text-gray-600 mb-2">${endpoint.description}</p>
@@ -302,6 +339,12 @@ import Layout from '../../layouts/Layout.astro';
           <span class="font-mono bg-gray-100 px-2 py-1 rounded">${endpoint.method} ${endpoint.url}</span>
         </div>
         ${result.error ? `<div class="mt-2 text-sm text-red-600 font-mono bg-red-100 p-2 rounded">${result.error}</div>` : ''}
+        ${result.status === 'skipped' ? `<div class="mt-2 text-sm text-gray-600 italic">${result.response}</div>` : ''}
+        ${result.response && typeof result.response === 'object' && result.status === 'success' ? 
+          `<details class="mt-2">
+            <summary class="text-xs text-gray-600 cursor-pointer hover:text-gray-900">View Response</summary>
+            <pre class="text-xs bg-white p-2 rounded mt-1 overflow-x-auto border">${JSON.stringify(result.response, null, 2).substring(0, 500)}${JSON.stringify(result.response).length > 500 ? '...' : ''}</pre>
+          </details>` : ''}
       </div>
     `;
   }

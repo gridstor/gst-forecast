@@ -316,11 +316,11 @@ model CurveDefinition {
   market          String          @db.VarChar(50)
   location        String          @db.VarChar(100)
   product         String          @db.VarChar(100)
-  curveType       String          @default("REVENUE") @db.VarChar(100)  // Changed from enum to String
+  // curveType MOVED TO CurveInstance - allows multiple types per definition
+  // commodity MOVED TO CurveInstance - allows multiple commodities per definition
   batteryDuration String          @default("UNKNOWN") @db.VarChar(50)   // Changed from enum to String
   scenario        String          @default("BASE") @db.VarChar(100)     // Changed from enum to String
   degradationType String          @default("NONE") @db.VarChar(100)     // Changed from enum to String
-  commodity       String          @default("Energy") @db.VarChar(50)
   units           String          @default("$/MWh") @db.VarChar(50)
   granularity     String          @default("MONTHLY") @db.VarChar(20)  // MOVED FROM INSTANCE
   timezone        String          @default("UTC") @db.VarChar(50)
@@ -337,7 +337,7 @@ model CurveDefinition {
   defaultInputs DefaultCurveInput[]
 
   @@index([market, location])
-  @@index([curveType, batteryDuration, scenario])  // Still useful for searching
+  @@index([batteryDuration, scenario])  // Removed curveType from index
   @@index([granularity])
   @@index([isActive])
   @@index([createdAt])
@@ -348,6 +348,9 @@ model CurveInstance {
   id                  Int            @id @default(autoincrement())
   curveDefinitionId   Int
   instanceVersion     String         @db.VarChar(50)
+  // MOVED FROM CurveDefinition - allows multiple types/commodities per definition
+  curveType           String?        @db.VarChar(100)  // e.g., "REVENUE", "ENERGY_ARB", "AS"
+  commodity           String?        @db.VarChar(50)   // e.g., "Energy", "Capacity", "Ancillary Services"
   // granularity REMOVED - now in CurveDefinition
   deliveryPeriodStart DateTime       @db.Timestamptz(6)
   deliveryPeriodEnd   DateTime       @db.Timestamptz(6)
@@ -378,10 +381,10 @@ model CurveInstance {
   @@unique([curveDefinitionId, instanceVersion])
   @@index([curveDefinitionId])
   @@index([status])
+  @@index([curveType, commodity])  // NEW: Index for filtering by type/commodity
   @@index([freshnessStartDate, freshnessEndDate])
   @@index([deliveryPeriodStart, deliveryPeriodEnd])
   @@index([forecastRunDate])
-  // REMOVED: @@index([curveDefinitionId, granularity]) - granularity now in definition
   @@schema("Forecasts")
 }
 
@@ -410,8 +413,12 @@ model CurveData {
   id              Int      @id @default(autoincrement())
   curveInstanceId Int
   timestamp       DateTime @db.Timestamptz(6)
-  pValue          Int      // The percentile: 5, 25, 50, 75, 95, etc.
-  value           Float    // The actual value for this p-value
+  // WIDE FORMAT: Pre-pivoted p-value columns
+  valueP5         Float?   // P5 percentile value
+  valueP25        Float?   // P25 percentile value
+  valueP50        Float    @default(0) // P50 percentile value (median, required)
+  valueP75        Float?   // P75 percentile value
+  valueP95        Float?   // P95 percentile value
   flags           String[] @default([])
   createdAt       DateTime @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz(6)
@@ -419,11 +426,9 @@ model CurveData {
   // Relations
   curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
 
-  @@unique([curveInstanceId, timestamp, pValue])
-  @@index([curveInstanceId])
-  @@index([timestamp])
-  @@index([pValue])
-  @@index([curveInstanceId, timestamp])
+  @@index([curveInstanceId], map: "idx_curvedata_instance")
+  @@index([timestamp], map: "idx_curvedata_timestamp")
+  @@index([curveInstanceId, timestamp], map: "idx_curvedata_instance_timestamp")
   @@schema("Forecasts")
 }
 

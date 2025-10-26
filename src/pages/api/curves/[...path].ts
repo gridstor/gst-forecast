@@ -13,14 +13,12 @@ export const get: APIRoute = async ({ params, request }) => {
           cd."curveName" as curve_name,
           cd.market,
           cd.location,
-          cd.product,
-          cd."curveType" as curve_type,
           cd."createdAt" as created_at,
           COUNT(ci.id) as instance_count
         FROM "Forecasts"."CurveDefinition" cd
         LEFT JOIN "Forecasts"."CurveInstance" ci ON cd.id = ci."curveDefinitionId"
         WHERE cd."isActive" = true
-        GROUP BY cd.id, cd."curveName", cd.market, cd.location, cd.product, cd."curveType", cd."createdAt"
+        GROUP BY cd.id, cd."curveName", cd.market, cd.location, cd."createdAt"
         ORDER BY cd."createdAt" DESC
       `);
       

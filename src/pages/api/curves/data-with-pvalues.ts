@@ -40,13 +40,15 @@ export const GET: APIRoute = async ({ url }) => {
         cd."valueP95",
         ci.id as "instanceId",
         ci."instanceVersion",
+        ci."curveType",
+        ci.commodity,
+        ci.granularity,
+        ci.scenario,
+        ci."degradationType",
         def."curveName",
         def.location,
         def.market,
-        def.units,
-        def.granularity,
-        def.scenario,
-        def.product
+        def.units
       FROM "Forecasts"."CurveData" cd
       JOIN "Forecasts"."CurveInstance" ci ON cd."curveInstanceId" = ci.id
       JOIN "Forecasts"."CurveDefinition" def ON ci."curveDefinitionId" = def.id
@@ -67,9 +69,12 @@ export const GET: APIRoute = async ({ url }) => {
       location: row.location,
       market: row.market,
       units: row.units,
+      // These are now from instance:
+      curveType: row.curveType,
+      commodity: row.commodity,
       granularity: row.granularity,
       scenario: row.scenario,
-      product: row.product
+      degradationType: row.degradationType
     }));
 
     return new Response(JSON.stringify(dataPoints), {

@@ -14,15 +14,21 @@ export const GET: APIRoute = async () => {
       select: {
         market: true,
         location: true,
-        product: true,
-        commodity: true,
-        curveType: true,
+        // product, granularity, scenario, degradationType moved to instance level
         batteryDuration: true,
+        units: true,
+        timezone: true,
+      }
+    });
+
+    // Get curve instances for fields moved to instance level
+    const instances = await prisma.curveInstance.findMany({
+      select: {
+        curveType: true,
+        commodity: true,
+        granularity: true,
         scenario: true,
         degradationType: true,
-        units: true,
-        granularity: true,
-        timezone: true,
       }
     });
 
@@ -30,14 +36,15 @@ export const GET: APIRoute = async () => {
     const uniqueValues = {
       markets: [...new Set(definitions.map(d => d.market).filter(Boolean))].sort(),
       locations: [...new Set(definitions.map(d => d.location).filter(Boolean))].sort(),
-      products: [...new Set(definitions.map(d => d.product).filter(Boolean))].sort(),
-      commodities: [...new Set(definitions.map(d => d.commodity).filter(Boolean))].sort(),
-      curveTypes: [...new Set(definitions.map(d => d.curveType).filter(Boolean))].sort(),
+      // These now come from instances:
+      commodities: [...new Set(instances.map(i => i.commodity).filter(Boolean))].sort(),
+      curveTypes: [...new Set(instances.map(i => i.curveType).filter(Boolean))].sort(),
+      granularities: [...new Set(instances.map(i => i.granularity).filter(Boolean))].sort(),
+      scenarios: [...new Set(instances.map(i => i.scenario).filter(Boolean))].sort(),
+      degradationTypes: [...new Set(instances.map(i => i.degradationType).filter(Boolean))].sort(),
+      // These still come from definitions:
       batteryDurations: [...new Set(definitions.map(d => d.batteryDuration).filter(Boolean))].sort(),
-      scenarios: [...new Set(definitions.map(d => d.scenario).filter(Boolean))].sort(),
-      degradationTypes: [...new Set(definitions.map(d => d.degradationType).filter(Boolean))].sort(),
       units: [...new Set(definitions.map(d => d.units).filter(Boolean))].sort(),
-      granularities: [...new Set(definitions.map(d => d.granularity).filter(Boolean))].sort(),
       timezones: [...new Set(definitions.map(d => d.timezone).filter(Boolean))].sort(),
     };
 
@@ -46,23 +53,24 @@ export const GET: APIRoute = async () => {
     const allValues = {
       markets: uniqueValues.markets.length > 0 ? uniqueValues.markets : ['CAISO', 'ERCOT', 'PJM'],
       locations: uniqueValues.locations,
-      products: uniqueValues.products,
-      commodities: uniqueValues.commodities.length > 0 ? uniqueValues.commodities : ['Energy'],
-      curveTypes: uniqueValues.curveTypes.length > 0 ? uniqueValues.curveTypes : ['REVENUE'],
-      batteryDurations: uniqueValues.batteryDurations.length > 0 ? uniqueValues.batteryDurations : ['UNKNOWN'],
-      scenarios: uniqueValues.scenarios.length > 0 ? uniqueValues.scenarios : ['BASE'],
-      degradationTypes: uniqueValues.degradationTypes.length > 0 ? uniqueValues.degradationTypes : ['NONE'],
-      units: uniqueValues.units.length > 0 ? uniqueValues.units : ['$/MWh'],
-      granularities: uniqueValues.granularities.length > 0 ? uniqueValues.granularities : ['MONTHLY'],
-      timezones: uniqueValues.timezones.length > 0 ? uniqueValues.timezones : ['UTC'],
+      // All these now come from instances:
+      commodities: uniqueValues.commodities.length > 0 ? uniqueValues.commodities : ['Total Revenue', 'EA Revenue', 'AS Revenue'],
+      curveTypes: uniqueValues.curveTypes.length > 0 ? uniqueValues.curveTypes : ['Revenue Forecast', 'Price Forecast'],
+      granularities: uniqueValues.granularities.length > 0 ? uniqueValues.granularities : ['MONTHLY', 'QUARTERLY', 'ANNUAL'],
+      scenarios: uniqueValues.scenarios.length > 0 ? uniqueValues.scenarios : ['BASE', 'HIGH', 'LOW'],
+      degradationTypes: uniqueValues.degradationTypes.length > 0 ? uniqueValues.degradationTypes : ['NONE', 'YEAR_1', 'YEAR_5', 'YEAR_10'],
+      // These still from definitions:
+      batteryDurations: uniqueValues.batteryDurations.length > 0 ? uniqueValues.batteryDurations : ['2H', '4H', '8H'],
+      units: uniqueValues.units.length > 0 ? uniqueValues.units : ['$/MWh', '$/kW-month', 'MWh'],
+      timezones: uniqueValues.timezones.length > 0 ? uniqueValues.timezones : ['UTC', 'America/Los_Angeles', 'America/New_York'],
     };
 
     // Also provide statistics
     const stats = {
       totalDefinitions: definitions.length,
+      totalInstances: instances.length,
       uniqueMarkets: allValues.markets.length,
       uniqueLocations: allValues.locations.length,
-      uniqueProducts: allValues.products.length,
     };
 
     return new Response(JSON.stringify({
@@ -89,4 +97,3 @@ export const GET: APIRoute = async () => {
     await prisma.$disconnect();
   }
 };
-

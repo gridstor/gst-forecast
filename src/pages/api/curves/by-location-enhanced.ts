@@ -24,7 +24,12 @@ export const GET: APIRoute = async ({ url }) => {
           ci."instanceVersion",
           ci.status,
           ci."createdAt",
-          ci."createdBy"
+          ci."createdBy",
+          ci."curveType",
+          ci.commodity,
+          ci.granularity,
+          ci.scenario,
+          ci."degradationType"
         FROM "Forecasts"."CurveInstance" ci
         WHERE ci.status = 'ACTIVE'
         ORDER BY ci."curveDefinitionId", ci."createdAt" DESC
@@ -34,20 +39,20 @@ export const GET: APIRoute = async ({ url }) => {
         cd."curveName",
         cd.market,
         cd.location,
-        cd.product,
-        cd."curveType",
         cd."batteryDuration",
-        cd.scenario,
-        cd."degradationType",
-        cd.commodity,
         cd.units,
-        cd.granularity,
+        cd.timezone,
         cd.description,
         li."instanceId",
         li."instanceVersion",
         li.status,
         li."createdAt" as "instanceCreatedAt",
-        li."createdBy"
+        li."createdBy",
+        li."curveType",
+        li.commodity,
+        li.granularity,
+        li.scenario,
+        li."degradationType"
       FROM "Forecasts"."CurveDefinition" cd
       LEFT JOIN LatestInstances li ON cd.id = li."curveDefinitionId"
       WHERE cd.market = $1 
@@ -61,21 +66,22 @@ export const GET: APIRoute = async ({ url }) => {
       curveName: row.curveName,
       market: row.market,
       location: row.location,
-      product: row.product,
-      curveType: row.curveType,
       batteryDuration: row.batteryDuration,
-      scenario: row.scenario,
-      degradationType: row.degradationType,
-      commodity: row.commodity,
       units: row.units,
-      granularity: row.granularity,
+      timezone: row.timezone,
       description: row.description,
       latestInstance: row.instanceId ? {
         instanceId: row.instanceId,
         instanceVersion: row.instanceVersion,
         status: row.status,
         createdAt: row.instanceCreatedAt,
-        createdBy: row.createdBy
+        createdBy: row.createdBy,
+        // These are now on instance level:
+        curveType: row.curveType,
+        commodity: row.commodity,
+        granularity: row.granularity,
+        scenario: row.scenario,
+        degradationType: row.degradationType
       } : null
     }));
 

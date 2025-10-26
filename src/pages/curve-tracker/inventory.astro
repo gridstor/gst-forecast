@@ -144,9 +144,8 @@ import Layout from '../../layouts/Layout.astro';
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curve Name</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instance Types</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instances</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instance Details</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -333,18 +332,19 @@ import Layout from '../../layouts/Layout.astro';
           `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-1">${commodity}</span>`
         ).join('');
         
-        const instanceTypes = typeBadges || commodityBadges || 
+        const instanceDetails = typeBadges || commodityBadges || 
           '<span class="text-gray-400 text-xs italic">No instances</span>';
         
         row.innerHTML = `
           <td class="px-6 py-4 text-sm font-medium text-gray-900">
             <div class="font-semibold">${curve.curveName}</div>
-            <div class="text-xs text-gray-500">${curve.product || 'N/A'}</div>
+            <div class="text-xs text-gray-500">${curve.description || curve.batteryDuration || ''}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.market || 'N/A'}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.location || 'N/A'}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.product || 'N/A'}</td>
-          <td class="px-6 py-4 text-sm">${instanceTypes}</td>
+          <td class="px-6 py-4 text-sm">
+            ${instanceDetails}
+          </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
             <span class="font-medium">${curve.instanceCount || 0}</span>
           </td>

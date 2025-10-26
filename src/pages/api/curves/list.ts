@@ -11,8 +11,7 @@ export const GET: APIRoute = async ({ request }) => {
             curveName: true,
             market: true,
             location: true,
-            product: true,
-            curveType: true
+            product: true
           }
         }
       },
@@ -27,12 +26,14 @@ export const GET: APIRoute = async ({ request }) => {
       curveName: instance.curveDefinition.curveName,
       market: instance.curveDefinition.market,
       location: instance.curveDefinition.location,
-      product: instance.curveDefinition.product,
-      curveType: instance.curveDefinition.curveType,
-      instanceVersion: instance.instanceVersion,
-      createdBy: instance.createdBy,
+      // All these are now on instance level:
+      curveType: instance.curveType,
+      commodity: instance.commodity,
+      granularity: instance.granularity,
       scenario: instance.scenario,
       degradationType: instance.degradationType,
+      instanceVersion: instance.instanceVersion,
+      createdBy: instance.createdBy,
       createdAt: instance.createdAt
     }));
 

@@ -11,35 +11,27 @@ export const POST: APIRoute = async ({ request }) => {
       curveName,
       market,
       location,
-      product,
-      curveType,
       batteryDuration,
-      commodity = 'Energy',
       units = '$/MWh',
-      granularity = 'MONTHLY',
+      timezone = 'UTC',
+      description,
       createdBy = 'Upload System'
     } = body;
 
-    // Validate required fields
-    if (!curveName || !market || !location || !product || !curveType) {
+    // Validate required fields (now much simpler!)
+    if (!curveName || !market || !location) {
       return new Response(
         JSON.stringify({ 
-          error: 'Missing required fields: curveName, market, location, product, curveType' 
+          error: 'Missing required fields: curveName, market, location' 
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Try to find existing curve definition first
-    let curveDefinition = await prisma.curveDefinition.findFirst({
+    // Try to find existing curve definition first (by name only - it should be unique)
+    let curveDefinition = await prisma.curveDefinition.findUnique({
       where: {
-        curveName,
-        market,
-        location,
-        product,
-        curveType: curveType as any,
-        batteryDuration: (batteryDuration || 'UNKNOWN') as any,
-        granularity: granularity || 'MONTHLY'
+        curveName
       }
     });
 
@@ -50,14 +42,11 @@ export const POST: APIRoute = async ({ request }) => {
           curveName,
           market,
           location,
-          product,
-          curveType: curveType as any, // Enum field
-          batteryDuration: (batteryDuration || 'UNKNOWN') as any, // Enum field
-          scenario: 'BASE' as any, // Default enum
-          degradationType: 'NONE' as any, // Default enum
-          commodity,
+          // product, curveType, commodity, granularity, scenario, degradationType removed
+          batteryDuration: batteryDuration || 'UNKNOWN',
           units,
-          granularity: granularity || 'MONTHLY',
+          timezone,
+          description,
           createdBy
         }
       });

@@ -15,7 +15,13 @@ export const POST: APIRoute = async ({ request }) => {
       forecastRunDate,
       createdBy = 'Upload System',
       notes,
-      modelType
+      modelType,
+      // NEW: Fields moved from CurveDefinition
+      curveType,
+      commodity,
+      granularity,
+      scenario,
+      degradationType
     } = body;
 
     // Validate required fields
@@ -70,7 +76,13 @@ export const POST: APIRoute = async ({ request }) => {
         runType: 'MANUAL',
         createdBy,
         notes,
-        modelType
+        modelType,
+        // NEW: Fields moved from CurveDefinition
+        curveType,
+        commodity,
+        granularity,
+        scenario,
+        degradationType
       },
       include: {
         curveDefinition: true

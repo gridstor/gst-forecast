@@ -237,66 +237,15 @@ import Layout from '../../layouts/Layout.astro';
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
-              <input type="text" id="defLocation" class="w-full px-3 py-2 border rounded-md" placeholder="Type or select from existing" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Product *</label>
-              <input type="text" id="defProduct" class="w-full px-3 py-2 border rounded-md" placeholder="Type or select from existing" required />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Curve Type *</label>
-              <select id="defCurveType" class="w-full px-3 py-2 border rounded-md" required>
-                <option value="">Select</option>
-                <option value="REVENUE">Revenue</option>
-                <option value="ENERGY">Energy</option>
-                <option value="AS">Ancillary Services</option>
-                <option value="RA">Resource Adequacy</option>
-              </select>
+              <input type="text" id="defLocation" class="w-full px-3 py-2 border rounded-md" placeholder="e.g., SP15, Houston" required />
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Battery Duration</label>
               <select id="defBatteryDuration" class="w-full px-3 py-2 border rounded-md">
                 <option value="UNKNOWN">Unknown</option>
-                <option value="TWO_H">2 Hours</option>
-                <option value="FOUR_H">4 Hours</option>
-                <option value="EIGHT_H">8 Hours</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Commodity</label>
-              <input type="text" id="defCommodity" value="Energy" placeholder="Energy, Capacity, etc." class="w-full px-3 py-2 border rounded-md" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Scenario</label>
-              <select id="defScenario" class="w-full px-3 py-2 border rounded-md">
-                <option value="BASE">Base</option>
-                <option value="HIGH">High</option>
-                <option value="LOW">Low</option>
-                <option value="P50">P50</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Degradation Type</label>
-              <select id="defDegradationType" class="w-full px-3 py-2 border rounded-md">
-                <option value="NONE">None</option>
-                <option value="YEAR_1">Year 1</option>
-                <option value="YEAR_5">Year 5</option>
-                <option value="YEAR_10">Year 10</option>
-                <option value="YEAR_20">Year 20</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-              <input type="text" id="defTimezone" value="UTC" placeholder="UTC, America/Los_Angeles, etc." class="w-full px-3 py-2 border rounded-md" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Granularity *</label>
-              <select id="defGranularity" class="w-full px-3 py-2 border rounded-md" required>
-                <option value="HOURLY">Hourly</option>
-                <option value="DAILY">Daily</option>
-                <option value="MONTHLY">Monthly</option>
-                <option value="QUARTERLY">Quarterly</option>
-                <option value="ANNUAL">Annual</option>
+                <option value="2H">2 Hours</option>
+                <option value="4H">4 Hours</option>
+                <option value="8H">8 Hours</option>
               </select>
             </div>
             <div>
@@ -310,6 +259,14 @@ import Layout from '../../layouts/Layout.astro';
                 <option value="MW">MW</option>
                 <option value="%">%</option>
               </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+              <input type="text" id="defTimezone" value="UTC" placeholder="UTC, America/Los_Angeles, etc." class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea id="defDescription" rows="2" class="w-full px-3 py-2 border rounded-md" placeholder="Optional description"></textarea>
             </div>
           </div>
         </div>
@@ -337,6 +294,57 @@ import Layout from '../../layouts/Layout.astro';
               <label class="block text-sm font-medium text-gray-700 mb-1">Instance Version *</label>
               <input type="text" id="instVersion" placeholder="e.g., v1.0, 2024-Q1" class="w-full px-3 py-2 border rounded-md" required />
             </div>
+            
+            <!-- MOVED FROM DEFINITION: Instance-specific fields -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Curve Type *</label>
+              <select id="instCurveType" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="">Select</option>
+                <option value="Revenue Forecast">Revenue Forecast</option>
+                <option value="Price Forecast">Price Forecast</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Commodity *</label>
+              <select id="instCommodity" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="">Select</option>
+                <option value="Total Revenue">Total Revenue</option>
+                <option value="EA Revenue">EA Revenue</option>
+                <option value="AS Revenue">AS Revenue</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Granularity *</label>
+              <select id="instGranularity" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUAL">Annual</option>
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Scenario</label>
+              <select id="instScenario" class="w-full px-3 py-2 border rounded-md">
+                <option value="BASE">Base</option>
+                <option value="HIGH">High</option>
+                <option value="LOW">Low</option>
+                <option value="P50">P50</option>
+                <option value="P90">P90</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Degradation Type</label>
+              <select id="instDegradationType" class="w-full px-3 py-2 border rounded-md">
+                <option value="NONE">None</option>
+                <option value="YEAR_1">Year 1</option>
+                <option value="YEAR_5">Year 5</option>
+                <option value="YEAR_10">Year 10</option>
+                <option value="YEAR_15">Year 15</option>
+                <option value="YEAR_20">Year 20</option>
+              </select>
+            </div>
+            
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Period Start *</label>
               <input type="date" id="instStartDate" class="w-full px-3 py-2 border rounded-md" required />
@@ -821,15 +829,11 @@ import Layout from '../../layouts/Layout.astro';
       curveName: (document.getElementById('defCurveName') as HTMLInputElement).value,
       market: (document.getElementById('defMarket') as HTMLSelectElement).value,
       location: (document.getElementById('defLocation') as HTMLInputElement).value,
-      product: (document.getElementById('defProduct') as HTMLInputElement).value,
-      commodity: (document.getElementById('defCommodity') as HTMLInputElement)?.value || 'Energy',
-      curveType: (document.getElementById('defCurveType') as HTMLSelectElement).value,
+      // product, commodity, curveType, scenario, degradationType, granularity removed - now on instance
       batteryDuration: (document.getElementById('defBatteryDuration') as HTMLSelectElement).value,
-      scenario: (document.getElementById('defScenario') as HTMLSelectElement)?.value || 'BASE',
-      degradationType: (document.getElementById('defDegradationType') as HTMLSelectElement)?.value || 'NONE',
-      granularity: (document.getElementById('defGranularity') as HTMLSelectElement).value,
-      units: (document.getElementById('defUnits') as HTMLInputElement).value,
-      timezone: (document.getElementById('defTimezone') as HTMLInputElement)?.value || 'UTC'
+      units: (document.getElementById('defUnits') as HTMLSelectElement).value,
+      timezone: (document.getElementById('defTimezone') as HTMLInputElement)?.value || 'UTC',
+      description: (document.getElementById('defDescription') as HTMLTextAreaElement)?.value
     };
 
     try {
@@ -888,7 +892,13 @@ import Layout from '../../layouts/Layout.astro';
       deliveryPeriodEnd: (document.getElementById('instEndDate') as HTMLInputElement).value,
       modelType: (document.getElementById('instModelType') as HTMLInputElement).value,
       createdBy: (document.getElementById('instCreatedBy') as HTMLInputElement).value,
-      notes: (document.getElementById('instNotes') as HTMLTextAreaElement).value
+      notes: (document.getElementById('instNotes') as HTMLTextAreaElement).value,
+      // NEW: Fields moved from definition to instance
+      curveType: (document.getElementById('instCurveType') as HTMLSelectElement).value,
+      commodity: (document.getElementById('instCommodity') as HTMLSelectElement).value,
+      granularity: (document.getElementById('instGranularity') as HTMLSelectElement).value,
+      scenario: (document.getElementById('instScenario') as HTMLSelectElement)?.value || 'BASE',
+      degradationType: (document.getElementById('instDegradationType') as HTMLSelectElement)?.value || 'NONE'
     };
 
     try {
@@ -1025,9 +1035,9 @@ import Layout from '../../layouts/Layout.astro';
 
   // Helper functions
   function clearDefForm() {
-    ['defCurveName', 'defMarket', 'defLocation', 'defProduct', 'defCurveType', 'defBatteryDuration', 'defGranularity', 'defUnits'].forEach(id => {
+    ['defCurveName', 'defMarket', 'defLocation', 'defBatteryDuration', 'defUnits', 'defTimezone', 'defDescription'].forEach(id => {
       const el = document.getElementById(id) as any;
-      if (el) el.value = id === 'defUnits' ? '$/MWh' : (id === 'defBatteryDuration' ? 'UNKNOWN' : '');
+      if (el) el.value = id === 'defUnits' ? '$/MWh' : (id === 'defBatteryDuration' ? 'UNKNOWN' : (id === 'defTimezone' ? 'UTC' : ''));
     });
   }
 
@@ -1035,22 +1045,32 @@ import Layout from '../../layouts/Layout.astro';
     (document.getElementById('defCurveName') as HTMLInputElement).value = def.curveName;
     (document.getElementById('defMarket') as HTMLSelectElement).value = def.market;
     (document.getElementById('defLocation') as HTMLInputElement).value = def.location;
-    (document.getElementById('defProduct') as HTMLInputElement).value = def.product || '';
-    (document.getElementById('defCurveType') as HTMLSelectElement).value = def.curveType;
-    (document.getElementById('defBatteryDuration') as HTMLSelectElement).value = def.batteryDuration;
-    (document.getElementById('defGranularity') as HTMLSelectElement).value = def.granularity;
+    (document.getElementById('defBatteryDuration') as HTMLSelectElement).value = def.batteryDuration || 'UNKNOWN';
     (document.getElementById('defUnits') as HTMLSelectElement).value = def.units || '$/MWh';
+    (document.getElementById('defTimezone') as HTMLInputElement).value = def.timezone || 'UTC';
+    (document.getElementById('defDescription') as HTMLTextAreaElement).value = def.description || '';
   }
 
   function clearInstForm() {
-    ['instVersion', 'instStartDate', 'instEndDate', 'instModelType', 'instCreatedBy', 'instNotes'].forEach(id => {
+    ['instVersion', 'instCurveType', 'instCommodity', 'instGranularity', 'instScenario', 'instDegradationType', 'instStartDate', 'instEndDate', 'instModelType', 'instCreatedBy', 'instNotes'].forEach(id => {
       const el = document.getElementById(id) as any;
-      if (el) el.value = id === 'instCreatedBy' ? 'Upload System' : '';
+      if (el) {
+        if (id === 'instCreatedBy') el.value = 'Upload System';
+        else if (id === 'instGranularity') el.value = 'MONTHLY';
+        else if (id === 'instScenario') el.value = 'BASE';
+        else if (id === 'instDegradationType') el.value = 'NONE';
+        else el.value = '';
+      }
     });
   }
 
   function fillInstForm(inst: any) {
     (document.getElementById('instVersion') as HTMLInputElement).value = inst.instanceVersion;
+    (document.getElementById('instCurveType') as HTMLSelectElement).value = inst.curveType || '';
+    (document.getElementById('instCommodity') as HTMLSelectElement).value = inst.commodity || '';
+    (document.getElementById('instGranularity') as HTMLSelectElement).value = inst.granularity || 'MONTHLY';
+    (document.getElementById('instScenario') as HTMLSelectElement).value = inst.scenario || 'BASE';
+    (document.getElementById('instDegradationType') as HTMLSelectElement).value = inst.degradationType || 'NONE';
     (document.getElementById('instStartDate') as HTMLInputElement).value = inst.deliveryPeriodStart.split('T')[0];
     (document.getElementById('instEndDate') as HTMLInputElement).value = inst.deliveryPeriodEnd.split('T')[0];
     (document.getElementById('instModelType') as HTMLInputElement).value = inst.modelType || '';

@@ -140,6 +140,7 @@ import Layout from '../../layouts/Layout.astro';
                 <option value="PJM">PJM</option>
                 <option value="MISO">MISO</option>
                 <option value="NYISO">NYISO</option>
+                <option value="ISO-NE">ISO-NE</option>
                 <option value="SPP">SPP</option>
               </select>
             </div>
@@ -148,96 +149,24 @@ import Layout from '../../layouts/Layout.astro';
               <input type="text" id="editDefLocation" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
             </div>
             <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Product *</label>
-              <input type="text" id="editDefProduct" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Commodity</label>
-              <input type="text" id="editDefCommodity" placeholder="Energy" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Curve Characteristics -->
-        <div class="mb-6">
-          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Curve Characteristics</h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Type *</label>
-              <select id="editDefCurveType" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
-                <option value="REVENUE">Revenue</option>
-                <option value="REVENUE_OTHER">Revenue Other</option>
-                <option value="ENERGY">Energy</option>
-                <option value="ENERGY_ARB">Energy Arbitrage</option>
-                <option value="AS">Ancillary Services</option>
-                <option value="TB2">2-Hour Battery</option>
-                <option value="TB4">4-Hour Battery</option>
-                <option value="RA">Resource Adequacy</option>
-                <option value="DA">Day-Ahead</option>
-                <option value="RT">Real-Time</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-            <div>
               <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Battery Duration</label>
               <select id="editDefBatteryDuration" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
-                <option value="TWO_H">2H</option>
-                <option value="TWO_POINT_SIX_H">2.6H</option>
-                <option value="FOUR_H">4H</option>
-                <option value="EIGHT_H">8H</option>
                 <option value="UNKNOWN">Unknown</option>
-                <option value="OTHER">Other</option>
+                <option value="2H">2 Hours</option>
+                <option value="4H">4 Hours</option>
+                <option value="8H">8 Hours</option>
               </select>
             </div>
             <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Scenario</label>
-              <select id="editDefScenario" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
-                <option value="BASE">Base</option>
-                <option value="LOW">Low</option>
-                <option value="HIGH">High</option>
-                <option value="P50">P50</option>
-                <option value="P90">P90</option>
-                <option value="P10">P10</option>
-                <option value="DOWNSIDE">Downside</option>
-                <option value="UPSIDE">Upside</option>
-                <option value="WORST">Worst</option>
-                <option value="BEST">Best</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Degradation Type</label>
-              <select id="editDefDegradationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
-                <option value="NONE">None</option>
-                <option value="YEAR_1">Year 1</option>
-                <option value="YEAR_2">Year 2</option>
-                <option value="YEAR_5">Year 5</option>
-                <option value="YEAR_10">Year 10</option>
-                <option value="YEAR_15">Year 15</option>
-                <option value="YEAR_20">Year 20</option>
-                <option value="CUSTOM">Custom</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Data Settings -->
-        <div class="mb-6">
-          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Data Settings</h4>
-          <div class="grid grid-cols-3 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Units</label>
-              <input type="text" id="editDefUnits" placeholder="$/MWh" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Granularity</label>
-              <select id="editDefGranularity" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
-                <option value="HOURLY">Hourly</option>
-                <option value="DAILY">Daily</option>
-                <option value="MONTHLY">Monthly</option>
-                <option value="QUARTERLY">Quarterly</option>
-                <option value="ANNUAL">Annual</option>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Units *</label>
+              <select id="editDefUnits" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="$/MWh">$/MWh</option>
+                <option value="$/kW-month">$/kW-month</option>
+                <option value="$/MW">$/MW</option>
+                <option value="$/kW">$/kW</option>
+                <option value="MWh">MWh</option>
+                <option value="MW">MW</option>
+                <option value="%">%</option>
               </select>
             </div>
             <div>
@@ -312,6 +241,61 @@ import Layout from '../../layouts/Layout.astro';
             <div>
               <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Created By</label>
               <input type="text" id="editInstCreatedBy" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Instance-Specific Fields (moved from Definition) -->
+        <div class="mb-6">
+          <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Curve Characteristics</h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Type *</label>
+              <select id="editInstCurveType" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="">Select</option>
+                <option value="Revenue Forecast">Revenue Forecast</option>
+                <option value="Price Forecast">Price Forecast</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Commodity *</label>
+              <select id="editInstCommodity" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="">Select</option>
+                <option value="Total Revenue">Total Revenue</option>
+                <option value="EA Revenue">EA Revenue</option>
+                <option value="AS Revenue">AS Revenue</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Granularity *</label>
+              <select id="editInstGranularity" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUAL">Annual</option>
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Scenario</label>
+              <select id="editInstScenario" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="BASE">Base</option>
+                <option value="HIGH">High</option>
+                <option value="LOW">Low</option>
+                <option value="P50">P50</option>
+                <option value="P90">P90</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Degradation Type</label>
+              <select id="editInstDegradationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                <option value="NONE">None</option>
+                <option value="YEAR_1">Year 1</option>
+                <option value="YEAR_5">Year 5</option>
+                <option value="YEAR_10">Year 10</option>
+                <option value="YEAR_15">Year 15</option>
+                <option value="YEAR_20">Year 20</option>
+              </select>
             </div>
           </div>
         </div>
@@ -433,6 +417,7 @@ import Layout from '../../layouts/Layout.astro';
       <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedDef?.id === d.id ? 'bg-[#EFF6FF] border-[#3B82F6]' : 'bg-white border-[#E5E7EB]'}" data-def-id="${d.id}">
         <div class="font-semibold text-sm text-[#111827]">${d.curveName}</div>
         <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.market} • ${d.location}</div>
+        <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.batteryDuration} • ${d.units || '$/MWh'}</div>
         <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.instanceCount || 0} instances</div>
       </div>
     `).join('');
@@ -505,6 +490,8 @@ import Layout from '../../layouts/Layout.astro';
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">ID:</span><span>${def.id}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Market:</span><span>${def.market}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Location:</span><span>${def.location}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Battery:</span><span>${def.batteryDuration || 'N/A'}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Units:</span><span>${def.units || 'N/A'}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Instances:</span><span>${def.instanceCount || 0}</span></div>
           </div>
         </div>
@@ -527,6 +514,9 @@ import Layout from '../../layouts/Layout.astro';
           <div class="text-xs text-[#6B7280] space-y-2 font-mono">
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">ID:</span><span>${inst.id}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Status:</span><span>${inst.status}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Type:</span><span>${inst.curveType || 'N/A'}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Commodity:</span><span>${inst.commodity || 'N/A'}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Granularity:</span><span>${inst.granularity || 'N/A'}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Period:</span><span>${inst.deliveryPeriodStart.split('T')[0]} to ${inst.deliveryPeriodEnd.split('T')[0]}</span></div>
           </div>
         </div>
@@ -626,19 +616,13 @@ import Layout from '../../layouts/Layout.astro';
       const res = await fetch(`/api/admin/edit-curve-definition?id=${id}`);
       const def = await res.json();
       
-      // Populate form
+      // Populate form - only fields that belong on Definition
       (document.getElementById('editDefId') as HTMLInputElement).value = def.id;
       (document.getElementById('editDefName') as HTMLInputElement).value = def.curveName || '';
       (document.getElementById('editDefMarket') as HTMLSelectElement).value = def.market || 'CAISO';
       (document.getElementById('editDefLocation') as HTMLInputElement).value = def.location || '';
-      (document.getElementById('editDefProduct') as HTMLInputElement).value = def.product || '';
-      (document.getElementById('editDefCommodity') as HTMLInputElement).value = def.commodity || 'Energy';
-      (document.getElementById('editDefCurveType') as HTMLSelectElement).value = def.curveType || 'REVENUE';
       (document.getElementById('editDefBatteryDuration') as HTMLSelectElement).value = def.batteryDuration || 'UNKNOWN';
-      (document.getElementById('editDefScenario') as HTMLSelectElement).value = def.scenario || 'BASE';
-      (document.getElementById('editDefDegradationType') as HTMLSelectElement).value = def.degradationType || 'NONE';
-      (document.getElementById('editDefUnits') as HTMLInputElement).value = def.units || '$/MWh';
-      (document.getElementById('editDefGranularity') as HTMLSelectElement).value = def.granularity || 'MONTHLY';
+      (document.getElementById('editDefUnits') as HTMLSelectElement).value = def.units || '$/MWh';
       (document.getElementById('editDefTimezone') as HTMLInputElement).value = def.timezone || 'UTC';
       (document.getElementById('editDefDescription') as HTMLTextAreaElement).value = def.description || '';
       (document.getElementById('editDefIsActive') as HTMLInputElement).checked = def.isActive ?? true;
@@ -662,6 +646,13 @@ import Layout from '../../layouts/Layout.astro';
       (document.getElementById('editInstStatus') as HTMLSelectElement).value = inst.status || 'DRAFT';
       (document.getElementById('editInstRunType') as HTMLSelectElement).value = inst.runType || 'MANUAL';
       (document.getElementById('editInstCreatedBy') as HTMLInputElement).value = inst.createdBy || '';
+      
+      // NEW: Instance-specific fields moved from Definition
+      (document.getElementById('editInstCurveType') as HTMLSelectElement).value = inst.curveType || '';
+      (document.getElementById('editInstCommodity') as HTMLSelectElement).value = inst.commodity || '';
+      (document.getElementById('editInstGranularity') as HTMLSelectElement).value = inst.granularity || 'MONTHLY';
+      (document.getElementById('editInstScenario') as HTMLSelectElement).value = inst.scenario || 'BASE';
+      (document.getElementById('editInstDegradationType') as HTMLSelectElement).value = inst.degradationType || 'NONE';
       
       // Dates - convert to local datetime format
       if (inst.deliveryPeriodStart) {
@@ -740,14 +731,8 @@ import Layout from '../../layouts/Layout.astro';
       curveName: (document.getElementById('editDefName') as HTMLInputElement).value,
       market: (document.getElementById('editDefMarket') as HTMLSelectElement).value,
       location: (document.getElementById('editDefLocation') as HTMLInputElement).value,
-      product: (document.getElementById('editDefProduct') as HTMLInputElement).value,
-      commodity: (document.getElementById('editDefCommodity') as HTMLInputElement).value,
-      curveType: (document.getElementById('editDefCurveType') as HTMLSelectElement).value,
       batteryDuration: (document.getElementById('editDefBatteryDuration') as HTMLSelectElement).value,
-      scenario: (document.getElementById('editDefScenario') as HTMLSelectElement).value,
-      degradationType: (document.getElementById('editDefDegradationType') as HTMLSelectElement).value,
-      units: (document.getElementById('editDefUnits') as HTMLInputElement).value,
-      granularity: (document.getElementById('editDefGranularity') as HTMLSelectElement).value,
+      units: (document.getElementById('editDefUnits') as HTMLSelectElement).value,
       timezone: (document.getElementById('editDefTimezone') as HTMLInputElement).value,
       description: (document.getElementById('editDefDescription') as HTMLTextAreaElement).value,
       isActive: (document.getElementById('editDefIsActive') as HTMLInputElement).checked,
@@ -796,6 +781,12 @@ import Layout from '../../layouts/Layout.astro';
       status: (document.getElementById('editInstStatus') as HTMLSelectElement).value,
       runType: (document.getElementById('editInstRunType') as HTMLSelectElement).value,
       createdBy: (document.getElementById('editInstCreatedBy') as HTMLInputElement).value,
+      // NEW: Instance-specific fields moved from Definition
+      curveType: (document.getElementById('editInstCurveType') as HTMLSelectElement).value,
+      commodity: (document.getElementById('editInstCommodity') as HTMLSelectElement).value,
+      granularity: (document.getElementById('editInstGranularity') as HTMLSelectElement).value,
+      scenario: (document.getElementById('editInstScenario') as HTMLSelectElement).value,
+      degradationType: (document.getElementById('editInstDegradationType') as HTMLSelectElement).value,
       deliveryPeriodStart: (document.getElementById('editInstDeliveryStart') as HTMLInputElement).value,
       deliveryPeriodEnd: (document.getElementById('editInstDeliveryEnd') as HTMLInputElement).value,
       forecastRunDate: (document.getElementById('editInstForecastRunDate') as HTMLInputElement).value,

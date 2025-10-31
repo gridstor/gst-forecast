@@ -166,11 +166,24 @@ import Layout from '../../layouts/Layout.astro';
       setupEventListeners();
       setupChart();
       
-      // Check for curve parameter in URL
+      // Check for curve parameter in URL, or default to Oct25
       const urlParams = new URLSearchParams(window.location.search);
       const curveId = urlParams.get('curve');
+      
       if (curveId) {
         selectCurveById(parseInt(curveId));
+      } else {
+        // Auto-select Oct25 instance (or first instance with "Oct" or "25" in version)
+        const oct25 = availableCurves.curves?.find(c => 
+          c.instanceVersion?.includes('Oct') || 
+          c.instanceVersion?.includes('25') ||
+          c.instanceVersion?.includes('OCT')
+        );
+        if (oct25) {
+          console.log('Auto-selecting Oct25 instance:', oct25);
+          selectCurveById(oct25.id);
+          await updateChart();
+        }
       }
     });
 
@@ -181,30 +194,39 @@ import Layout from '../../layouts/Layout.astro';
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        availableCurves = await response.json();
+        const result = await response.json();
+        availableCurves = result; // Keep the full response
+        
+        console.log('Loaded curves:', result);
+        
         populateFilters();
         renderAvailableCurves();
         
-        document.getElementById('curvesLoading').style.display = 'none';
+        const loadingEl = document.getElementById('curvesLoading');
+        if (loadingEl) loadingEl.style.display = 'none';
         
       } catch (error) {
         console.error('Error loading curves:', error);
-        document.getElementById('curvesLoading').innerHTML = `
-          <p class="text-sm text-red-600">Error loading curves: ${error.message}</p>
-        `;
+        const loadingEl = document.getElementById('curvesLoading');
+        if (loadingEl) {
+          loadingEl.innerHTML = `
+            <p class="text-sm text-red-600">Error loading curves: ${error.message}</p>
+          `;
+        }
       }
     }
 
     function populateFilters() {
-      const markets = [...new Set(availableCurves.map(c => c.market).filter(Boolean))].sort();
-      const locations = [...new Set(availableCurves.map(c => c.location).filter(Boolean))].sort();
-      const markTypes = [...new Set(availableCurves.map(c => c.mark_type).filter(Boolean))].sort();
-      const markCases = [...new Set(availableCurves.map(c => c.mark_case).filter(Boolean))].sort();
+      const curves = availableCurves.curves || [];
+      const markets = [...new Set(curves.map(c => c.market).filter(Boolean))].sort();
+      const locations = [...new Set(curves.map(c => c.location).filter(Boolean))].sort();
+      const curveTypes = [...new Set(curves.flatMap(c => c.curveTypes || []))].sort();
+      const commodities = [...new Set(curves.flatMap(c => c.commodities || []))].sort();
 
       populateSelectOptions('viewerMarketFilter', markets);
       populateSelectOptions('viewerLocationFilter', locations);
-      populateSelectOptions('viewerMarkTypeFilter', markTypes);
-      populateSelectOptions('viewerMarkCaseFilter', markCases);
+      populateSelectOptions('viewerMarkTypeFilter', curveTypes);
+      populateSelectOptions('viewerMarkCaseFilter', commodities);
     }
 
     function populateSelectOptions(selectId, options) {
@@ -225,13 +247,19 @@ import Layout from '../../layouts/Layout.astro';
 
     function renderAvailableCurves() {
       const container = document.getElementById('availableCurves');
-      const filters = getFilters();
+      if (!container) return;
       
-      const filteredCurves = availableCurves.filter(curve => {
+      const filters = getFilters();
+      const curves = availableCurves.curves || [];
+      
+      const filteredCurves = curves.filter(curve => {
+        const hasType = curve.curveTypes?.includes(filters.markType) || !filters.markType;
+        const hasCommodity = curve.commodities?.includes(filters.markCase) || !filters.markCase;
+        
         return (!filters.market || curve.market === filters.market) &&
                (!filters.location || curve.location === filters.location) &&
-               (!filters.markType || curve.mark_type === filters.markType) &&
-               (!filters.markCase || curve.mark_case === filters.markCase);
+               hasType &&
+               hasCommodity;
       });
 
       if (filteredCurves.length === 0) {
@@ -241,15 +269,19 @@ import Layout from '../../layouts/Layout.astro';
 
       container.innerHTML = filteredCurves.map(curve => `
         <div class="flex items-center justify-between p-2 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-             onclick="toggleCurveSelection(${curve.curve_id})">
+             onclick="toggleCurveSelection(${curve.id})">
           <div>
-            <div class="font-medium text-sm">${curve.market || 'N/A'} - ${curve.location || 'N/A'}</div>
-            <div class="text-xs text-gray-500">${curve.mark_type || 'N/A'} | ${curve.mark_case || 'N/A'} | ${curve.price_points || 0} points</div>
+            <div class="font-medium text-sm">${curve.curveName || 'N/A'}</div>
+            <div class="text-xs text-gray-500">${curve.instanceVersion || 'N/A'} | ${curve.market || 'N/A'} - ${curve.location || 'N/A'}</div>
+            <div class="text-xs text-gray-400 mt-1">
+              Types: ${(curve.curveTypes || []).join(', ') || 'None'} | 
+              Commodities: ${(curve.commodities || []).join(', ') || 'None'}
+            </div>
           </div>
           <div class="flex items-center">
-            <span class="text-xs text-gray-400 mr-2">ID: ${curve.curve_id}</span>
-            <input type="checkbox" ${selectedCurveIds.has(curve.curve_id) ? 'checked' : ''} 
-                   onchange="toggleCurveSelection(${curve.curve_id})" 
+            <span class="text-xs text-gray-400 mr-2">ID: ${curve.id}</span>
+            <input type="checkbox" ${selectedCurveIds.has(curve.id) ? 'checked' : ''} 
+                   onchange="toggleCurveSelection(${curve.id})" 
                    onclick="event.stopPropagation()">
           </div>
         </div>
@@ -287,30 +319,34 @@ import Layout from '../../layouts/Layout.astro';
       const countSpan = document.getElementById('selectedCount');
       const noSelection = document.getElementById('noSelection');
       
-      countSpan.textContent = selectedCurveIds.size;
+      if (!container || !countSpan || !noSelection) return;
+      
+      countSpan.textContent = selectedCurveIds.size.toString();
 
       if (selectedCurveIds.size === 0) {
         noSelection.style.display = 'block';
-        container.querySelectorAll('.selected-curve-item').forEach(item => item.remove());
+        const items = container.querySelectorAll('.selected-curve-item');
+        items.forEach(item => item.remove());
         return;
       }
 
       noSelection.style.display = 'none';
       
-      const selectedCurves = availableCurves.filter(curve => selectedCurveIds.has(curve.curve_id));
+      const curves = availableCurves.curves || [];
+      const selectedCurves = curves.filter(curve => selectedCurveIds.has(curve.id));
       
       container.innerHTML = `
-        <div class="text-sm text-gray-500 mb-2">${selectedCurveIds.size} curve(s) selected</div>
+        <div class="text-sm text-gray-500 mb-2">${selectedCurveIds.size} instance(s) selected</div>
         ${selectedCurves.map((curve, index) => `
           <div class="selected-curve-item flex items-center justify-between p-2 bg-white rounded border mb-1">
             <div class="flex items-center">
               <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${colorPalette[index % colorPalette.length]}"></div>
               <div>
-                <div class="font-medium text-sm">${curve.market || 'N/A'} - ${curve.location || 'N/A'}</div>
-                <div class="text-xs text-gray-500">${curve.mark_type || 'N/A'} | ${curve.mark_case || 'N/A'}</div>
+                <div class="font-medium text-sm">${curve.curveName || 'N/A'} - ${curve.instanceVersion || 'N/A'}</div>
+                <div class="text-xs text-gray-500">${curve.market || 'N/A'} | ${curve.location || 'N/A'}</div>
               </div>
             </div>
-            <button onclick="toggleCurveSelection(${curve.curve_id})" 
+            <button onclick="toggleCurveSelection(${curve.id})" 
                     class="text-red-600 hover:text-red-800 text-sm">×</button>
           </div>
         `).join('')}
@@ -369,7 +405,8 @@ import Layout from '../../layouts/Layout.astro';
         let curveIndex = 0;
 
         for (const curveId of selectedCurveIds) {
-          const curve = availableCurves.find(c => c.curve_id === curveId);
+          const curves = availableCurves.curves || [];
+          const curve = curves.find(c => c.id === curveId);
           if (!curve) continue;
 
           try {
@@ -377,19 +414,36 @@ import Layout from '../../layouts/Layout.astro';
             if (response.ok) {
               const data = await response.json();
               
-              datasets.push({
-                label: `${curve.market} - ${curve.location} (${curve.mark_case})`,
-                data: data.map(point => ({
-                  x: point.flow_date_start,
-                  y: point.value
-                })),
-                borderColor: colorPalette[curveIndex % colorPalette.length],
-                backgroundColor: colorPalette[curveIndex % colorPalette.length] + '20',
-                fill: false,
-                tension: 0.1
-              });
+              // Group data by commodity and scenario for multiple lines
+              const dataArray = Array.isArray(data) ? data : (data.priceData || []);
               
-              curveIndex++;
+              if (dataArray.length > 0) {
+                // Group by commodity + scenario combination
+                const groupedData = {};
+                dataArray.forEach(point => {
+                  const key = `${point.commodity || 'Unknown'} - ${point.scenario || 'Unknown'}`;
+                  if (!groupedData[key]) {
+                    groupedData[key] = [];
+                  }
+                  groupedData[key].push({
+                    x: new Date(point.timestamp || point.flow_date_start),
+                    y: point.value
+                  });
+                });
+                
+                // Create a dataset for each commodity+scenario combination
+                Object.entries(groupedData).forEach(([label, points]) => {
+                  datasets.push({
+                    label: `${curve.curveName} - ${label}`,
+                    data: points,
+                    borderColor: colorPalette[curveIndex % colorPalette.length],
+                    backgroundColor: colorPalette[curveIndex % colorPalette.length] + '20',
+                    fill: false,
+                    tension: 0.1
+                  });
+                  curveIndex++;
+                });
+              }
             }
           } catch (error) {
             console.error(`Error loading data for curve ${curveId}:`, error);
@@ -485,29 +539,30 @@ import Layout from '../../layouts/Layout.astro';
       }
 
       // Update legend
-      const selectedCurves = availableCurves.filter(curve => selectedCurveIds.has(curve.curve_id));
+      const curves = availableCurves.curves || [];
+      const selectedCurves = curves.filter(curve => selectedCurveIds.has(curve.id));
       legendContainer.innerHTML = selectedCurves.map((curve, index) => `
         <div class="flex items-center text-sm">
           <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${colorPalette[index % colorPalette.length]}"></div>
-          <span class="font-medium">${curve.market} - ${curve.location}</span>
-          <span class="text-gray-500 ml-2">(${curve.mark_case})</span>
+          <span class="font-medium">${curve.curveName}</span>
+          <span class="text-gray-500 ml-2">(${curve.instanceVersion})</span>
         </div>
       `).join('');
 
       // Update statistics
-      const totalPoints = selectedCurves.reduce((sum, curve) => sum + (curve.price_points || 0), 0);
+      const totalDatasets = chart?.data?.datasets?.length || 0;
       const markets = new Set(selectedCurves.map(c => c.market)).size;
       const locations = new Set(selectedCurves.map(c => c.location)).size;
 
       statsContainer.innerHTML = `
         <div class="text-sm">
           <div class="flex justify-between py-1">
-            <span class="text-gray-600">Selected Curves:</span>
+            <span class="text-gray-600">Selected Instances:</span>
             <span class="font-medium">${selectedCurveIds.size}</span>
           </div>
           <div class="flex justify-between py-1">
-            <span class="text-gray-600">Total Data Points:</span>
-            <span class="font-medium">${totalPoints.toLocaleString()}</span>
+            <span class="text-gray-600">Plot Lines:</span>
+            <span class="font-medium">${totalDatasets}</span>
           </div>
           <div class="flex justify-between py-1">
             <span class="text-gray-600">Markets:</span>

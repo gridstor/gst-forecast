@@ -80,7 +80,13 @@ export const PUT: APIRoute = async ({ request }) => {
       approvedAt,
       notes,
       metadata,
-      performedBy 
+      performedBy,
+      // NEW: Multi-value arrays
+      curveTypes,
+      commodities,
+      scenarios,
+      granularity,
+      degradationType
     } = body;
 
     if (!id) {
@@ -110,6 +116,12 @@ export const PUT: APIRoute = async ({ request }) => {
     if (approvedAt !== undefined) updateData.approvedAt = approvedAt ? new Date(approvedAt) : null;
     if (notes !== undefined) updateData.notes = notes;
     if (metadata !== undefined) updateData.metadata = metadata;
+    // NEW: Multi-value arrays
+    if (curveTypes !== undefined) updateData.curveTypes = curveTypes;
+    if (commodities !== undefined) updateData.commodities = commodities;
+    if (scenarios !== undefined) updateData.scenarios = scenarios;
+    if (granularity !== undefined) updateData.granularity = granularity;
+    if (degradationType !== undefined) updateData.degradationType = degradationType;
 
     const updated = await prisma.curveInstance.update({
       where: { id: parseInt(id) },

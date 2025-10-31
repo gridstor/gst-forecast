@@ -20,13 +20,14 @@ let schedules: any[] = [];
 let schedulesByDate: Record<string, any[]> = {};
 try {
   schedules = await prisma.curveSchedule.findMany({
-    where: {
-      isActive: true
-    },
     select: {
       id: true,
+      scheduleType: true,
       importance: true,
       frequency: true,
+      isActive: true,
+      responsibleTeam: true,
+      metadata: true,
       curveDefinition: {
         select: {
           curveName: true,
@@ -49,6 +50,9 @@ try {
           runDate: 'asc'
         }
       }
+    },
+    orderBy: {
+      createdAt: 'desc'
     }
   });
 
@@ -65,12 +69,57 @@ try {
         location: schedule.curveDefinition.location,
         market: schedule.curveDefinition.market,
         importance: schedule.importance,
-        status: run.status
+        status: run.status,
+        type: 'scheduled'
       });
     });
   });
 } catch (error) {
   console.error('Error fetching curve schedule:', error);
+}
+
+// Fetch recently uploaded curves for current month
+try {
+  const uploadedCurves = await prisma.curveInstance.findMany({
+    where: {
+      createdAt: {
+        gte: firstDayOfMonth,
+        lte: lastDayOfMonth
+      }
+    },
+    include: {
+      curveDefinition: {
+        select: {
+          curveName: true,
+          location: true,
+          market: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // Add uploaded curves to calendar
+  uploadedCurves.forEach(curve => {
+    const dateKey = curve.createdAt.toISOString().split('T')[0];
+    if (!schedulesByDate[dateKey]) {
+      schedulesByDate[dateKey] = [];
+    }
+    schedulesByDate[dateKey].push({
+      id: curve.id,
+      name: curve.curveDefinition.curveName,
+      location: curve.curveDefinition.location,
+      market: curve.curveDefinition.market,
+      instanceVersion: curve.instanceVersion,
+      status: curve.status,
+      type: 'uploaded',
+      importance: 2 // Default to medium for display
+    });
+  });
+} catch (error) {
+  console.error('Error fetching uploaded curves:', error);
 }
 
 // Get all dates in the current month
@@ -162,7 +211,7 @@ function getStatusClass(status: string): string {
           ))}
         </div>
 
-        <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-[#E5E7EB]">
+        <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-[#E5E7EB]" data-schedules={JSON.stringify(schedulesByDate)}>
           {calendarDays.map((date) => (
             <div 
               class={`bg-white min-h-[120px] p-2 ${
@@ -195,26 +244,55 @@ function getStatusClass(status: string): string {
                   <div class="notes-container space-y-1 mb-1" data-date={date.toISOString().split('T')[0]}>
                   </div>
                   
-                  <!-- Schedules -->
+                  <!-- Schedules and Uploaded Curves -->
                   <div class="space-y-1">
-                    {(schedulesByDate[date.toISOString().split('T')[0]] || []).map((schedule: any) => (
-                      <div
-                        class={`block text-xs p-1.5 rounded border ${getImportanceClass(schedule.importance)} hover:opacity-75 transition-opacity`}
-                      >
-                        <div class="flex items-center gap-1">
-                          <span class="text-xs">📅</span>
-                          <div class="font-medium truncate flex-1" title={`${schedule.name} - ${schedule.location}`}>
-                            {schedule.name}
-                          </div>
-                        </div>
-                        <div class="flex items-center justify-between mt-0.5">
-                          <span class="text-[0.65rem] text-gray-600 truncate">{schedule.location}</span>
-                          <span class={`text-[0.6rem] px-1 py-0.5 rounded ${getStatusClass(schedule.status)}`}>
-                            {schedule.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                    {(() => {
+                      const dateKey = date.toISOString().split('T')[0];
+                      const items = schedulesByDate[dateKey] || [];
+                      const maxVisible = 3; // Show max 3 items initially
+                      const visibleItems = items.slice(0, maxVisible);
+                      const hasMore = items.length > maxVisible;
+                      const moreCount = items.length - maxVisible;
+                      
+                      return (
+                        <>
+                          {visibleItems.map((schedule: any) => (
+                            <div
+                              class={`block text-xs p-1.5 rounded border ${
+                                schedule.type === 'uploaded' 
+                                  ? 'bg-blue-50 border-blue-200' 
+                                  : getImportanceClass(schedule.importance)
+                              } hover:opacity-75 transition-opacity`}
+                              title={schedule.type === 'uploaded' ? `Uploaded: ${schedule.instanceVersion}` : 'Scheduled Update'}
+                            >
+                              <div class="flex items-center gap-1">
+                                <span class="text-xs">
+                                  {schedule.type === 'uploaded' ? '⬆️' : '📅'}
+                                </span>
+                                <div class="font-medium truncate flex-1" title={`${schedule.name} - ${schedule.location}`}>
+                                  {schedule.name}
+                                </div>
+                              </div>
+                              <div class="flex items-center justify-between mt-0.5">
+                                <span class="text-[0.65rem] text-gray-600 truncate">{schedule.location}</span>
+                                <span class={`text-[0.6rem] px-1 py-0.5 rounded ${getStatusClass(schedule.status)}`}>
+                                  {schedule.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {hasMore && (
+                            <button
+                              class="w-full text-xs p-1.5 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium transition-colors"
+                              onclick={`showAllForDate('${dateKey}')`}
+                              type="button"
+                            >
+                              +{moreCount} more
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               )}
@@ -224,9 +302,9 @@ function getStatusClass(status: string): string {
 
         <!-- Calendar Legend -->
         <div class="p-4 bg-[#F9FAFB] border-t border-[#E5E7EB]">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col gap-3">
             <div class="flex items-center gap-4">
-              <h4 class="text-sm font-medium text-[#6B7280]">Priority Levels:</h4>
+              <h4 class="text-sm font-medium text-[#6B7280]">Scheduled Priority:</h4>
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded bg-red-100 border border-red-200"></div>
                 <span class="text-xs text-[#6B7280]">High</span>
@@ -240,7 +318,17 @@ function getStatusClass(status: string): string {
                 <span class="text-xs text-[#6B7280]">Low</span>
               </div>
             </div>
-            <p class="text-xs text-[#6B7280]">View existing schedules and add notes for planning</p>
+            <div class="flex items-center gap-4">
+              <h4 class="text-sm font-medium text-[#6B7280]">Item Types:</h4>
+              <div class="flex items-center gap-2">
+                <span class="text-xs">📅</span>
+                <span class="text-xs text-[#6B7280]">Scheduled Update</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs">⬆️</span>
+                <span class="text-xs text-[#6B7280]">Uploaded Curve</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -259,11 +347,11 @@ function getStatusClass(status: string): string {
             <thead class="bg-[#F9FAFB]">
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Curve Name</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Type</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Location</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Market</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Frequency</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Priority</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Active</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
@@ -278,8 +366,14 @@ function getStatusClass(status: string): string {
                 schedules.map((schedule: any) => (
                   <tr class="hover:bg-[#F9FAFB] transition-colors">
                     <td class="px-4 py-3 text-sm text-[#111827] font-medium">{schedule.curveDefinition.curveName}</td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">
+                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        schedule.scheduleType === 'AD_HOC' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {schedule.scheduleType === 'AD_HOC' ? '📋 Request' : '🔄 Schedule'}
+                      </span>
+                    </td>
                     <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.location}</td>
-                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.market}</td>
                     <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.frequency}</td>
                     <td class="px-4 py-3">
                       <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -298,9 +392,23 @@ function getStatusClass(status: string): string {
                       </span>
                     </td>
                     <td class="px-4 py-3 text-sm">
-                      <a href={`/curve-schedule/${schedule.id}/edit`} class="text-[#3B82F6] hover:text-[#2563EB] font-medium">
-                        Edit
-                      </a>
+                      <div class="flex items-center gap-2">
+                        <button 
+                          data-schedule-id={schedule.id}
+                          data-action="edit"
+                          class="edit-schedule-btn text-[#3B82F6] hover:text-[#2563EB] font-medium cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          data-schedule-id={schedule.id}
+                          data-schedule-name={schedule.curveDefinition.curveName}
+                          data-action="delete"
+                          class="delete-schedule-btn text-[#EF4444] hover:text-[#DC2626] font-medium cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -352,11 +460,11 @@ function getStatusClass(status: string): string {
           </div>
         </div>
 
-        <!-- COLUMN 2: SCHEDULE CONFIGURATION -->
+        <!-- COLUMN 2: REQUEST/SCHEDULE CONFIGURATION -->
         <div class="bg-white rounded-lg overflow-hidden flex flex-col max-h-[600px] accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
           <div class="px-6 py-4 border-b border-[#F3F4F6]">
-            <h3 class="text-lg font-semibold text-[#1F2937]">2. Configure Schedule</h3>
-            <p class="text-sm text-[#6B7280] mt-1">Set delivery frequency and dates</p>
+            <h3 class="text-lg font-semibold text-[#1F2937]">2. Create Request or Schedule</h3>
+            <p class="text-sm text-[#6B7280] mt-1">Choose your workflow</p>
           </div>
 
           <div id="scheduleConfigPanel" class="flex-1 overflow-y-auto px-6 py-4">
@@ -366,15 +474,15 @@ function getStatusClass(status: string): string {
           <!-- Save Button -->
           <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB]">
             <button id="saveScheduleBtn" class="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors text-sm font-medium" disabled>
-              💾 Save Schedule
+              💾 Save
             </button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- OLD FORM (will be replaced by new methodology) -->
-    <div class="hidden">
+    <!-- OLD FORM - REMOVED (kept for reference but properly hidden) -->
+    <div style="display: none;">
     <form id="deliveryRequestForm" class="space-y-8">
       
       <!-- STEP 1: Curve Definition Selection (HIDDEN) -->
@@ -735,15 +843,18 @@ function getStatusClass(status: string): string {
         </div>
       </div>
     </form>
-    </section>
-    
-    <!-- Success/Error Messages -->
-    <div id="notification" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white hidden">
-      <p id="notification-text"></p>
     </div>
+    <!-- END OF OLD FORM WRAPPER -->
 
-    <!-- Note Modal -->
-    <div id="noteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+  <!-- SUCCESS/ERROR/MODAL COMPONENTS (MOVED OUTSIDE HIDDEN WRAPPER) -->
+  
+  <!-- Success/Error Messages -->
+  <div id="notification" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white hidden">
+    <p id="notification-text"></p>
+  </div>
+
+  <!-- Note Modal -->
+  <div id="noteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
         <div class="p-6 border-b border-[#E5E7EB]">
           <div class="flex items-center justify-between">
@@ -783,11 +894,155 @@ function getStatusClass(status: string): string {
       </div>
     </div>
 
-    <!-- Toast Notification -->
-    <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
+
+  <!-- Show All Curves Modal -->
+  <div id="showAllCurvesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-[#1F2937]">All Curves</h3>
+          <p id="allCurvesDate" class="text-sm text-[#6B7280] mt-1"></p>
+        </div>
+        <button id="closeAllCurves" class="text-[#9CA3AF] hover:text-[#6B7280]">✕</button>
+      </div>
+      <div id="allCurvesList" class="px-6 py-4 overflow-y-auto flex-1">
+        <!-- Items will be dynamically added here -->
+      </div>
+    </div>
   </div>
 
-  <script src="/js/delivery-request-form-hierarchical.js" is:inline></script>
+  <!-- Edit Schedule Modal -->
+    <div id="editScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] min-h-[400px] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-[#1F2937]" id="editScheduleTitle">Edit Schedule</h3>
+          <button id="closeEditSchedule" class="text-[#9CA3AF] hover:text-[#6B7280]">✕</button>
+        </div>
+        <div class="px-6 py-4">
+          <input type="hidden" id="editScheduleId" />
+          <input type="hidden" id="editScheduleType" />
+          
+          <!-- Curve Info (read-only) -->
+          <div class="mb-4 p-4 bg-[#F9FAFB] rounded-lg">
+            <div class="text-sm font-medium text-[#6B7280]">Curve Definition:</div>
+            <div id="editCurveName" class="text-base text-[#111827] font-mono"></div>
+          </div>
+
+          <!-- Linked Instances -->
+          <div id="linkedInstancesSection" class="mb-4 hidden">
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="text-sm font-medium text-green-900 mb-2">✅ Fulfilled By:</div>
+              <div id="linkedInstancesList" class="text-xs text-green-800 space-y-1"></div>
+            </div>
+          </div>
+
+          <!-- Link Instances Section -->
+          <div id="linkInstancesSection" class="mb-4 hidden">
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-medium text-blue-900">🔗 Link Curve Instance</div>
+                <button id="toggleInstanceList" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                  Show Available Instances
+                </button>
+              </div>
+              <div id="availableInstancesList" class="hidden mt-2 max-h-40 overflow-y-auto space-y-2"></div>
+            </div>
+          </div>
+
+          <!-- Quick Request Fields -->
+          <div id="editQuickFields" class="space-y-4 hidden">
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Due Date *</label>
+              <input type="date" id="editDueDate" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Requested By</label>
+              <input type="text" id="editRequestedBy" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Status</label>
+              <select id="editStatus" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority</label>
+              <select id="editPriority" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="1">High</option>
+                <option value="2">Medium</option>
+                <option value="3">Low</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Notes</label>
+              <textarea id="editNotes" rows="4" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md"></textarea>
+            </div>
+          </div>
+
+          <!-- Recurring Schedule Fields -->
+          <div id="editRecurringFields" class="space-y-4 hidden">
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Frequency</label>
+              <select id="editFrequency" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUALLY">Annual</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Week (for weekly)</label>
+              <select id="editDayOfWeek" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="">N/A</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Month (for monthly)</label>
+              <input type="number" id="editDayOfMonth" min="1" max="31" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority</label>
+              <select id="editImportance" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="1">High</option>
+                <option value="2">Medium</option>
+                <option value="3">Low</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Responsible Team</label>
+              <input type="text" id="editTeam" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Notification Emails</label>
+              <input type="text" id="editEmails" placeholder="email1@example.com, email2@example.com" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+          </div>
+
+          <!-- Common Fields -->
+          <div class="mt-4">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" id="editIsActive" class="w-4 h-4 text-[#3B82F6] border-[#E5E7EB] rounded" />
+              <span class="text-sm text-[#6B7280]">Active</span>
+            </label>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
+          <button id="cancelEditSchedule" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium">Cancel</button>
+          <button id="saveEditSchedule" class="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] font-medium">Save Changes</button>
+        </div>
+      </div>
+    </div>
 
   <script>
     // ==================== NEW SCHEDULE CREATION ====================
@@ -826,14 +1081,14 @@ function getStatusClass(status: string): string {
           onclick="selectDefinition(${def.id})"
         >
           <div class="font-medium text-sm text-[#111827]">${def.curveName}</div>
-          <div class="text-xs text-[#6B7280] mt-1">${def.market} • ${def.location} • ${def.product}</div>
-          <div class="text-xs text-[#6B7280] mt-1 font-mono">${def.curveType} | ${def.granularity}</div>
+          <div class="text-xs text-[#6B7280] mt-1">${def.market} • ${def.location}</div>
+          <div class="text-xs text-[#6B7280] mt-1 font-mono">${def.batteryDuration} • ${def.units || '$/MWh'}</div>
         </div>
       `).join('');
     }
 
-    // Select definition
-    function selectDefinition(defId: number) {
+    // Select definition (expose to global scope for onclick handlers)
+    (window as any).selectDefinition = function(defId: number) {
       selectedDefinitionId = defId;
       const definition = allDefinitions.find(d => d.id === defId);
       
@@ -861,79 +1116,149 @@ function getStatusClass(status: string): string {
             </div>
           </div>
 
-          <!-- Schedule Settings -->
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Update Frequency *</label>
-            <select id="scheduleFrequency" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6] focus:border-transparent">
-              <option value="DAILY">Daily</option>
-              <option value="WEEKLY">Weekly</option>
-              <option value="BIWEEKLY">Bi-Weekly</option>
-              <option value="MONTHLY" selected>Monthly</option>
-              <option value="QUARTERLY">Quarterly</option>
-              <option value="ANNUAL">Annual</option>
-              <option value="ADHOC">Ad-hoc</option>
-            </select>
+          <!-- Workflow Selector -->
+          <div class="bg-white rounded-lg border-2 border-[#8B5CF6] p-4">
+            <label class="block text-sm font-semibold text-[#111827] mb-3">Choose Workflow:</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button 
+                type="button"
+                id="quickRequestBtn"
+                class="px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium bg-[#8B5CF6] border-[#8B5CF6] text-white"
+                onclick="switchWorkflow('quick')"
+              >
+                📋 Quick Request
+                <div class="text-xs font-normal mt-1 opacity-90">One-time delivery</div>
+              </button>
+              <button 
+                type="button"
+                id="recurringScheduleBtn"
+                class="px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium border-[#E5E7EB] text-[#6B7280] hover:border-[#8B5CF6]"
+                onclick="switchWorkflow('recurring')"
+              >
+                🔄 Recurring Schedule
+                <div class="text-xs font-normal mt-1">Regular cadence</div>
+              </button>
+            </div>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Week (for weekly schedules)</label>
-            <select id="scheduleDayOfWeek" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
-              <option value="">N/A</option>
-              <option value="1">Monday</option>
-              <option value="2">Tuesday</option>
-              <option value="3">Wednesday</option>
-              <option value="4">Thursday</option>
-              <option value="5">Friday</option>
-            </select>
+          <!-- Quick Request Form -->
+          <div id="quickRequestForm" class="space-y-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
+              <strong>Quick Request:</strong> Track a one-time curve delivery request
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Due Date *</label>
+              <input type="date" id="quickDueDate" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" required />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Requested By</label>
+              <input type="text" id="quickRequestedBy" placeholder="e.g., John Doe, Sales Team" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority</label>
+              <select id="quickPriority" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+                <option value="3">Low</option>
+                <option value="2" selected>Medium</option>
+                <option value="1">High</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Request Notes</label>
+              <textarea id="quickNotes" rows="4" placeholder="What is needed and why..." class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]"></textarea>
+            </div>
+
+            <div class="text-xs text-[#6B7280] italic">
+              💡 After delivery, link the curve instance that fulfilled this request
+            </div>
           </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Month (for monthly schedules)</label>
-            <input type="number" id="scheduleDayOfMonth" min="1" max="31" placeholder="e.g., 15" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
-          </div>
+          <!-- Recurring Schedule Form -->
+          <div id="recurringScheduleForm" class="space-y-4 hidden">
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+              <strong>Recurring Schedule:</strong> Set up ongoing curve updates
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Lead Time (days)</label>
-            <input type="number" id="scheduleLeadTime" value="0" min="0" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
-            <p class="text-xs text-[#9CA3AF] mt-1">Days before delivery period to prepare data</p>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Update Frequency *</label>
+              <select id="scheduleFrequency" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY" selected>Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUALLY">Annual</option>
+              </select>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Freshness Window (days)</label>
-            <input type="number" id="scheduleFreshness" value="30" min="1" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
-            <p class="text-xs text-[#9CA3AF] mt-1">How long data stays valid</p>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Week (for weekly)</label>
+              <select id="scheduleDayOfWeek" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
+                <option value="">N/A</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+              </select>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority Level *</label>
-            <select id="scheduleImportance" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
-              <option value="1">High Priority (Red)</option>
-              <option value="2">Medium Priority (Orange)</option>
-              <option value="3" selected>Low Priority (Yellow)</option>
-            </select>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Month (for monthly)</label>
+              <input type="number" id="scheduleDayOfMonth" min="1" max="31" placeholder="e.g., 15" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Responsible Team</label>
-            <input type="text" id="scheduleTeam" value="Market Analysis" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority Level</label>
+              <select id="scheduleImportance" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+                <option value="1">High (Red)</option>
+                <option value="2" selected>Medium (Orange)</option>
+                <option value="3">Low (Yellow)</option>
+              </select>
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Notification Emails</label>
-            <input type="text" id="scheduleEmails" placeholder="email1@example.com, email2@example.com" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
-            <p class="text-xs text-[#9CA3AF] mt-1">Comma-separated list</p>
-          </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Responsible Team</label>
+              <input type="text" id="scheduleTeam" value="Market Analysis" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            </div>
 
-          <div>
-            <label class="block text-sm font-medium text-[#6B7280] mb-2">Schedule Type</label>
-            <select id="scheduleType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
-              <option value="REGULAR">Regular/Recurring</option>
-              <option value="ONEOFF">One-time</option>
-              <option value="CONDITIONAL">Conditional</option>
-            </select>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Notification Emails</label>
+              <input type="text" id="scheduleEmails" placeholder="email1@example.com, email2@example.com" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+              <p class="text-xs text-[#9CA3AF] mt-1">Comma-separated list</p>
+            </div>
           </div>
         </div>
       `;
+    }
+
+    // Workflow switcher
+    (window as any).switchWorkflow = function(type: 'quick' | 'recurring') {
+      const quickForm = document.getElementById('quickRequestForm');
+      const recurringForm = document.getElementById('recurringScheduleForm');
+      const quickBtn = document.getElementById('quickRequestBtn');
+      const recurringBtn = document.getElementById('recurringScheduleBtn');
+      const saveBtn = document.getElementById('saveScheduleBtn');
+      
+      if (type === 'quick') {
+        quickForm?.classList.remove('hidden');
+        recurringForm?.classList.add('hidden');
+        quickBtn?.classList.add('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        quickBtn?.classList.remove('border-[#E5E7EB]', 'text-[#6B7280]');
+        recurringBtn?.classList.remove('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        recurringBtn?.classList.add('border-[#E5E7EB]', 'text-[#6B7280]');
+        if (saveBtn) saveBtn.textContent = '💾 Create Request';
+      } else {
+        quickForm?.classList.add('hidden');
+        recurringForm?.classList.remove('hidden');
+        recurringBtn?.classList.add('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        recurringBtn?.classList.remove('border-[#E5E7EB]', 'text-[#6B7280]');
+        quickBtn?.classList.remove('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        quickBtn?.classList.add('border-[#E5E7EB]', 'text-[#6B7280]');
+        if (saveBtn) saveBtn.textContent = '💾 Create Schedule';
+      }
     }
 
     // Search definitions
@@ -942,59 +1267,108 @@ function getStatusClass(status: string): string {
       const filtered = allDefinitions.filter(def => 
         def.curveName.toLowerCase().includes(searchTerm) ||
         def.market.toLowerCase().includes(searchTerm) ||
-        def.location.toLowerCase().includes(searchTerm) ||
-        def.product.toLowerCase().includes(searchTerm)
+        def.location.toLowerCase().includes(searchTerm)
       );
       renderDefinitionsList(filtered);
     });
 
-    // Save schedule
+    // Save schedule or request
     document.getElementById('saveScheduleBtn')?.addEventListener('click', async () => {
       if (!selectedDefinitionId) return;
 
-      const frequency = (document.getElementById('scheduleFrequency') as HTMLSelectElement)?.value;
-      const dayOfWeek = (document.getElementById('scheduleDayOfWeek') as HTMLSelectElement)?.value;
-      const dayOfMonth = (document.getElementById('scheduleDayOfMonth') as HTMLInputElement)?.value;
-      const leadTime = (document.getElementById('scheduleLeadTime') as HTMLInputElement)?.value;
-      const freshness = (document.getElementById('scheduleFreshness') as HTMLInputElement)?.value;
-      const importance = (document.getElementById('scheduleImportance') as HTMLSelectElement)?.value;
-      const team = (document.getElementById('scheduleTeam') as HTMLInputElement)?.value;
-      const emails = (document.getElementById('scheduleEmails') as HTMLInputElement)?.value;
-      const scheduleType = (document.getElementById('scheduleType') as HTMLSelectElement)?.value;
+      // Check which workflow is active
+      const quickForm = document.getElementById('quickRequestForm');
+      const isQuickRequest = !quickForm?.classList.contains('hidden');
 
-      const emailArray = emails ? emails.split(',').map(e => e.trim()).filter(e => e) : [];
+      if (isQuickRequest) {
+        // Quick Request workflow
+        const dueDate = (document.getElementById('quickDueDate') as HTMLInputElement)?.value;
+        const requestedBy = (document.getElementById('quickRequestedBy') as HTMLInputElement)?.value;
+        const priority = (document.getElementById('quickPriority') as HTMLSelectElement)?.value;
+        const notes = (document.getElementById('quickNotes') as HTMLTextAreaElement)?.value;
 
-      const scheduleData = {
-        curveDefinitionId: selectedDefinitionId,
-        frequency,
-        dayOfWeek: dayOfWeek ? parseInt(dayOfWeek) : null,
-        dayOfMonth: dayOfMonth ? parseInt(dayOfMonth) : null,
-        leadTimeDays: parseInt(leadTime || '0'),
-        freshnessDays: parseInt(freshness || '30'),
-        importance: parseInt(importance || '3'),
-        responsibleTeam: team || 'Market Analysis',
-        notificationEmails: emailArray,
-        scheduleType: scheduleType || 'REGULAR'
-      };
-
-      try {
-        const response = await fetch('/api/curve-schedule/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(scheduleData)
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          showToast('Schedule created successfully!', 'success');
-          setTimeout(() => window.location.reload(), 1500);
-        } else {
-          showToast(result.message || 'Error creating schedule', 'error');
+        if (!dueDate) {
+          showToast('Please select a due date', 'error');
+          return;
         }
-      } catch (error) {
-        console.error('Error:', error);
-        showToast('Failed to create schedule', 'error');
+
+        const scheduleData = {
+          curveDefinitionId: selectedDefinitionId,
+          frequency: 'ON_DEMAND',
+          dayOfWeek: null,
+          dayOfMonth: null,
+          leadTimeDays: 0,
+          freshnessDays: 30,
+          importance: parseInt(priority || '2'),
+          responsibleTeam: requestedBy || 'Unknown',
+          notificationEmails: [],
+          scheduleType: 'AD_HOC',
+          notes: notes || '',
+          dueDate: dueDate
+        };
+
+        try {
+          const response = await fetch('/api/curve-schedule/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleData)
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            showToast('Request created successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            showToast(result.message || 'Error creating request', 'error');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showToast('Failed to create request', 'error');
+        }
+      } else {
+        // Recurring Schedule workflow
+        const frequency = (document.getElementById('scheduleFrequency') as HTMLSelectElement)?.value;
+        const dayOfWeek = (document.getElementById('scheduleDayOfWeek') as HTMLSelectElement)?.value;
+        const dayOfMonth = (document.getElementById('scheduleDayOfMonth') as HTMLInputElement)?.value;
+        const importance = (document.getElementById('scheduleImportance') as HTMLSelectElement)?.value;
+        const team = (document.getElementById('scheduleTeam') as HTMLInputElement)?.value;
+        const emails = (document.getElementById('scheduleEmails') as HTMLInputElement)?.value;
+
+        const emailArray = emails ? emails.split(',').map(e => e.trim()).filter(e => e) : [];
+
+        const scheduleData = {
+          curveDefinitionId: selectedDefinitionId,
+          frequency,
+          dayOfWeek: dayOfWeek ? parseInt(dayOfWeek) : null,
+          dayOfMonth: dayOfMonth ? parseInt(dayOfMonth) : null,
+          leadTimeDays: 0,
+          freshnessDays: 30,
+          importance: parseInt(importance || '2'),
+          responsibleTeam: team || 'Market Analysis',
+          notificationEmails: emailArray,
+          scheduleType: 'REGULAR'
+        };
+
+        try {
+          const response = await fetch('/api/curve-schedule/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleData)
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            showToast('Schedule created successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            showToast(result.message || 'Error creating schedule', 'error');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showToast('Failed to create schedule', 'error');
+        }
       }
     });
 
@@ -1017,6 +1391,456 @@ function getStatusClass(status: string): string {
     document.addEventListener('DOMContentLoaded', () => {
       loadDefinitions();
     });
+
+    // ==================== SCHEDULE MANAGEMENT ====================
+    
+    // Edit schedule
+    async function editSchedule(id: number) {
+      try {
+        const response = await fetch(`/api/curve-schedule/${id}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+          showToast('Failed to load schedule', 'error');
+          return;
+        }
+        
+        const schedule = result.data;
+        const isQuickRequest = schedule.scheduleType === 'AD_HOC';
+        
+        // Populate modal
+        (document.getElementById('editScheduleId') as HTMLInputElement).value = schedule.id;
+        (document.getElementById('editScheduleType') as HTMLInputElement).value = schedule.scheduleType;
+        (document.getElementById('editCurveName') as HTMLElement).textContent = schedule.curveDefinition.curveName;
+        (document.getElementById('editIsActive') as HTMLInputElement).checked = schedule.isActive;
+        
+        // Show appropriate title
+        (document.getElementById('editScheduleTitle') as HTMLElement).textContent = 
+          isQuickRequest ? 'Edit Request' : 'Edit Schedule';
+        
+        if (isQuickRequest) {
+          // Show quick request fields
+          document.getElementById('editQuickFields')!.classList.remove('hidden');
+          document.getElementById('editRecurringFields')!.classList.add('hidden');
+          
+          const metadata = schedule.metadata || {};
+          (document.getElementById('editDueDate') as HTMLInputElement).value = metadata.dueDate || '';
+          (document.getElementById('editRequestedBy') as HTMLInputElement).value = schedule.responsibleTeam || '';
+          (document.getElementById('editPriority') as HTMLSelectElement).value = schedule.importance.toString();
+          (document.getElementById('editNotes') as HTMLTextAreaElement).value = metadata.notes || '';
+          
+          // Get status from first schedule run if exists
+          if (schedule.scheduleRuns && schedule.scheduleRuns.length > 0) {
+            (document.getElementById('editStatus') as HTMLSelectElement).value = schedule.scheduleRuns[0].status || 'PENDING';
+          }
+        } else {
+          // Show recurring schedule fields
+          document.getElementById('editQuickFields')!.classList.add('hidden');
+          document.getElementById('editRecurringFields')!.classList.remove('hidden');
+          
+          (document.getElementById('editFrequency') as HTMLSelectElement).value = schedule.frequency;
+          (document.getElementById('editDayOfWeek') as HTMLSelectElement).value = schedule.dayOfWeek?.toString() || '';
+          (document.getElementById('editDayOfMonth') as HTMLInputElement).value = schedule.dayOfMonth?.toString() || '';
+          (document.getElementById('editImportance') as HTMLSelectElement).value = schedule.importance.toString();
+          (document.getElementById('editTeam') as HTMLInputElement).value = schedule.responsibleTeam || '';
+          (document.getElementById('editEmails') as HTMLInputElement).value = schedule.notificationEmails?.join(', ') || '';
+        }
+        
+        // Load linked instances and available instances (only for quick requests)
+        if (isQuickRequest) {
+          await loadLinkedInstances(schedule.id);
+          await loadAvailableInstances(schedule.curveDefinitionId, schedule.id);
+          document.getElementById('linkInstancesSection')!.classList.remove('hidden');
+        } else {
+          document.getElementById('linkInstancesSection')!.classList.add('hidden');
+        }
+        
+        // Show modal
+        document.getElementById('editScheduleModal')!.classList.remove('hidden');
+        
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+        showToast('Error loading schedule details', 'error');
+      }
+    }
+    
+    // Load instances that are linked to this schedule
+    async function loadLinkedInstances(scheduleId: number) {
+      try {
+        const response = await fetch(`/api/curves/instances-by-schedule?scheduleId=${scheduleId}`);
+        const result = await response.json();
+        
+        const section = document.getElementById('linkedInstancesSection');
+        const list = document.getElementById('linkedInstancesList');
+        
+        if (!section || !list) return;
+        
+        if (result.instances && result.instances.length > 0) {
+          section.classList.remove('hidden');
+          list.innerHTML = result.instances.map((inst: any) => `
+            <div class="flex items-center justify-between py-1 px-2 hover:bg-green-100 rounded">
+              <span class="text-xs">${inst.instanceVersion} - ${inst.status}</span>
+              <div class="flex items-center gap-2">
+                <a href="/admin/inventory?instanceId=${inst.id}" class="text-blue-600 hover:text-blue-800 text-xs">View →</a>
+                <button 
+                  onclick="unlinkInstance(${inst.id}, ${scheduleId})" 
+                  class="text-red-600 hover:text-red-800 text-xs font-medium"
+                  title="Unlink this instance"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          section.classList.add('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading linked instances:', error);
+      }
+    }
+
+    // Load available instances for the curve definition
+    let currentScheduleId: number | null = null;
+    async function loadAvailableInstances(definitionId: number, scheduleId: number) {
+      currentScheduleId = scheduleId;
+      try {
+        const response = await fetch(`/api/curves/instances?definitionId=${definitionId}`);
+        const result = await response.json();
+        
+        const list = document.getElementById('availableInstancesList');
+        if (!list) return;
+        
+        // Get linked instance IDs
+        const linkedResponse = await fetch(`/api/curves/instances-by-schedule?scheduleId=${scheduleId}`);
+        const linkedResult = await linkedResponse.json();
+        const linkedIds = (linkedResult.instances || []).map((i: any) => i.id);
+        
+        // Filter out already linked instances
+        const availableInstances = (result.instances || []).filter((inst: any) => !linkedIds.includes(inst.id));
+        
+        if (availableInstances.length === 0) {
+          list.innerHTML = '<div class="text-xs text-blue-700 text-center py-2">No unlinked instances available</div>';
+        } else {
+          list.innerHTML = availableInstances.map((inst: any) => `
+            <div class="flex items-center justify-between py-1 px-2 bg-white rounded border border-blue-200 hover:bg-blue-50">
+              <div class="flex-1">
+                <div class="text-xs font-medium text-blue-900">${inst.instanceVersion}</div>
+                <div class="text-xs text-blue-700">${inst.status} • ${new Date(inst.createdAt).toLocaleDateString()}</div>
+              </div>
+              <button 
+                onclick="linkInstance(${inst.id}, ${scheduleId})" 
+                class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                title="Link this instance to fulfill the request"
+              >
+                Link
+              </button>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading available instances:', error);
+        const list = document.getElementById('availableInstancesList');
+        if (list) {
+          list.innerHTML = '<div class="text-xs text-red-600 text-center py-2">Error loading instances</div>';
+        }
+      }
+    }
+
+    // Link an instance to a schedule
+    (window as any).linkInstance = async function(instanceId: number, scheduleId: number) {
+      try {
+        const response = await fetch('/api/curves/link-instance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instanceId, scheduleId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Instance linked successfully', 'success');
+          // Reload both lists
+          await loadLinkedInstances(scheduleId);
+          const schedule = await fetch(`/api/curve-schedule/${scheduleId}`).then(r => r.json());
+          if (schedule.success) {
+            await loadAvailableInstances(schedule.data.curveDefinitionId, scheduleId);
+          }
+        } else {
+          showToast(result.message || 'Failed to link instance', 'error');
+        }
+      } catch (error) {
+        console.error('Error linking instance:', error);
+        showToast('Error linking instance', 'error');
+      }
+    };
+
+    // Unlink an instance from a schedule
+    (window as any).unlinkInstance = async function(instanceId: number, scheduleId: number) {
+      if (!confirm('Unlink this instance from the request?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/curves/link-instance', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instanceId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Instance unlinked successfully', 'success');
+          // Reload both lists
+          await loadLinkedInstances(scheduleId);
+          const schedule = await fetch(`/api/curve-schedule/${scheduleId}`).then(r => r.json());
+          if (schedule.success) {
+            await loadAvailableInstances(schedule.data.curveDefinitionId, scheduleId);
+          }
+        } else {
+          showToast(result.message || 'Failed to unlink instance', 'error');
+        }
+      } catch (error) {
+        console.error('Error unlinking instance:', error);
+        showToast('Error unlinking instance', 'error');
+      }
+    };
+    
+    // Delete schedule
+    async function deleteSchedule(id: number, name: string) {
+      if (!confirm(`Delete schedule/request for "${name}"?\n\nThis will remove it from the calendar.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/curve-schedule/update', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Schedule deleted successfully', 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          showToast(result.message || 'Failed to delete schedule', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting schedule:', error);
+        showToast('Error deleting schedule', 'error');
+      }
+    }
+    
+    // Show all curves for a specific date
+    (window as any).showAllForDate = function(dateKey: string) {
+      const calendarGrid = document.getElementById('calendarGrid');
+      const schedulesData = calendarGrid ? JSON.parse(calendarGrid.getAttribute('data-schedules') || '{}') : {};
+      const items = schedulesData[dateKey] || [];
+      const dateObj = new Date(dateKey + 'T00:00:00');
+      const dateDisplay = dateObj.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      const dateDisplayEl = document.getElementById('allCurvesDate');
+      const listEl = document.getElementById('allCurvesList');
+      
+      if (dateDisplayEl && listEl) {
+        dateDisplayEl.textContent = dateDisplay;
+        
+        listEl.innerHTML = items.map((schedule: any) => `
+          <div class="mb-2 p-3 rounded-lg border ${
+            schedule.type === 'uploaded' 
+              ? 'bg-blue-50 border-blue-200' 
+              : schedule.importance === 1 ? 'bg-red-50 border-red-200' :
+                schedule.importance === 2 ? 'bg-orange-50 border-orange-200' :
+                'bg-yellow-50 border-yellow-200'
+          }">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-base">${schedule.type === 'uploaded' ? '⬆️' : '📅'}</span>
+              <div class="font-semibold text-sm text-gray-900">${schedule.name}</div>
+            </div>
+            <div class="text-xs text-gray-600 ml-6">
+              <div>📍 ${schedule.location} • ${schedule.market || 'N/A'}</div>
+              ${schedule.type === 'uploaded' ? `<div>Version: ${schedule.instanceVersion}</div>` : ''}
+              <div class="mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                  schedule.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                  schedule.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                  schedule.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }">
+                  ${schedule.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      document.getElementById('showAllCurvesModal')!.classList.remove('hidden');
+    };
+    
+    // Expose functions to window immediately for onclick handlers (backwards compatibility)
+    (window as any).editSchedule = editSchedule;
+    (window as any).deleteSchedule = deleteSchedule;
+    
+    // Set up event listeners after DOM is ready
+    function setupEventListeners() {
+      // Use event delegation on document so it works even if buttons are added dynamically
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        
+        // Check if clicked element is an edit or delete button
+        const editBtn = target.closest('.edit-schedule-btn');
+        const deleteBtn = target.closest('.delete-schedule-btn');
+        
+        if (editBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const scheduleId = parseInt(editBtn.getAttribute('data-schedule-id') || '0');
+          if (scheduleId) {
+            editSchedule(scheduleId);
+          }
+        } else if (deleteBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const scheduleId = parseInt(deleteBtn.getAttribute('data-schedule-id') || '0');
+          const scheduleName = deleteBtn.getAttribute('data-schedule-name') || 'this schedule';
+          if (scheduleId) {
+            deleteSchedule(scheduleId, scheduleName);
+          }
+        }
+      });
+      
+      // Toggle instance list visibility
+      document.getElementById('toggleInstanceList')?.addEventListener('click', () => {
+        const list = document.getElementById('availableInstancesList');
+        const button = document.getElementById('toggleInstanceList');
+        if (list && button) {
+          if (list.classList.contains('hidden')) {
+            list.classList.remove('hidden');
+            button.textContent = 'Hide Available Instances';
+          } else {
+            list.classList.add('hidden');
+            button.textContent = 'Show Available Instances';
+          }
+        }
+      });
+
+      // Modal handlers
+      document.getElementById('closeEditSchedule')?.addEventListener('click', () => {
+        const modal = document.getElementById('editScheduleModal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.style.cssText = ''; // Clear inline styles
+        }
+        // Hide instance list when closing modal
+        const list = document.getElementById('availableInstancesList');
+        const button = document.getElementById('toggleInstanceList');
+        if (list && button) {
+          list.classList.add('hidden');
+          button.textContent = 'Show Available Instances';
+        }
+      });
+      
+      document.getElementById('cancelEditSchedule')?.addEventListener('click', () => {
+        const modal = document.getElementById('editScheduleModal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.style.cssText = ''; // Clear inline styles
+        }
+        // Hide instance list when closing modal
+        const list = document.getElementById('availableInstancesList');
+        const button = document.getElementById('toggleInstanceList');
+        if (list && button) {
+          list.classList.add('hidden');
+          button.textContent = 'Show Available Instances';
+        }
+      });
+      
+      document.getElementById('saveEditSchedule')?.addEventListener('click', async () => {
+        const id = (document.getElementById('editScheduleId') as HTMLInputElement).value;
+        const scheduleType = (document.getElementById('editScheduleType') as HTMLInputElement).value;
+        const isActive = (document.getElementById('editIsActive') as HTMLInputElement).checked;
+        
+        const isQuickRequest = scheduleType === 'AD_HOC';
+        
+        const updateData: any = {
+          id: parseInt(id),
+          isActive
+        };
+        
+        if (isQuickRequest) {
+          // Quick request fields
+          updateData.dueDate = (document.getElementById('editDueDate') as HTMLInputElement).value;
+          updateData.responsibleTeam = (document.getElementById('editRequestedBy') as HTMLInputElement).value;
+          updateData.importance = parseInt((document.getElementById('editPriority') as HTMLSelectElement).value);
+          updateData.notes = (document.getElementById('editNotes') as HTMLTextAreaElement).value;
+          updateData.status = (document.getElementById('editStatus') as HTMLSelectElement).value;
+        } else {
+          // Recurring schedule fields
+          updateData.frequency = (document.getElementById('editFrequency') as HTMLSelectElement).value;
+          updateData.dayOfWeek = (document.getElementById('editDayOfWeek') as HTMLSelectElement).value;
+          updateData.dayOfMonth = (document.getElementById('editDayOfMonth') as HTMLInputElement).value;
+          updateData.importance = parseInt((document.getElementById('editImportance') as HTMLSelectElement).value);
+          updateData.responsibleTeam = (document.getElementById('editTeam') as HTMLInputElement).value;
+          const emails = (document.getElementById('editEmails') as HTMLInputElement).value;
+          updateData.notificationEmails = emails ? emails.split(',').map(e => e.trim()) : [];
+        }
+        
+        try {
+          const response = await fetch('/api/curve-schedule/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            showToast('Schedule updated successfully', 'success');
+            document.getElementById('editScheduleModal')!.classList.add('hidden');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(result.message || 'Failed to update schedule', 'error');
+          }
+        } catch (error) {
+          console.error('Error updating schedule:', error);
+          showToast('Error updating schedule', 'error');
+        }
+      });
+      
+      // Close modal when clicking backdrop
+      document.getElementById('editScheduleModal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('editScheduleModal')!.classList.add('hidden');
+        }
+      });
+      
+      // Close "Show All Curves" modal
+      document.getElementById('closeAllCurves')?.addEventListener('click', () => {
+        document.getElementById('showAllCurvesModal')!.classList.add('hidden');
+      });
+      
+      document.getElementById('showAllCurvesModal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('showAllCurvesModal')!.classList.add('hidden');
+        }
+      });
+    }
+    
+    // Call immediately if DOM is already loaded, otherwise wait
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupEventListeners);
+    } else {
+      setupEventListeners();
+    }
 
     // ==================== MONTH NAVIGATION ====================
     // Get current year and month from URL or use today
@@ -1066,6 +1890,7 @@ function getStatusClass(status: string): string {
       localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
     }
 
+    // Note modal functions
     function openNoteModal(date: string) {
       currentNoteDate = date;
       const modal = document.getElementById('noteModal');
@@ -1121,6 +1946,11 @@ function getStatusClass(status: string): string {
       displayNoteInCalendar(currentNoteDate, newNote);
       closeNoteModal();
     }
+    
+    // Expose to global scope for onclick handlers
+    (window as any).openNoteModal = openNoteModal;
+    (window as any).closeNoteModal = closeNoteModal;
+    (window as any).saveNote = saveNote;
 
     function displayNoteInCalendar(date: string, note: CalendarNote) {
       const container = document.querySelector(`.notes-container[data-date="${date}"]`);
@@ -1170,6 +2000,8 @@ function getStatusClass(status: string): string {
         }
       }
     }
+    
+    (window as any).deleteNote = deleteNote;
 
     function escapeHtml(text: string): string {
       const div = document.createElement('div');

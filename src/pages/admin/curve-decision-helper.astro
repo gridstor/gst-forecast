@@ -1,0 +1,460 @@
+---
+/**
+ * Helper page to understand when to create a Definition vs Instance
+ */
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Definition vs Instance Helper</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 2.5rem;
+    }
+    
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    
+    .comparison-item {
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 3px solid #eee;
+    }
+    
+    .comparison-item.definition {
+      border-color: #667eea;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    }
+    
+    .comparison-item.instance {
+      border-color: #4facfe;
+      background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%);
+    }
+    
+    .comparison-item h3 {
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+    
+    .comparison-item.definition h3 {
+      color: #667eea;
+    }
+    
+    .comparison-item.instance h3 {
+      color: #4facfe;
+    }
+    
+    .comparison-item ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .comparison-item li {
+      padding: 0.5rem 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    
+    .comparison-item li:before {
+      content: "✓";
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    
+    .comparison-item.definition li:before {
+      color: #667eea;
+    }
+    
+    .comparison-item.instance li:before {
+      color: #4facfe;
+    }
+    
+    .form-section {
+      background: #f8f9ff;
+      padding: 2rem;
+      border-radius: 12px;
+      margin: 2rem 0;
+    }
+    
+    .form-section h3 {
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .check-button {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    
+    .check-button:hover {
+      opacity: 0.9;
+    }
+    
+    .check-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .result {
+      margin-top: 2rem;
+      padding: 2rem;
+      border-radius: 12px;
+      display: none;
+    }
+    
+    .result.show {
+      display: block;
+    }
+    
+    .result.create-definition {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+      border: 3px solid #667eea;
+    }
+    
+    .result.create-instance {
+      background: linear-gradient(135deg, rgba(79, 172, 254, 0.2) 0%, rgba(0, 242, 254, 0.2) 100%);
+      border: 3px solid #4facfe;
+    }
+    
+    .result h3 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+    
+    .result.create-definition h3 {
+      color: #667eea;
+    }
+    
+    .result.create-instance h3 {
+      color: #4facfe;
+    }
+    
+    .result p {
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+    
+    .matching-definitions {
+      margin-top: 1.5rem;
+    }
+    
+    .matching-definition-item {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      border: 2px solid #eee;
+    }
+    
+    .matching-definition-item h4 {
+      color: #667eea;
+      margin-bottom: 0.5rem;
+    }
+    
+    .matching-definition-item .info {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .matching-definition-item .info-label {
+      font-weight: 600;
+      color: #666;
+    }
+    
+    .example-box {
+      background: #f0f4ff;
+      border-left: 4px solid #667eea;
+      padding: 1rem;
+      margin: 1rem 0;
+      border-radius: 4px;
+    }
+    
+    .example-box strong {
+      color: #667eea;
+    }
+    
+    .error {
+      background: #fee;
+      border: 2px solid #fcc;
+      color: #c33;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤔 Definition vs Instance Helper</h1>
+    <p class="subtitle">Not sure if you should create a new Definition or a new Instance? Let's figure it out!</p>
+    
+    <div class="card">
+      <h2>Quick Guide</h2>
+      
+      <div class="comparison">
+        <div class="comparison-item definition">
+          <h3>📋 Create a Definition When...</h3>
+          <ul>
+            <li>This is a completely NEW curve concept</li>
+            <li>Different market or location</li>
+            <li>Different battery configuration</li>
+            <li>Fundamentally different purpose</li>
+            <li>Needs a unique, descriptive name</li>
+          </ul>
+          
+          <div class="example-box">
+            <strong>Example:</strong> "CAISO_NP15_4H_Revenue_Forecast" is a definition
+          </div>
+        </div>
+        
+        <div class="comparison-item instance">
+          <h3>🔄 Create an Instance When...</h3>
+          <ul>
+            <li>Same curve, different TIME PERIOD</li>
+            <li>Same curve, different VERSION/RUN</li>
+            <li>Same curve, different SCENARIO (base/high/low)</li>
+            <li>Update to existing curve data</li>
+            <li>Monthly/quarterly refresh of same curve</li>
+          </ul>
+          
+          <div class="example-box">
+            <strong>Example:</strong> v1_2024Q1, v2_2024Q2, v3_updated are instances under the same definition
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="form-section">
+        <h3>🔍 Check Your Situation</h3>
+        <p style="margin-bottom: 1.5rem; color: #666;">
+          Enter the characteristics of the curve you want to create, and we'll tell you if you should
+          create a new definition or an instance under an existing one.
+        </p>
+        
+        <form id="checkForm">
+          <div class="form-group">
+            <label for="market">Market *</label>
+            <select id="market" name="market" required>
+              <option value="">Select market...</option>
+              <option value="CAISO">CAISO</option>
+              <option value="ERCOT">ERCOT</option>
+              <option value="PJM">PJM</option>
+              <option value="MISO">MISO</option>
+              <option value="SPP">SPP</option>
+              <option value="NYISO">NYISO</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="location">Location *</label>
+            <input type="text" id="location" name="location" placeholder="e.g., NP15, SP15, Houston" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="batteryDuration">Battery Duration</label>
+            <select id="batteryDuration" name="batteryDuration">
+              <option value="">Select duration...</option>
+              <option value="2H">2H</option>
+              <option value="4H">4H</option>
+              <option value="8H">8H</option>
+              <option value="UNKNOWN">Unknown</option>
+            </select>
+          </div>
+          
+          <button type="submit" class="check-button" id="submitBtn">
+            🔍 Check What To Create
+          </button>
+        </form>
+      </div>
+      
+      <div id="result" class="result"></div>
+    </div>
+  </div>
+  
+  <script>
+    const form = document.getElementById('checkForm') as HTMLFormElement;
+    const resultDiv = document.getElementById('result') as HTMLDivElement;
+    const submitBtn = document.getElementById('submitBtn') as HTMLButtonElement;
+    
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(form);
+      const data = {
+        market: formData.get('market'),
+        location: formData.get('location'),
+        batteryDuration: formData.get('batteryDuration') || undefined
+      };
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Checking...';
+      resultDiv.classList.remove('show', 'create-definition', 'create-instance');
+      
+      try {
+        const response = await fetch('/api/curves/should-create-instance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        displayResult(result);
+      } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error instanceof Error ? error.message : 'Unknown error'}</div>`;
+        resultDiv.classList.add('show');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🔍 Check What To Create';
+      }
+    });
+    
+    function displayResult(result: any) {
+      resultDiv.classList.add('show');
+      
+      let html = '';
+      
+      if (result.recommendation === 'CREATE_DEFINITION') {
+        resultDiv.classList.add('create-definition');
+        html += '<h3>✅ Create a New Definition</h3>';
+        html += `<p>${result.explanation}</p>`;
+        html += `<p><strong>${result.userGuidance}</strong></p>`;
+        html += '<p style="margin-top: 1rem;">Choose a unique, descriptive name like: <code>MARKET_LOCATION_DURATION_PURPOSE</code></p>';
+      } else if (result.recommendation === 'CREATE_INSTANCE') {
+        resultDiv.classList.add('create-instance');
+        html += '<h3>⚠️ Create an Instance, NOT a New Definition!</h3>';
+        html += `<p>${result.explanation}</p>`;
+        html += `<p><strong>${result.userGuidance}</strong></p>`;
+        
+        if (result.matchingDefinitions.length > 0) {
+          html += '<div class="matching-definitions">';
+          html += '<h4>Existing Definition Found:</h4>';
+          
+          result.matchingDefinitions.forEach((def: any) => {
+            html += '<div class="matching-definition-item">';
+            html += `<h4>${def.curveName}</h4>`;
+            html += '<div class="info">';
+            html += `<div><span class="info-label">Market:</span> ${def.market}</div>`;
+            html += `<div><span class="info-label">Location:</span> ${def.location}</div>`;
+            html += `<div><span class="info-label">Battery:</span> ${def.batteryDuration}</div>`;
+            html += `<div><span class="info-label">Instances:</span> ${def._count.instances}</div>`;
+            html += '</div>';
+            html += `<p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Create a new instance under this definition with a version like "v${def._count.instances + 1}_${new Date().getFullYear()}Q${Math.floor((new Date().getMonth() / 3)) + 1}"</p>`;
+            html += '</div>';
+          });
+          
+          html += '</div>';
+        }
+      } else {
+        html += '<h3>🤷 Multiple Options</h3>';
+        html += `<p>${result.explanation}</p>`;
+        html += `<p><strong>${result.userGuidance}</strong></p>`;
+        
+        if (result.matchingDefinitions.length > 0) {
+          html += '<div class="matching-definitions">';
+          html += '<h4>Matching Definitions:</h4>';
+          
+          result.matchingDefinitions.forEach((def: any) => {
+            html += '<div class="matching-definition-item">';
+            html += `<h4>${def.curveName}</h4>`;
+            html += '<div class="info">';
+            html += `<div><span class="info-label">Market:</span> ${def.market}</div>`;
+            html += `<div><span class="info-label">Location:</span> ${def.location}</div>`;
+            html += `<div><span class="info-label">Battery:</span> ${def.batteryDuration}</div>`;
+            html += `<div><span class="info-label">Instances:</span> ${def._count.instances}</div>`;
+            html += '</div>';
+            html += '</div>';
+          });
+          
+          html += '</div>';
+        }
+      }
+      
+      resultDiv.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
+

@@ -25,10 +25,10 @@ export const GET: APIRoute = async ({ url }) => {
           ci.status,
           ci."createdAt",
           ci."createdBy",
-          ci."curveType",
-          ci.commodity,
+          ci."curveTypes",
+          ci.commodities,
           ci.granularity,
-          ci.scenario,
+          ci.scenarios,
           ci."degradationType"
         FROM "Forecasts"."CurveInstance" ci
         WHERE ci.status = 'ACTIVE'
@@ -48,10 +48,10 @@ export const GET: APIRoute = async ({ url }) => {
         li.status,
         li."createdAt" as "instanceCreatedAt",
         li."createdBy",
-        li."curveType",
-        li.commodity,
+        li."curveTypes",
+        li.commodities,
         li.granularity,
-        li.scenario,
+        li.scenarios,
         li."degradationType"
       FROM "Forecasts"."CurveDefinition" cd
       LEFT JOIN LatestInstances li ON cd.id = li."curveDefinitionId"
@@ -76,11 +76,11 @@ export const GET: APIRoute = async ({ url }) => {
         status: row.status,
         createdAt: row.instanceCreatedAt,
         createdBy: row.createdBy,
-        // These are now on instance level:
-        curveType: row.curveType,
-        commodity: row.commodity,
+        // These are now arrays on instance level:
+        curveTypes: row.curveTypes || [],
+        commodities: row.commodities || [],
         granularity: row.granularity,
-        scenario: row.scenario,
+        scenarios: row.scenarios || [],
         degradationType: row.degradationType
       } : null
     }));

@@ -26,11 +26,11 @@ export const GET: APIRoute = async ({ request }) => {
       curveName: instance.curveDefinition.curveName,
       market: instance.curveDefinition.market,
       location: instance.curveDefinition.location,
-      // All these are now on instance level:
-      curveType: instance.curveType,
-      commodity: instance.commodity,
+      // All these are now arrays on instance level:
+      curveTypes: instance.curveTypes || [],
+      commodities: instance.commodities || [],
+      scenarios: instance.scenarios || [],
       granularity: instance.granularity,
-      scenario: instance.scenario,
       degradationType: instance.degradationType,
       instanceVersion: instance.instanceVersion,
       createdBy: instance.createdBy,

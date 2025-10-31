@@ -12,32 +12,31 @@ export const GET: APIRoute = async ({ params }) => {
       });
     }
 
-    // Fetch the first 5 rows of curve data
+    // Fetch the first 5 rows of curve data (new structure)
     const result = await query(`
       SELECT 
         cd."timestamp",
-        cd."valueP5",
-        cd."valueP25", 
-        cd."valueP50",
-        cd."valueP75",
-        cd."valueP95",
-        def.units
+        cd.value,
+        cd."curveType",
+        cd.commodity,
+        cd.scenario,
+        cd.units as data_units,
+        def.units as def_units
       FROM "Forecasts"."CurveData" cd
       JOIN "Forecasts"."CurveInstance" ci ON cd."curveInstanceId" = ci.id
       JOIN "Forecasts"."CurveDefinition" def ON ci."curveDefinitionId" = def.id
       WHERE ci.id = $1
-      ORDER BY cd."timestamp" ASC
+      ORDER BY cd."timestamp" ASC, cd."curveType", cd.commodity, cd.scenario
       LIMIT 5
     `, [instanceId]);
 
     const previewData = result.rows.map(row => ({
       timestamp: row.timestamp?.toISOString() ?? '',
-      valueP5: row.valueP5,
-      valueP25: row.valueP25,
-      valueP50: row.valueP50,
-      valueP75: row.valueP75,
-      valueP95: row.valueP95,
-      units: row.units || '$/MWh'
+      value: row.value,
+      curveType: row.curveType,
+      commodity: row.commodity,
+      scenario: row.scenario,
+      units: row.data_units || row.def_units || '$/MWh'
     }));
 
     return new Response(JSON.stringify({

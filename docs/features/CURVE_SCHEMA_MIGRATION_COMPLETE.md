@@ -31,10 +31,19 @@ CurveDefinition: "SP15 Gridstor Optimized Revenue"
   - location: "SP15"
   - product: "Gridstor Optimized"
   
-  Instance 1: curveType="Revenue Forecast", commodity="Total Revenue"
-  Instance 2: curveType="Revenue Forecast", commodity="EA Revenue"  
-  Instance 3: curveType="Revenue Forecast", commodity="AS Revenue"
+  Instance 1:
+    - curveTypes: ["Revenue Forecast"]
+    - commodities: ["Total Revenue", "EA Revenue", "AS Revenue"]
+    - scenarios: ["BASE", "HIGH", "LOW"]
+    
+    CurveData rows:
+      - timestamp: 2024-01-01, curveType: "Revenue Forecast", commodity: "Total Revenue", scenario: "BASE", value: 87.25
+      - timestamp: 2024-01-01, curveType: "Revenue Forecast", commodity: "EA Revenue", scenario: "BASE", value: 45.50
+      - timestamp: 2024-01-01, curveType: "Revenue Forecast", commodity: "AS Revenue", scenario: "BASE", value: 38.75
+      - ... (multiple rows per timestamp for different commodities/scenarios)
 ```
+
+**Key Change:** CurveInstance has **arrays** (`curveTypes[]`, `commodities[]`, `scenarios[]`) that define allowed values, and CurveData rows have individual values that must exist in those arrays.
 
 ## Migration Results
 
@@ -55,23 +64,26 @@ CurveDefinition: "SP15 Gridstor Optimized Revenue"
 ## Components Updated
 
 ### ✅ Database Schema
-- **Added columns to CurveInstance**: `curveType` VARCHAR(100), `commodity` VARCHAR(50)
-- **Migrated data**: All existing instances now have curveType and commodity
-- **Created index**: `CurveInstance_curveType_commodity_idx`
-- **Updated indexes**: Removed curveType from CurveDefinition index
+- **Added array columns to CurveInstance**: `curveTypes` TEXT[], `commodities` TEXT[], `scenarios` TEXT[]
+- **Migrated data**: All existing instances now have array values populated
+- **Added row-level columns to CurveData**: `curveType` VARCHAR(100), `commodity` VARCHAR(100), `scenario` VARCHAR(100)
+- **Created indexes**: GIN indexes on array fields, B-tree indexes on CurveData fields
+- **Updated indexes**: Optimized for array searches and row-level filtering
 
 ### ✅ Prisma Schema (`prisma/schema.prisma`)
 - Removed `curveType` and `commodity` from `CurveDefinition` model
-- Added `curveType` and `commodity` to `CurveInstance` model (nullable)
-- Updated indexes and documentation
+- Added **array fields** to `CurveInstance` model: `curveTypes String[]`, `commodities String[]`, `scenarios String[]`
+- Added **row-level fields** to `CurveData` model: `curveType String`, `commodity String`, `scenario String`
+- Updated indexes for both array searches and row-level queries
 - **Prisma Client Regenerated**: ✅
 
 ### ✅ Curve Inventory Page (`src/pages/curve-tracker/inventory.astro`)
 - Now loads definitions with their instances
-- Shows instance types and commodities as colored badges
+- Shows instance array values (curveTypes, commodities, scenarios) as colored badges
 - Filter by curve type or commodity
 - Displays instance count per definition
 - Groups related curves under one definition
+- Handles multi-value arrays correctly
 
 ### Migration Scripts Created
 1. `prisma/migrations/20251024_move_curvetype_commodity_to_instance.sql` - SQL migration
@@ -79,20 +91,40 @@ CurveDefinition: "SP15 Gridstor Optimized Revenue"
 3. `scripts/run-migration-node.js` - Node.js alternative
 4. `RUN_MIGRATION.md` - Documentation
 
-## Example Values
+## Example Values and Data Structure
 
-Based on your specification:
+Based on current implementation:
 
-### Curve Types
+### CurveInstance Arrays (Validation Whitelists)
+```json
+{
+  "curveTypes": ["Revenue Forecast", "P-Values"],
+  "commodities": ["Total Revenue", "EA Revenue", "AS Revenue"],
+  "scenarios": ["BASE", "HIGH", "LOW", "P50", "P90"]
+}
+```
+
+### CurveData Rows (Individual Values)
+Each row in CurveData has individual values that must exist in the instance arrays:
+```
+Row 1: curveType="Revenue Forecast", commodity="Total Revenue", scenario="BASE"
+Row 2: curveType="Revenue Forecast", commodity="EA Revenue", scenario="BASE"
+Row 3: curveType="Revenue Forecast", commodity="AS Revenue", scenario="BASE"
+Row 4: curveType="Revenue Forecast", commodity="EA Revenue", scenario="HIGH"
+... (multiple rows with different combinations)
+```
+
+### Common Curve Types
 - `"Revenue Forecast"` - Revenue projections
 - `"Price Forecast"` - Price projections
-- (Can add more as needed)
+- `"P-Values"` - Percentile-based forecasts
 
-### Commodities  
+### Common Commodities  
 - `"Total Revenue"` - Combined/total revenue
 - `"EA Revenue"` - Energy Arbitrage revenue
 - `"AS Revenue"` - Ancillary Services revenue
-- (Can add more as needed)
+- `"REC Revenue"` - Renewable Energy Credit revenue
+- `"Capacity Revenue"` - Capacity market revenue
 
 ## Current State
 
@@ -201,10 +233,20 @@ The system is now more flexible and better aligned with how project finance team
 
 When uploading new curves, you'll now:
 1. Create/select a general definition (e.g., "SP15 Gridstor Revenue")
-2. For each upload, specify:
-   - Curve Type: `"Revenue Forecast"` or `"Price Forecast"`
-   - Commodity: `"Total Revenue"`, `"EA Revenue"`, `"AS Revenue"`, etc.
-3. All related curves will be grouped under the same definition
+2. Create an instance and specify **arrays** of allowed values:
+   - `curveTypes`: `["Revenue Forecast", "P-Values"]`
+   - `commodities`: `["Total Revenue", "EA Revenue", "AS Revenue"]`
+   - `scenarios`: `["BASE", "HIGH", "LOW", "P50"]`
+3. Upload CSV with rows that have individual values matching those arrays:
+   - Each row: `timestamp, value, curveType, commodity, scenario, units`
+   - Values must exist in the instance arrays or upload fails
+4. One CSV can contain multiple curve types, commodities, and scenarios together
+
+**Benefits:**
+- All related curves grouped under one definition
+- Flexible multi-dimensional data in a single upload
+- Strict validation ensures data quality
+- Easy to analyze different scenarios/commodities together
 
 This makes it much easier to manage and analyze related revenue streams! 🚀
 

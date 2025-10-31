@@ -3,33 +3,29 @@ import { ResponsiveContainer, ComposedChart, XAxis, YAxis, CartesianGrid, Toolti
 
 interface DataPoint {
   timestamp: string;
-  valueP5: number | null;
-  valueP25: number | null;
-  valueP50: number | null;
-  valueP75: number | null;
-  valueP95: number | null;
+  value: number;
+  curveType: string;
+  commodity: string;
+  scenario: string;
   instanceId: number;
   curveName: string;
   units: string;
-  scenario: string;
 }
 
 interface DualRangeChartProps {
   data: DataPoint[];
   color?: string;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 interface ChartData {
   date: string;
   year: number;
-  valueP5: number | null;
-  valueP25: number | null;
-  valueP50: number | null;
-  valueP75: number | null;
-  valueP95: number | null;
+  [key: string]: number | string | null; // Dynamic keys for scenarios
 }
 
-const DualRangeChart: React.FC<DualRangeChartProps> = ({ data, color = '#34D5ED' }) => {
+const DualRangeChart: React.FC<DualRangeChartProps> = ({ data, color = '#34D5ED', startDate = null, endDate = null }) => {
   const [zoomDomain, setZoomDomain] = useState<{ left: string | null; right: string | null }>({ left: null, right: null });
   const [refAreaLeft, setRefAreaLeft] = useState<string>('');
   const [refAreaRight, setRefAreaRight] = useState<string>('');
@@ -38,53 +34,89 @@ const DualRangeChart: React.FC<DualRangeChartProps> = ({ data, color = '#34D5ED'
   const { annualData, monthlyData, rawMonthlyData } = useMemo(() => {
     if (data.length === 0) return { annualData: [], monthlyData: [], rawMonthlyData: [] };
 
+    // Filter data by date range if specified
+    let filteredData = data;
+    if (startDate || endDate) {
+      const start = startDate ? new Date(startDate).getTime() : -Infinity;
+      const end = endDate ? new Date(endDate).getTime() : Infinity;
+      filteredData = data.filter(point => {
+        const pointDate = new Date(point.timestamp).getTime();
+        return pointDate >= start && pointDate <= end;
+      });
+    }
+
+    if (filteredData.length === 0) return { annualData: [], monthlyData: [], rawMonthlyData: [] };
+
+    // Group by timestamp to pivot scenarios into columns
+    const timestampGroups: { [key: string]: { [scenario: string]: number } } = {};
+    filteredData.forEach(point => {
+      const ts = point.timestamp;
+      if (!timestampGroups[ts]) timestampGroups[ts] = {};
+      // Scenarios like P5, P25, P50, P75, P95 become columns
+      timestampGroups[ts][point.scenario] = point.value;
+    });
+
+    // Convert to array with P-value columns
+    const allData = Object.entries(timestampGroups).map(([timestamp, scenarios]) => {
+      const date = new Date(timestamp);
+      return {
+        date: date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
+        year: date.getFullYear(),
+        month: date.getMonth(),
+        timestamp: date,
+        valueP5: scenarios['P5'] || scenarios['P05'] || null,
+        valueP25: scenarios['P25'] || null,
+        valueP50: scenarios['P50'] || null,
+        valueP75: scenarios['P75'] || null,
+        valueP95: scenarios['P95'] || null
+      };
+    }).sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
     // Group by year for annual chart
-    const yearGroups: { [key: number]: DataPoint[] } = {};
-    data.forEach(point => {
-      const year = new Date(point.timestamp).getFullYear();
-      if (!yearGroups[year]) yearGroups[year] = [];
-      yearGroups[year].push(point);
+    const yearGroups: { [key: number]: typeof allData } = {};
+    allData.forEach(point => {
+      if (!yearGroups[point.year]) yearGroups[point.year] = [];
+      yearGroups[point.year].push(point);
     });
 
     const annual = Object.entries(yearGroups).map(([year, points]) => {
-      const calcAvg = (key: keyof DataPoint) => {
-        const vals = points.map(p => p[key]).filter(v => typeof v === 'number') as number[];
-        return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+      const calcAvg = (vals: (number | null)[]) => {
+        const nums = vals.filter(v => v !== null) as number[];
+        return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
       };
 
       return {
         date: year,
         year: parseInt(year),
-        valueP5: calcAvg('valueP5'),
-        valueP25: calcAvg('valueP25'),
-        valueP50: calcAvg('valueP50'),
-        valueP75: calcAvg('valueP75'),
-        valueP95: calcAvg('valueP95')
+        valueP5: calcAvg(points.map(p => p.valueP5)),
+        valueP25: calcAvg(points.map(p => p.valueP25)),
+        valueP50: calcAvg(points.map(p => p.valueP50)),
+        valueP75: calcAvg(points.map(p => p.valueP75)),
+        valueP95: calcAvg(points.map(p => p.valueP95))
       };
     }).sort((a, b) => a.year - b.year);
 
-    // Get next 7 years of monthly data
-    const now = new Date();
-    const sevenYearsFromNow = new Date(now.getFullYear() + 7, now.getMonth(), now.getDate());
-    
-    const monthly = data
-      .filter(point => {
-        const date = new Date(point.timestamp);
-        return date >= now && date <= sevenYearsFromNow;
-      })
-      .map(point => ({
-        date: new Date(point.timestamp).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }),
-        year: new Date(point.timestamp).getFullYear(),
-        valueP5: point.valueP5,
-        valueP25: point.valueP25,
-        valueP50: point.valueP50,
-        valueP75: point.valueP75,
-        valueP95: point.valueP95
-      }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    // Get all data (no time limit, make it flexible)
+    const monthly = allData.map(point => ({
+      date: point.date,
+      year: point.year,
+      valueP5: point.valueP5,
+      valueP25: point.valueP25,
+      valueP50: point.valueP50,
+      valueP75: point.valueP75,
+      valueP95: point.valueP95
+    }));
 
-    return { annualData: annual, monthlyData: monthly, rawMonthlyData: data };
-  }, [data]);
+    console.log('Chart data processed:', {
+      totalPoints: filteredData.length,
+      annualPoints: annual.length,
+      monthlyPoints: monthly.length,
+      sampleAnnual: annual[0],
+      sampleMonthly: monthly[0]
+    });
+
+    return { annualData: annual, monthlyData: monthly, rawMonthlyData: filteredData };
+  }, [data, startDate, endDate]);
 
   // Calculate statistics for annual data
   const annualStats = useMemo(() => {

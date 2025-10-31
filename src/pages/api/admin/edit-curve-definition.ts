@@ -59,14 +59,9 @@ export const PUT: APIRoute = async ({ request }) => {
       curveName,
       market,
       location,
-      product,
-      curveType,
+      // Fields that belong on Definition (instance-specific fields removed)
       batteryDuration,
-      scenario,
-      degradationType,
-      commodity,
       units,
-      granularity,
       timezone,
       description,
       isActive,
@@ -84,50 +79,61 @@ export const PUT: APIRoute = async ({ request }) => {
       id,
       curveName,
       market,
-      curveType,
-      batteryDuration,
-      scenario,
-      degradationType
+      location,
+      batteryDuration
     });
 
-    // Check if curve name is being changed and if new name already exists
-    if (curveName) {
-      const existing = await prisma.curveDefinition.findFirst({
-        where: {
-          curveName,
-          NOT: { id: parseInt(id) }
-        }
-      });
+    // Get the current definition to check market/location
+    const currentDef = await prisma.curveDefinition.findUnique({
+      where: { id: parseInt(id) }
+    });
 
-      if (existing) {
-        return new Response(JSON.stringify({ 
-          error: 'A curve with this name already exists' 
-        }), {
-          status: 409,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+    if (!currentDef) {
+      return new Response(JSON.stringify({ error: 'Curve definition not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // Build update data object - only include fields that were provided
+    // Check if curve name+market+location combo already exists (if any are being changed)
+    const checkName = curveName || currentDef.curveName;
+    const checkMarket = market || currentDef.market;
+    const checkLocation = location || currentDef.location;
+
+    const existing = await prisma.curveDefinition.findFirst({
+      where: {
+        curveName: checkName,
+        market: checkMarket,
+        location: checkLocation,
+        NOT: { id: parseInt(id) }
+      }
+    });
+
+    if (existing) {
+      return new Response(JSON.stringify({ 
+        error: `A curve with name "${checkName}" already exists for ${checkMarket} ${checkLocation}` 
+      }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Build update data object - only include fields that belong on Definition
     const updateData: any = {
       updatedAt: new Date()
     };
 
+    // Definition-level fields only
     if (curveName !== undefined) updateData.curveName = curveName;
     if (market !== undefined) updateData.market = market;
     if (location !== undefined) updateData.location = location;
-    if (product !== undefined) updateData.product = product;
-    if (curveType !== undefined) updateData.curveType = curveType;
     if (batteryDuration !== undefined) updateData.batteryDuration = batteryDuration;
-    if (scenario !== undefined) updateData.scenario = scenario;
-    if (degradationType !== undefined) updateData.degradationType = degradationType;
-    if (commodity !== undefined) updateData.commodity = commodity;
     if (units !== undefined) updateData.units = units;
-    if (granularity !== undefined) updateData.granularity = granularity;
     if (timezone !== undefined) updateData.timezone = timezone;
     if (description !== undefined) updateData.description = description;
     if (isActive !== undefined) updateData.isActive = isActive;
+    // Note: product, curveType, commodity, granularity, scenario, degradationType 
+    // are now on CurveInstance, not CurveDefinition
 
     console.log('Update data prepared:', JSON.stringify(updateData, null, 2));
     console.log('Updating definition with ID:', parseInt(id));
@@ -174,23 +180,69 @@ export const DELETE: APIRoute = async ({ request }) => {
       });
     }
 
-    // This will cascade delete all instances and their data
+    console.log(`Attempting to delete curve definition ${id}...`);
+
+    // Check if definition exists and get counts
+    const definition = await prisma.curveDefinition.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        _count: {
+          select: {
+            instances: true,
+            schedules: true,
+            defaultInputs: true
+          }
+        }
+      }
+    });
+
+    if (!definition) {
+      return new Response(JSON.stringify({ error: 'Definition not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`Deleting definition "${definition.curveName}" with ${definition._count.instances} instances, ${definition._count.schedules} schedules`);
+
+    // This will cascade delete all instances and their data (if cascade is set up)
     await prisma.curveDefinition.delete({
       where: { id: parseInt(id) }
     });
 
-    return new Response(JSON.stringify({ success: true }), {
+    console.log(`Successfully deleted definition ${id}`);
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      deleted: {
+        name: definition.curveName,
+        instancesDeleted: definition._count.instances,
+        schedulesDeleted: definition._count.schedules
+      }
+    }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error deleting definition:', error);
+    
+    // Check for specific constraint errors
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    let userMessage = 'Failed to delete definition';
+    
+    if (errorMsg.includes('foreign key constraint') || errorMsg.includes('violates foreign key')) {
+      userMessage = 'Cannot delete: This definition has related instances or schedules. Database constraints are not set up for cascade delete. Run the migration SQL first.';
+    }
+    
     return new Response(JSON.stringify({ 
-      error: 'Failed to delete definition',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: userMessage,
+      details: errorMsg,
+      hint: 'You may need to run the cascade delete migration SQL on your database first.'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
+  } finally {
+    await prisma.$disconnect();
   }
 };

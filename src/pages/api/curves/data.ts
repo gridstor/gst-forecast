@@ -38,30 +38,32 @@ export const GET: APIRoute = async ({ url }) => {
         });
       }
       
-      // Query by specific curve instance ID (CurveData has pivoted columns)
+      // Query by specific curve instance ID (new CurveData structure)
       result = await query(`
         SELECT 
           cd."timestamp",
           cd."curveInstanceId",
           cd.id,
-          cd."valueP5",
-          cd."valueP25",
-          cd."valueP50",
-          cd."valueP75",
-          cd."valueP95",
+          cd.value,
+          cd."curveType",
+          cd.commodity,
+          cd.scenario,
+          cd.units as data_units,
           ci."curveDefinitionId" as curve_id,
           def."curveName" as curve_name,
           def.location,
           def.market,
-          def."curveType" as curve_type,
+          ci."curveTypes" as curve_types,
+          ci.commodities,
+          ci.scenarios,
           def."createdBy" as curve_creator,
-          def.units,
+          def.units as def_units,
           ci.metadata
         FROM "Forecasts"."CurveData" cd
         JOIN "Forecasts"."CurveInstance" ci ON cd."curveInstanceId" = ci.id
         JOIN "Forecasts"."CurveDefinition" def ON ci."curveDefinitionId" = def.id
         WHERE ci.id = $1
-        ORDER BY cd."timestamp" ASC
+        ORDER BY cd."timestamp" ASC, cd."curveType", cd.commodity, cd.scenario
       `, [curveInstanceId]);
     } else {
       console.log(`Fetching curve data for definition IDs: ${curveIds.join(', ')}, aggregation: ${aggregation}`);
@@ -79,7 +81,9 @@ export const GET: APIRoute = async ({ url }) => {
           cd."curveName" as curve_name,
           cd.location,
           cd.market,
-          cd."curveType" as curve_type,
+          ci."curveTypes" as curve_types,
+          ci.commodities,
+          ci.scenarios,
           cd."createdBy" as curve_creator
         FROM "Forecasts"."PriceForecast" pf
         JOIN "Forecasts"."CurveInstance" ci ON pf."curveInstanceId" = ci.id
@@ -96,14 +100,11 @@ export const GET: APIRoute = async ({ url }) => {
       const priceData = result.rows.map(row => ({
         id: row.id,
         timestamp: row.timestamp?.toISOString() ?? '',
-        value: row.valueP50 ?? 0,
-        valueP5: row.valueP5,
-        valueP25: row.valueP25,
-        valueP50: row.valueP50,
-        valueP75: row.valueP75,
-        valueP95: row.valueP95,
-        pvalue: 50,
-        units: row.units || ((row.metadata && (typeof row.metadata === 'object') && row.metadata.units) ? row.metadata.units : '$/MWh'),
+        value: row.value ?? 0,
+        curveType: row.curveType,
+        commodity: row.commodity,
+        scenario: row.scenario,
+        units: row.data_units || row.def_units || '$/MWh',
         curveInstanceId: row.curveInstanceId
       }));
       

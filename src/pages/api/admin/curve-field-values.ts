@@ -24,23 +24,28 @@ export const GET: APIRoute = async () => {
     // Get curve instances for fields moved to instance level
     const instances = await prisma.curveInstance.findMany({
       select: {
-        curveType: true,
-        commodity: true,
+        curveTypes: true,
+        commodities: true,
+        scenarios: true,
         granularity: true,
-        scenario: true,
         degradationType: true,
       }
     });
+
+    // Extract unique values from arrays
+    const allCurveTypes = instances.flatMap(i => i.curveTypes || []);
+    const allCommodities = instances.flatMap(i => i.commodities || []);
+    const allScenarios = instances.flatMap(i => i.scenarios || []);
 
     // Extract unique values for each field, filtering out nulls and sorting
     const uniqueValues = {
       markets: [...new Set(definitions.map(d => d.market).filter(Boolean))].sort(),
       locations: [...new Set(definitions.map(d => d.location).filter(Boolean))].sort(),
-      // These now come from instances:
-      commodities: [...new Set(instances.map(i => i.commodity).filter(Boolean))].sort(),
-      curveTypes: [...new Set(instances.map(i => i.curveType).filter(Boolean))].sort(),
+      // These now come from instances (arrays flattened):
+      commodities: [...new Set(allCommodities.filter(Boolean))].sort(),
+      curveTypes: [...new Set(allCurveTypes.filter(Boolean))].sort(),
       granularities: [...new Set(instances.map(i => i.granularity).filter(Boolean))].sort(),
-      scenarios: [...new Set(instances.map(i => i.scenario).filter(Boolean))].sort(),
+      scenarios: [...new Set(allScenarios.filter(Boolean))].sort(),
       degradationTypes: [...new Set(instances.map(i => i.degradationType).filter(Boolean))].sort(),
       // These still come from definitions:
       batteryDurations: [...new Set(definitions.map(d => d.batteryDuration).filter(Boolean))].sort(),

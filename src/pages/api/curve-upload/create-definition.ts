@@ -28,10 +28,12 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
-    // Try to find existing curve definition first (by name only - it should be unique)
-    let curveDefinition = await prisma.curveDefinition.findUnique({
+    // Try to find existing curve definition first (by name + market + location)
+    let curveDefinition = await prisma.curveDefinition.findFirst({
       where: {
-        curveName
+        curveName,
+        market,
+        location
       }
     });
 
@@ -42,7 +44,8 @@ export const POST: APIRoute = async ({ request }) => {
           curveName,
           market,
           location,
-          // product, curveType, commodity, granularity, scenario, degradationType removed
+          product: 'General', // Optional legacy field - kept for DB compatibility
+          // curveType, commodity, granularity, scenario, degradationType moved to CurveInstance
           batteryDuration: batteryDuration || 'UNKNOWN',
           units,
           timezone,

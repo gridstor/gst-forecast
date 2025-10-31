@@ -221,11 +221,11 @@ function getStatusClass(status: string): string {
                     <thead class="bg-white">
                       <tr>
                         <th class="px-2 py-1.5 text-left font-medium text-[#6B7280]">Timestamp</th>
-                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P5</th>
-                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P25</th>
-                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P50</th>
-                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P75</th>
-                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">P95</th>
+                        <th class="px-2 py-1.5 text-left font-medium text-[#6B7280]">Type</th>
+                        <th class="px-2 py-1.5 text-left font-medium text-[#6B7280]">Commodity</th>
+                        <th class="px-2 py-1.5 text-left font-medium text-[#6B7280]">Scenario</th>
+                        <th class="px-2 py-1.5 text-right font-medium text-[#6B7280]">Value</th>
+                        <th class="px-2 py-1.5 text-left font-medium text-[#6B7280]">Units</th>
                       </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-[#E5E7EB]">
@@ -290,7 +290,7 @@ function getStatusClass(status: string): string {
         ))}
       </div>
 
-      <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-[#E5E7EB]">
+      <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-[#E5E7EB]" data-schedules={JSON.stringify(schedulesByDate)}>
         {calendarDays.map((date) => (
           <div 
             class={`bg-white min-h-[120px] p-2 ${
@@ -324,31 +324,53 @@ function getStatusClass(status: string): string {
                 
                 <!-- Schedules -->
                 <div class="space-y-1">
-                  {(schedulesByDate[date.toISOString().split('T')[0]] || []).map((schedule: any) => (
-                    <div
-                      class={`block text-xs p-1.5 rounded border ${
-                        schedule.type === 'uploaded' 
-                          ? 'bg-[#EFF6FF] border-[#3B82F6]' 
-                          : getImportanceClass(schedule.importance)
-                      } hover:opacity-75 transition-opacity`}
-                      title={schedule.type === 'uploaded' ? `Uploaded: ${schedule.instanceVersion}` : 'Scheduled Update'}
-                    >
-                      <div class="flex items-center gap-1">
-                        <span class="text-xs">
-                          {schedule.type === 'uploaded' ? '⬆️' : '📅'}
-                        </span>
-                        <div class="font-medium truncate flex-1" title={`${schedule.name} - ${schedule.location}`}>
-                          {schedule.name}
-                        </div>
-                      </div>
-                      <div class="flex items-center justify-between mt-0.5">
-                        <span class="text-[0.65rem] text-gray-600 truncate">{schedule.location}</span>
-                        <span class={`text-[0.6rem] px-1 py-0.5 rounded ${getStatusClass(schedule.status)}`}>
-                          {schedule.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                  {(() => {
+                    const dateKey = date.toISOString().split('T')[0];
+                    const items = schedulesByDate[dateKey] || [];
+                    const maxVisible = 3; // Show max 3 items initially
+                    const visibleItems = items.slice(0, maxVisible);
+                    const hasMore = items.length > maxVisible;
+                    const moreCount = items.length - maxVisible;
+                    
+                    return (
+                      <>
+                        {visibleItems.map((schedule: any) => (
+                          <div
+                            class={`block text-xs p-1.5 rounded border ${
+                              schedule.type === 'uploaded' 
+                                ? 'bg-[#EFF6FF] border-[#3B82F6]' 
+                                : getImportanceClass(schedule.importance)
+                            } hover:opacity-75 transition-opacity`}
+                            title={schedule.type === 'uploaded' ? `Uploaded: ${schedule.instanceVersion}` : 'Scheduled Update'}
+                          >
+                            <div class="flex items-center gap-1">
+                              <span class="text-xs">
+                                {schedule.type === 'uploaded' ? '⬆️' : '📅'}
+                              </span>
+                              <div class="font-medium truncate flex-1" title={`${schedule.name} - ${schedule.location}`}>
+                                {schedule.name}
+                              </div>
+                            </div>
+                            <div class="flex items-center justify-between mt-0.5">
+                              <span class="text-[0.65rem] text-gray-600 truncate">{schedule.location}</span>
+                              <span class={`text-[0.6rem] px-1 py-0.5 rounded ${getStatusClass(schedule.status)}`}>
+                                {schedule.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {hasMore && (
+                          <button
+                            class="w-full text-xs p-1.5 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium transition-colors"
+                            onclick={`showAllForDate('${dateKey}')`}
+                            type="button"
+                          >
+                            +{moreCount} more
+                          </button>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -419,6 +441,22 @@ function getStatusClass(status: string): string {
 
   <!-- Toast Notification -->
   <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
+
+  <!-- Show All Curves Modal -->
+  <div id="showAllCurvesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-[#1F2937]">All Curves</h3>
+          <p id="allCurvesDate" class="text-sm text-[#6B7280] mt-1"></p>
+        </div>
+        <button id="closeAllCurves" class="text-[#9CA3AF] hover:text-[#6B7280]">✕</button>
+      </div>
+      <div id="allCurvesList" class="px-6 py-4 overflow-y-auto flex-1">
+        <!-- Items will be dynamically added here -->
+      </div>
+    </div>
+  </div>
 
   <!-- Note Modal -->
   <div id="noteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
@@ -520,16 +558,16 @@ function getStatusClass(status: string): string {
           tbody.innerHTML = result.data.map((row: any) => `
             <tr class="hover:bg-[#F9FAFB]">
               <td class="px-2 py-1.5 text-left text-[#374151]">${new Date(row.timestamp).toLocaleDateString()}</td>
-              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP5 !== null ? row.valueP5.toFixed(2) : '-'}</td>
-              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP25 !== null ? row.valueP25.toFixed(2) : '-'}</td>
-              <td class="px-2 py-1.5 text-right text-[#111827] font-semibold">${row.valueP50 !== null ? row.valueP50.toFixed(2) : '-'}</td>
-              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP75 !== null ? row.valueP75.toFixed(2) : '-'}</td>
-              <td class="px-2 py-1.5 text-right text-[#374151]">${row.valueP95 !== null ? row.valueP95.toFixed(2) : '-'}</td>
+              <td class="px-2 py-1.5 text-left text-[#374151]"><span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">${row.curveType || '-'}</span></td>
+              <td class="px-2 py-1.5 text-left text-[#374151]"><span class="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">${row.commodity || '-'}</span></td>
+              <td class="px-2 py-1.5 text-left text-[#374151]"><span class="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs">${row.scenario || '-'}</span></td>
+              <td class="px-2 py-1.5 text-right text-[#111827] font-semibold">${row.value !== null && row.value !== undefined ? row.value.toFixed(2) : '-'}</td>
+              <td class="px-2 py-1.5 text-left text-[#6B7280]">${row.units || '-'}</td>
             </tr>
           `).join('');
           
           if (loadingSpan) {
-            loadingSpan.textContent = `${result.count} rows • ${result.data[0].units}`;
+            loadingSpan.textContent = `${result.count} rows`;
           }
         } else {
           tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-2 text-center text-[#6B7280]">No data available</td></tr>';
@@ -542,8 +580,12 @@ function getStatusClass(status: string): string {
       } catch (error) {
         console.error('Error fetching preview data:', error);
         const tbody = document.querySelector(`#data-table-${index} tbody`);
+        const loadingSpan = document.getElementById(`data-loading-${index}`);
         if (tbody) {
           tbody.innerHTML = '<tr><td colspan="6" class="px-2 py-2 text-center text-red-500">Error loading data</td></tr>';
+        }
+        if (loadingSpan) {
+          loadingSpan.textContent = 'Error';
         }
       }
     }
@@ -551,6 +593,70 @@ function getStatusClass(status: string): string {
 
   // Make function available globally
   window.toggleActivity = toggleActivity;
+
+  // Show all curves for a specific date
+  (window as any).showAllForDate = function(dateKey: string) {
+    const calendarGrid = document.getElementById('calendarGrid');
+    const schedulesData = calendarGrid ? JSON.parse(calendarGrid.getAttribute('data-schedules') || '{}') : {};
+    const items = schedulesData[dateKey] || [];
+    const dateObj = new Date(dateKey + 'T00:00:00');
+    const dateDisplay = dateObj.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+    
+    const dateDisplayEl = document.getElementById('allCurvesDate');
+    const listEl = document.getElementById('allCurvesList');
+    
+    if (dateDisplayEl && listEl) {
+      dateDisplayEl.textContent = dateDisplay;
+      
+      listEl.innerHTML = items.map((schedule: any) => `
+        <div class="mb-2 p-3 rounded-lg border ${
+          schedule.type === 'uploaded' 
+            ? 'bg-blue-50 border-blue-200' 
+            : schedule.importance === 1 ? 'bg-red-50 border-red-200' :
+              schedule.importance === 2 ? 'bg-orange-50 border-orange-200' :
+              'bg-yellow-50 border-yellow-200'
+        }">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-base">${schedule.type === 'uploaded' ? '⬆️' : '📅'}</span>
+            <div class="font-semibold text-sm text-gray-900">${schedule.name}</div>
+          </div>
+          <div class="text-xs text-gray-600 ml-6">
+            <div>📍 ${schedule.location} • ${schedule.market || 'N/A'}</div>
+            ${schedule.type === 'uploaded' ? `<div>Version: ${schedule.instanceVersion}</div>` : ''}
+            <div class="mt-1">
+              <span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                schedule.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                schedule.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
+                schedule.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                schedule.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }">
+                ${schedule.status}
+              </span>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    document.getElementById('showAllCurvesModal')!.classList.remove('hidden');
+  };
+
+  // Close "Show All Curves" modal
+  document.getElementById('closeAllCurves')?.addEventListener('click', () => {
+    document.getElementById('showAllCurvesModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('showAllCurvesModal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      document.getElementById('showAllCurvesModal')!.classList.add('hidden');
+    }
+  });
 
   // ==================== MONTH NAVIGATION ====================
   // Get current year and month from URL or use today

@@ -14,7 +14,9 @@ export const POST: APIRoute = async ({ request }) => {
       importance,
       responsibleTeam,
       notificationEmails,
-      scheduleType
+      scheduleType,
+      notes,
+      dueDate
     } = body;
 
     // Validate required fields
@@ -24,6 +26,11 @@ export const POST: APIRoute = async ({ request }) => {
         message: 'Curve definition and frequency are required'
       }), { status: 400 });
     }
+
+    // Build metadata object for quick requests
+    const metadata: any = {};
+    if (notes) metadata.notes = notes;
+    if (dueDate) metadata.dueDate = dueDate;
 
     // Create the schedule
     const schedule = await prisma.curveSchedule.create({
@@ -38,14 +45,26 @@ export const POST: APIRoute = async ({ request }) => {
         responsibleTeam: responsibleTeam || 'Market Analysis',
         notificationEmails: notificationEmails || [],
         importance: importance || 3,
-        isActive: true
+        isActive: true,
+        metadata: Object.keys(metadata).length > 0 ? metadata : null
       }
     });
+
+    // For AD_HOC/quick requests with a due date, create a schedule run
+    if (scheduleType === 'AD_HOC' && dueDate) {
+      await prisma.scheduleRun.create({
+        data: {
+          scheduleId: schedule.id,
+          runDate: new Date(dueDate),
+          status: 'PENDING'
+        }
+      });
+    }
 
     return new Response(JSON.stringify({
       success: true,
       data: schedule,
-      message: 'Schedule created successfully'
+      message: scheduleType === 'AD_HOC' ? 'Request created successfully' : 'Schedule created successfully'
     }), {
       status: 200,
       headers: {

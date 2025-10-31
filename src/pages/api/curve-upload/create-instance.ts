@@ -16,12 +16,14 @@ export const POST: APIRoute = async ({ request }) => {
       createdBy = 'Upload System',
       notes,
       modelType,
-      // NEW: Fields moved from CurveDefinition
-      curveType,
-      commodity,
+      // NEW: Multi-value arrays
+      curveTypes = [],
+      commodities = [],
+      scenarios = [],
       granularity,
-      scenario,
-      degradationType
+      degradationType,
+      // Link to schedule/request
+      linkedScheduleId
     } = body;
 
     // Validate required fields
@@ -63,6 +65,12 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    // Build metadata
+    const metadata: any = {};
+    if (linkedScheduleId) {
+      metadata.linkedScheduleId = parseInt(linkedScheduleId);
+    }
+
     // Create the curve instance
     const curveInstance = await prisma.curveInstance.create({
       data: {
@@ -77,17 +85,44 @@ export const POST: APIRoute = async ({ request }) => {
         createdBy,
         notes,
         modelType,
-        // NEW: Fields moved from CurveDefinition
-        curveType,
-        commodity,
+        // NEW: Multi-value arrays
+        curveTypes: Array.isArray(curveTypes) ? curveTypes : [],
+        commodities: Array.isArray(commodities) ? commodities : [],
+        scenarios: Array.isArray(scenarios) ? scenarios : [],
         granularity,
-        scenario,
-        degradationType
+        degradationType,
+        metadata: Object.keys(metadata).length > 0 ? metadata : null
       },
       include: {
         curveDefinition: true
       }
     });
+
+    // If linked to a schedule, update the schedule run status
+    if (linkedScheduleId) {
+      try {
+        const scheduleRuns = await prisma.scheduleRun.findMany({
+          where: { scheduleId: parseInt(linkedScheduleId) },
+          orderBy: { runDate: 'desc' },
+          take: 1
+        });
+        
+        if (scheduleRuns.length > 0) {
+          await prisma.scheduleRun.update({
+            where: { id: scheduleRuns[0].id },
+            data: { 
+              status: 'COMPLETED',
+              completedAt: new Date(),
+              instancesCreated: 1,
+              metadata: { curveInstanceId: curveInstance.id }
+            }
+          });
+        }
+      } catch (error) {
+        console.warn('Could not update schedule run status:', error);
+        // Don't fail the instance creation if this fails
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

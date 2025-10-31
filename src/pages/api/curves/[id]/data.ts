@@ -25,11 +25,11 @@ export const GET: APIRoute = async ({ params }) => {
       select: {
         id: true,
         timestamp: true,
-        valueP5: true,
-        valueP25: true,
-        valueP50: true,
-        valueP75: true,
-        valueP95: true
+        value: true,
+        curveType: true,
+        commodity: true,
+        scenario: true,
+        units: true
       }
     });
 
@@ -37,12 +37,11 @@ export const GET: APIRoute = async ({ params }) => {
     const formattedData = priceData.map(d => ({
       id: d.id,
       flow_date_start: d.timestamp,
-      valueP5: d.valueP5,
-      valueP25: d.valueP25,
-      value: d.valueP50,
-      valueP50: d.valueP50,
-      valueP75: d.valueP75,
-      valueP95: d.valueP95
+      value: d.value,
+      curveType: d.curveType,
+      commodity: d.commodity,
+      scenario: d.scenario,
+      units: d.units
     }));
 
     return new Response(JSON.stringify(formattedData), {

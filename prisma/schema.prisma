@@ -2,8 +2,7 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
@@ -312,10 +311,10 @@ enum ChangeType {
 
 model CurveDefinition {
   id              Int             @id @default(autoincrement())
-  curveName       String          @unique @db.VarChar(255)
+  curveName       String          @db.VarChar(255)
   market          String          @db.VarChar(50)
   location        String          @db.VarChar(100)
-  // product REMOVED - too specific for a general definition
+  product         String?         @db.VarChar(100) // Optional - legacy field, use commodity on instance instead
   // curveType MOVED TO CurveInstance - allows multiple types per definition
   // commodity MOVED TO CurveInstance - allows multiple commodities per definition
   // granularity MOVED TO CurveInstance - allows different granularities per instance
@@ -336,6 +335,8 @@ model CurveDefinition {
   schedules     CurveSchedule[]
   defaultInputs DefaultCurveInput[]
 
+  // Unique constraint: same name is OK in different markets/locations
+  @@unique([curveName, market, location])
   @@index([market, location])
   @@index([batteryDuration])
   @@index([isActive])
@@ -347,11 +348,11 @@ model CurveInstance {
   id                  Int            @id @default(autoincrement())
   curveDefinitionId   Int
   instanceVersion     String         @db.VarChar(50)
-  // MOVED FROM CurveDefinition - allows maximum flexibility per instance
-  curveType           String?        @db.VarChar(100)  // e.g., "Revenue Forecast", "Price Forecast"
-  commodity           String?        @db.VarChar(50)   // e.g., "Total Revenue", "EA Revenue", "AS Revenue"
+  // MULTI-VALUE FIELDS - Arrays for flexibility
+  curveTypes          String[]       // e.g., ["P-Values", "Revenue Forecast"]
+  commodities         String[]       // e.g., ["EA Revenue", "AS Revenue", "Total Revenue"]
+  scenarios           String[]       // e.g., ["BASE", "HIGH", "LOW"]
   granularity         String?        @db.VarChar(20)   // e.g., "MONTHLY", "QUARTERLY", "ANNUAL"
-  scenario            String?        @db.VarChar(100)  // e.g., "BASE", "HIGH", "LOW"
   degradationType     String?        @db.VarChar(100)  // e.g., "NONE", "YEAR_1", "YEAR_5"
   deliveryPeriodStart DateTime       @db.Timestamptz(6)
   deliveryPeriodEnd   DateTime       @db.Timestamptz(6)
@@ -371,7 +372,7 @@ model CurveInstance {
   updatedAt           DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
-  curveDefinition  CurveDefinition     @relation(fields: [curveDefinitionId], references: [id])
+  curveDefinition  CurveDefinition     @relation(fields: [curveDefinitionId], references: [id], onDelete: Cascade)
   priceForecasts   PriceForecast[]
   curveData        CurveData[]
   inputLineage     CurveInputLineage[]
@@ -382,12 +383,14 @@ model CurveInstance {
   @@unique([curveDefinitionId, instanceVersion])
   @@index([curveDefinitionId])
   @@index([status])
-  @@index([curveType, commodity])
-  @@index([granularity, scenario])  // NEW: Index for filtering by granularity/scenario
+  @@index([curveTypes])  // GIN index for array search
+  @@index([commodities]) // GIN index for array search
+  @@index([scenarios])   // GIN index for array search
+  @@index([granularity])
   @@index([freshnessStartDate, freshnessEndDate])
   @@index([deliveryPeriodStart, deliveryPeriodEnd])
   @@index([forecastRunDate])
-  @@index([createdAt])  // NEW: Index for sorting by creation time
+  @@index([createdAt])
   @@schema("Forecasts")
 }
 
@@ -413,18 +416,22 @@ model PriceForecast {
 }
 
 model CurveData {
-  id              Int      @id @default(autoincrement())
-  curveInstanceId Int
-  timestamp       DateTime @db.Timestamptz(6)
-  // WIDE FORMAT: Pre-pivoted p-value columns
-  valueP5         Float?   // P5 percentile value
-  valueP25        Float?   // P25 percentile value
-  valueP50        Float    @default(0) // P50 percentile value (median, required)
-  valueP75        Float?   // P75 percentile value
-  valueP95        Float?   // P95 percentile value
-  flags           String[] @default([])
-  createdAt       DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  id                 Int       @id @default(autoincrement())
+  curveInstanceId    Int
+  timestamp          DateTime  @db.Timestamptz(6)
+  value              Float     // The actual data value
+  // Data categorization columns - can vary per row
+  curveType          String    @db.VarChar(100)  // e.g., "Revenue Forecast", "P-Values"
+  commodity          String    @db.VarChar(100)  // e.g., "EA Revenue", "AS Revenue", "Total Revenue"
+  scenario           String    @db.VarChar(100)  // e.g., "BASE", "HIGH", "LOW"
+  units              String?   @db.VarChar(50)   // e.g., "$/MWh"
+  // Freshness tracking at curve data level - allows different freshness per curve type/commodity
+  freshnessStartDate DateTime? @db.Timestamptz(6) // When this curve data became fresh
+  freshnessEndDate   DateTime? @db.Timestamptz(6) // When this curve data was superseded (NULL = currently fresh)
+  flags              String[]  @default([])
+  metadata           Json?     @db.JsonB
+  createdAt          DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
   curveInstance CurveInstance @relation(fields: [curveInstanceId], references: [id], onDelete: Cascade)
@@ -432,6 +439,12 @@ model CurveData {
   @@index([curveInstanceId], map: "idx_curvedata_instance")
   @@index([timestamp], map: "idx_curvedata_timestamp")
   @@index([curveInstanceId, timestamp], map: "idx_curvedata_instance_timestamp")
+  @@index([curveType], map: "idx_curvedata_curvetype")
+  @@index([commodity], map: "idx_curvedata_commodity")
+  @@index([scenario], map: "idx_curvedata_scenario")
+  @@index([curveInstanceId, curveType, commodity, scenario], map: "idx_curvedata_combination")
+  @@index([freshnessStartDate, freshnessEndDate], map: "idx_curvedata_freshness")
+  @@index([curveType, commodity, freshnessStartDate, freshnessEndDate], map: "idx_curvedata_fresh_by_type")
   @@schema("Forecasts")
 }
 
@@ -527,7 +540,7 @@ model DefaultCurveInput {
   validUntil        DateTime? @db.Timestamptz(6)
 
   // Relations
-  curveDefinition CurveDefinition @relation(fields: [curveDefinitionId], references: [id])
+  curveDefinition CurveDefinition @relation(fields: [curveDefinitionId], references: [id], onDelete: Cascade)
 
   @@index([curveDefinitionId])
   @@schema("Forecasts")
@@ -554,7 +567,7 @@ model CurveSchedule {
   updatedAt          DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
 
   // Relations
-  curveDefinition   CurveDefinition         @relation(fields: [curveDefinitionId], references: [id])
+  curveDefinition   CurveDefinition         @relation(fields: [curveDefinitionId], references: [id], onDelete: Cascade)
   scheduleRuns      ScheduleRun[]
   instanceTemplates CurveInstanceTemplate[]
 

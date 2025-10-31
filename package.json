@@ -18,6 +18,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "migrate:forecasts": "tsx scripts/run-forecasts-migration.ts",
+    "migrate:arrays": "tsx scripts/migrate-instance-to-arrays.ts",
+    "migrate:curvedata": "tsx scripts/migrate-curvedata-structure.ts",
+    "verify:migration": "tsx scripts/verify-migration.ts",
     "populate-curves": "ts-node scripts/populate_curves.ts",
     "populate-curves:sql": "tsx scripts/populate_curves_sql.ts",
     "test": "vitest",
@@ -62,8 +66,5 @@
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "vitest": "^1.6.1"
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
   }
 }

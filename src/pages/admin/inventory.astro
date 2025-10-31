@@ -190,10 +190,29 @@ import Layout from '../../layouts/Layout.astro';
             </div>
           </div>
         </div>
+
+        <!-- Merge Section (hidden by default) -->
+        <div id="mergeSection" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h4 class="text-sm font-semibold text-gray-900 mb-1">Merge This Definition</h4>
+              <p class="text-xs text-gray-600">Move all instances to another definition and delete this one</p>
+            </div>
+            <button id="cancelMerge" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          </div>
+          <div id="mergeTargetsList" class="space-y-2 max-h-60 overflow-y-auto">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
       </div>
-      <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
-        <button id="cancelEditDef" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
-        <button id="saveEditDef" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Save Changes</button>
+      <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-between">
+        <button id="showMergeBtn" class="px-4 py-2 border border-amber-500 text-amber-700 rounded-md hover:bg-amber-50 font-medium transition-colors">
+          🔀 Merge Into...
+        </button>
+        <div class="flex gap-3">
+          <button id="cancelEditDef" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+          <button id="saveEditDef" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Save Changes</button>
+        </div>
       </div>
     </div>
   </div>
@@ -248,54 +267,65 @@ import Layout from '../../layouts/Layout.astro';
         <!-- Instance-Specific Fields (moved from Definition) -->
         <div class="mb-6">
           <h4 class="text-sm font-semibold text-[#1F2937] mb-3">Curve Characteristics</h4>
-          <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-4">
             <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Type *</label>
-              <select id="editInstCurveType" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
-                <option value="">Select</option>
-                <option value="Revenue Forecast">Revenue Forecast</option>
-                <option value="Price Forecast">Price Forecast</option>
-              </select>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Types *</label>
+              <div id="editInstCurveTypesContainer" class="flex flex-wrap gap-2 p-2 border rounded-md bg-white min-h-[42px]"></div>
+              <div class="mt-2 flex gap-2">
+                <select id="editInstCurveTypeAdd" class="flex-1 px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
+                  <option value="">+ Select curve type...</option>
+                </select>
+                <button type="button" id="editAddCustomCurveType" class="px-3 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 text-sm font-medium">
+                  ✏️ Custom
+                </button>
+              </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Commodity *</label>
-              <select id="editInstCommodity" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
-                <option value="">Select</option>
-                <option value="Total Revenue">Total Revenue</option>
-                <option value="EA Revenue">EA Revenue</option>
-                <option value="AS Revenue">AS Revenue</option>
-              </select>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Commodities *</label>
+              <div id="editInstCommoditiesContainer" class="flex flex-wrap gap-2 p-2 border rounded-md bg-white min-h-[42px]"></div>
+              <div class="mt-2 flex gap-2">
+                <select id="editInstCommodityAdd" class="flex-1 px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
+                  <option value="">+ Select commodity...</option>
+                </select>
+                <button type="button" id="editAddCustomCommodity" class="px-3 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 text-sm font-medium">
+                  ✏️ Custom
+                </button>
+              </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Granularity *</label>
-              <select id="editInstGranularity" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
-                <option value="MONTHLY">Monthly</option>
-                <option value="QUARTERLY">Quarterly</option>
-                <option value="ANNUAL">Annual</option>
-                <option value="HOURLY">Hourly</option>
-                <option value="DAILY">Daily</option>
-              </select>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Scenarios *</label>
+              <div id="editInstScenariosContainer" class="flex flex-wrap gap-2 p-2 border rounded-md bg-white min-h-[42px]"></div>
+              <div class="mt-2 flex gap-2">
+                <select id="editInstScenarioAdd" class="flex-1 px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
+                  <option value="">+ Select scenario...</option>
+                </select>
+                <button type="button" id="editAddCustomScenario" class="px-3 py-2 bg-purple-100 text-purple-700 border border-purple-300 rounded-md hover:bg-purple-200 text-sm font-medium">
+                  ✏️ Custom
+                </button>
+              </div>
             </div>
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Scenario</label>
-              <select id="editInstScenario" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
-                <option value="BASE">Base</option>
-                <option value="HIGH">High</option>
-                <option value="LOW">Low</option>
-                <option value="P50">P50</option>
-                <option value="P90">P90</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Degradation Type</label>
-              <select id="editInstDegradationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
-                <option value="NONE">None</option>
-                <option value="YEAR_1">Year 1</option>
-                <option value="YEAR_5">Year 5</option>
-                <option value="YEAR_10">Year 10</option>
-                <option value="YEAR_15">Year 15</option>
-                <option value="YEAR_20">Year 20</option>
-              </select>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Granularity *</label>
+                <select id="editInstGranularity" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                  <option value="MONTHLY">Monthly</option>
+                  <option value="QUARTERLY">Quarterly</option>
+                  <option value="ANNUAL">Annual</option>
+                  <option value="HOURLY">Hourly</option>
+                  <option value="DAILY">Daily</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Degradation Type</label>
+                <select id="editInstDegradationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981] focus:ring-opacity-50 outline-none transition-all">
+                  <option value="NONE">None</option>
+                  <option value="YEAR_1">Year 1</option>
+                  <option value="YEAR_5">Year 5</option>
+                  <option value="YEAR_10">Year 10</option>
+                  <option value="YEAR_15">Year 15</option>
+                  <option value="YEAR_20">Year 20</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -474,10 +504,10 @@ import Layout from '../../layouts/Layout.astro';
     });
   }
 
-  function selectInstance(inst: any) {
+  async function selectInstance(inst: any) {
     selectedInst = inst;
     renderInstances();
-    showInstActions(inst);
+    await showInstActions(inst);
   }
 
   function showDefActions(def: any) {
@@ -501,8 +531,45 @@ import Layout from '../../layouts/Layout.astro';
     `;
   }
 
-  function showInstActions(inst: any) {
+  async function showInstActions(inst: any) {
     const panel = document.getElementById('actionPanel')!;
+    
+    // Check if linked to a schedule
+    let linkedScheduleHtml = '';
+    if (inst.metadata && inst.metadata.linkedScheduleId) {
+      try {
+        const res = await fetch(`/api/curve-schedule/${inst.metadata.linkedScheduleId}`);
+        const result = await res.json();
+        if (result.success) {
+          const schedule = result.data;
+          const isRequest = schedule.scheduleType === 'AD_HOC';
+          linkedScheduleHtml = `
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="text-xs font-medium text-blue-900 mb-1">
+                ${isRequest ? '📋 Linked Request' : '🔄 Linked Schedule'}
+              </div>
+              <div class="text-xs text-blue-800">
+                ${schedule.curveDefinition.curveName}
+                ${isRequest && schedule.metadata?.dueDate ? `<br/>Due: ${schedule.metadata.dueDate}` : ''}
+              </div>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error('Error loading linked schedule:', error);
+      }
+    }
+    
+    const curveTypeTags = (inst.curveTypes || []).map((t: string) => 
+      `<span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs">${t}</span>`
+    ).join(' ');
+    const commodityTags = (inst.commodities || []).map((c: string) => 
+      `<span class="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">${c}</span>`
+    ).join(' ');
+    const scenarioTags = (inst.scenarios || []).map((s: string) => 
+      `<span class="inline-block px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs">${s}</span>`
+    ).join(' ');
+    
     panel.innerHTML = `
       <div class="space-y-4">
         <div class="p-4 bg-[#EFF6FF] rounded-lg border border-[#3B82F6]">
@@ -511,15 +578,17 @@ import Layout from '../../layouts/Layout.astro';
         </div>
         <div class="p-4 bg-[#ECFDF5] rounded-lg border border-[#10B981]">
           <h4 class="font-semibold text-[#1F2937] mb-3">Instance: ${inst.instanceVersion}</h4>
-          <div class="text-xs text-[#6B7280] space-y-2 font-mono">
-            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">ID:</span><span>${inst.id}</span></div>
-            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Status:</span><span>${inst.status}</span></div>
-            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Type:</span><span>${inst.curveType || 'N/A'}</span></div>
-            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Commodity:</span><span>${inst.commodity || 'N/A'}</span></div>
-            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Granularity:</span><span>${inst.granularity || 'N/A'}</span></div>
-            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Period:</span><span>${inst.deliveryPeriodStart.split('T')[0]} to ${inst.deliveryPeriodEnd.split('T')[0]}</span></div>
+          <div class="text-xs text-[#6B7280] space-y-2">
+            <div><span class="font-medium uppercase tracking-wider">ID:</span> ${inst.id}</div>
+            <div><span class="font-medium uppercase tracking-wider">Status:</span> ${inst.status}</div>
+            <div><span class="font-medium uppercase tracking-wider">Types:</span> ${curveTypeTags || 'None'}</div>
+            <div><span class="font-medium uppercase tracking-wider">Commodities:</span> ${commodityTags || 'None'}</div>
+            <div><span class="font-medium uppercase tracking-wider">Scenarios:</span> ${scenarioTags || 'None'}</div>
+            <div><span class="font-medium uppercase tracking-wider">Granularity:</span> ${inst.granularity || 'N/A'}</div>
+            <div><span class="font-medium uppercase tracking-wider">Period:</span> ${inst.deliveryPeriodStart.split('T')[0]} to ${inst.deliveryPeriodEnd.split('T')[0]}</div>
           </div>
         </div>
+        ${linkedScheduleHtml}
         <button onclick="editInst(${inst.id})" class="w-full px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] font-medium transition-colors">Edit Instance</button>
         <button onclick="downloadInstData(${inst.id})" class="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] font-medium transition-colors">Download Data</button>
         <button onclick="deleteInst(${inst.id}, '${inst.instanceVersion}')" class="w-full px-4 py-2 bg-[#EF4444] text-white rounded-md hover:bg-[#DC2626] font-medium transition-colors">Delete Instance</button>
@@ -575,28 +644,28 @@ import Layout from '../../layouts/Layout.astro';
       const res = await fetch(`/api/curves/data?curveInstanceId=${instId}`);
       const response = await res.json();
       
-      if (!response.priceData || response.priceData.length === 0) {
+      const dataArray = response.priceData || [];
+      
+      if (dataArray.length === 0) {
         toast('No data to download', 'error');
         return;
       }
       
       const rows = [];
-      for (const point of response.priceData) {
+      for (const point of dataArray) {
         const ts = point.timestamp;
-        // Export all available p-values
-        if (point.valueP5 !== null && point.valueP5 !== undefined) 
-          rows.push(`${ts},${point.valueP5},5,${point.units || '$/MWh'}`);
-        if (point.valueP25 !== null && point.valueP25 !== undefined) 
-          rows.push(`${ts},${point.valueP25},25,${point.units || '$/MWh'}`);
-        if (point.valueP50 !== null && point.valueP50 !== undefined) 
-          rows.push(`${ts},${point.valueP50},50,${point.units || '$/MWh'}`);
-        if (point.valueP75 !== null && point.valueP75 !== undefined) 
-          rows.push(`${ts},${point.valueP75},75,${point.units || '$/MWh'}`);
-        if (point.valueP95 !== null && point.valueP95 !== undefined) 
-          rows.push(`${ts},${point.valueP95},95,${point.units || '$/MWh'}`);
+        const value = point.value;
+        const curveType = point.curveType || 'Unknown';
+        const commodity = point.commodity || 'Unknown';
+        const scenario = point.scenario || 'Unknown';
+        const units = point.units || '$/MWh';
+        
+        if (value !== null && value !== undefined) {
+          rows.push(`${ts},${value},${curveType},${commodity},${scenario},${units}`);
+        }
       }
       
-      const csv = ['timestamp,value,pvalue,units', ...rows].join('\n');
+      const csv = ['timestamp,value,curveType,commodity,scenario,units', ...rows].join('\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -627,6 +696,9 @@ import Layout from '../../layouts/Layout.astro';
       (document.getElementById('editDefDescription') as HTMLTextAreaElement).value = def.description || '';
       (document.getElementById('editDefIsActive') as HTMLInputElement).checked = def.isActive ?? true;
       
+      // Hide merge section initially
+      document.getElementById('mergeSection')!.classList.add('hidden');
+      
       // Show modal
       document.getElementById('editDefModal')!.classList.remove('hidden');
     } catch (e) {
@@ -640,6 +712,14 @@ import Layout from '../../layouts/Layout.astro';
       const res = await fetch(`/api/admin/edit-curve-instance?id=${id}`);
       const inst = await res.json();
       
+      // Load options first
+      await loadOptions();
+      
+      // Populate dropdowns
+      populateEditSelect('editInstCurveTypeAdd', availableOptions.curveTypes || []);
+      populateEditSelect('editInstCommodityAdd', availableOptions.commodities || []);
+      populateEditSelect('editInstScenarioAdd', availableOptions.scenarios || []);
+      
       // Populate form
       (document.getElementById('editInstId') as HTMLInputElement).value = inst.id;
       (document.getElementById('editInstVersion') as HTMLInputElement).value = inst.instanceVersion || '';
@@ -647,11 +727,15 @@ import Layout from '../../layouts/Layout.astro';
       (document.getElementById('editInstRunType') as HTMLSelectElement).value = inst.runType || 'MANUAL';
       (document.getElementById('editInstCreatedBy') as HTMLInputElement).value = inst.createdBy || '';
       
-      // NEW: Instance-specific fields moved from Definition
-      (document.getElementById('editInstCurveType') as HTMLSelectElement).value = inst.curveType || '';
-      (document.getElementById('editInstCommodity') as HTMLSelectElement).value = inst.commodity || '';
+      // NEW: Multi-value arrays
+      editCurveTypes = inst.curveTypes || [];
+      editCommodities = inst.commodities || [];
+      editScenarios = inst.scenarios || [];
+      renderEditTags('editInstCurveTypesContainer', editCurveTypes);
+      renderEditTags('editInstCommoditiesContainer', editCommodities);
+      renderEditTags('editInstScenariosContainer', editScenarios);
+      
       (document.getElementById('editInstGranularity') as HTMLSelectElement).value = inst.granularity || 'MONTHLY';
-      (document.getElementById('editInstScenario') as HTMLSelectElement).value = inst.scenario || 'BASE';
       (document.getElementById('editInstDegradationType') as HTMLSelectElement).value = inst.degradationType || 'NONE';
       
       // Dates - convert to local datetime format
@@ -764,6 +848,131 @@ import Layout from '../../layouts/Layout.astro';
     }
   });
 
+  // Merge Definition Handlers
+  document.getElementById('showMergeBtn')?.addEventListener('click', async () => {
+    const defId = parseInt((document.getElementById('editDefId') as HTMLInputElement).value);
+    const market = (document.getElementById('editDefMarket') as HTMLSelectElement).value;
+    const location = (document.getElementById('editDefLocation') as HTMLInputElement).value;
+    
+    try {
+      // Fetch potential merge targets
+      const response = await fetch(`/api/admin/merge-curve-definitions?tempId=${defId}`);
+      const data = await response.json();
+      
+      if (!response.ok) {
+        toast(data.error || 'Failed to load merge targets', 'error');
+        return;
+      }
+      
+      // Show merge section
+      const mergeSection = document.getElementById('mergeSection')!;
+      const targetsList = document.getElementById('mergeTargetsList')!;
+      
+      if (data.potentialTargets.length === 0) {
+        targetsList.innerHTML = `
+          <div class="text-sm text-gray-600 bg-white p-3 rounded border border-gray-300">
+            No matching definitions found for ${market} ${location}.<br/>
+            This curve has no merge candidates.
+          </div>
+        `;
+      } else {
+        targetsList.innerHTML = data.potentialTargets.map((target: any) => `
+          <button 
+            onclick="executeMerge(${defId}, ${target.id}, '${data.tempDefinition.curveName}', '${target.curveName}')"
+            class="w-full text-left p-3 bg-white border-2 border-gray-300 rounded hover:border-blue-500 hover:bg-blue-50 transition-all"
+          >
+            <div class="font-medium text-gray-900">${target.curveName}</div>
+            <div class="text-xs text-gray-600 mt-1">
+              ${target.market} / ${target.location} / ${target.batteryDuration}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              ${target._count.instances} existing instance${target._count.instances !== 1 ? 's' : ''} • 
+              Will receive ${data.tempDefinition.instanceCount} new instance${data.tempDefinition.instanceCount !== 1 ? 's' : ''}
+            </div>
+          </button>
+        `).join('');
+      }
+      
+      mergeSection.classList.remove('hidden');
+    } catch (error) {
+      console.error('Error loading merge targets:', error);
+      toast('Failed to load merge targets', 'error');
+    }
+  });
+
+  document.getElementById('cancelMerge')?.addEventListener('click', () => {
+    document.getElementById('mergeSection')!.classList.add('hidden');
+  });
+
+  // Execute Merge (global function for onclick)
+  (window as any).executeMerge = async (tempDefId: number, targetDefId: number, tempName: string, targetName: string) => {
+    if (!confirm(
+      `Are you sure you want to merge "${tempName}" into "${targetName}"?\n\n` +
+      `This will:\n` +
+      `✓ Move all instances to "${targetName}"\n` +
+      `✓ Move all schedules\n` +
+      `✓ Delete "${tempName}"\n\n` +
+      `This CANNOT be undone!`
+    )) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/merge-curve-definitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tempDefinitionId: tempDefId,
+          targetDefinitionId: targetDefId
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to merge');
+      }
+
+      // Close modal immediately
+      document.getElementById('editDefModal')!.classList.add('hidden');
+      
+      // Show success message with details
+      let message = `Successfully merged into "${targetName}"! Old definition deleted.`;
+      if (result.instancesRenamed > 0) {
+        message += ` (${result.instancesRenamed} instance${result.instancesRenamed > 1 ? 's' : ''} auto-renamed to avoid conflicts)`;
+      }
+      toast(message);
+      
+      // Clear current selection
+      selectedDef = null;
+      selectedInst = null;
+      
+      // Force reload definitions from server
+      await loadDefinitions();
+      
+      // Small delay to ensure UI updates
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Select and scroll to the target definition
+      const target = allDefs.find(d => d.id === targetDefId);
+      if (target) {
+        selectDefinition(target);
+        // Scroll to it
+        const defCard = document.querySelector(`[data-def-id="${targetDefId}"]`);
+        if (defCard) {
+          defCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    } catch (error) {
+      console.error('Merge error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Merge failed';
+      toast(`Merge failed: ${errorMsg}`, 'error');
+      
+      // Keep modal open so user can try again or cancel
+      document.getElementById('mergeSection')!.classList.add('hidden');
+    }
+  };
+
   // Edit Instance Modal Handlers
   document.getElementById('closeEditInst')?.addEventListener('click', () => {
     document.getElementById('editInstModal')!.classList.add('hidden');
@@ -781,11 +990,11 @@ import Layout from '../../layouts/Layout.astro';
       status: (document.getElementById('editInstStatus') as HTMLSelectElement).value,
       runType: (document.getElementById('editInstRunType') as HTMLSelectElement).value,
       createdBy: (document.getElementById('editInstCreatedBy') as HTMLInputElement).value,
-      // NEW: Instance-specific fields moved from Definition
-      curveType: (document.getElementById('editInstCurveType') as HTMLSelectElement).value,
-      commodity: (document.getElementById('editInstCommodity') as HTMLSelectElement).value,
+      // NEW: Multi-value arrays
+      curveTypes: editCurveTypes,
+      commodities: editCommodities,
+      scenarios: editScenarios,
       granularity: (document.getElementById('editInstGranularity') as HTMLSelectElement).value,
-      scenario: (document.getElementById('editInstScenario') as HTMLSelectElement).value,
       degradationType: (document.getElementById('editInstDegradationType') as HTMLSelectElement).value,
       deliveryPeriodStart: (document.getElementById('editInstDeliveryStart') as HTMLInputElement).value,
       deliveryPeriodEnd: (document.getElementById('editInstDeliveryEnd') as HTMLInputElement).value,
@@ -834,7 +1043,164 @@ import Layout from '../../layouts/Layout.astro';
     }
   }
 
+  // ==================== MULTI-SELECT TAG SYSTEM ====================
+  
+  let editCurveTypes: string[] = [];
+  let editCommodities: string[] = [];
+  let editScenarios: string[] = [];
+  let availableOptions: any = {};
+
+  // Load available options from database
+  async function loadOptions() {
+    try {
+      const response = await fetch('/api/curves/options');
+      const result = await response.json();
+      availableOptions = result.options;
+    } catch (error) {
+      console.error('Error loading options:', error);
+    }
+  }
+
+  function addEditTag(containerEl: string, value: string, arrayRef: string[]) {
+    if (!value || arrayRef.includes(value)) return;
+    arrayRef.push(value);
+    renderEditTags(containerEl, arrayRef);
+  }
+
+  function removeEditTag(containerEl: string, value: string, arrayRef: string[]) {
+    const index = arrayRef.indexOf(value);
+    if (index > -1) {
+      arrayRef.splice(index, 1);
+      renderEditTags(containerEl, arrayRef);
+    }
+  }
+
+  function populateEditSelect(selectId: string, options: string[]) {
+    const select = document.getElementById(selectId) as HTMLSelectElement;
+    if (!select) return;
+    
+    // Clear except first option
+    select.innerHTML = select.options[0]?.outerHTML || '<option value="">+ Add...</option>';
+    
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      select.appendChild(option);
+    });
+  }
+
+  function renderEditTags(containerEl: string, values: string[]) {
+    const container = document.getElementById(containerEl);
+    if (!container) return;
+    
+    container.innerHTML = values.map(val => `
+      <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+        ${val}
+        <button 
+          type="button"
+          class="hover:bg-blue-200 rounded-full p-0.5"
+          onclick="removeEditTagByContainer('${containerEl}', '${val}')"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </span>
+    `).join('');
+  }
+
+  (window as any).removeEditTagByContainer = function(containerEl: string, value: string) {
+    if (containerEl === 'editInstCurveTypesContainer') removeEditTag(containerEl, value, editCurveTypes);
+    else if (containerEl === 'editInstCommoditiesContainer') removeEditTag(containerEl, value, editCommodities);
+    else if (containerEl === 'editInstScenariosContainer') removeEditTag(containerEl, value, editScenarios);
+  }
+
+  // Add event listeners for edit modal dropdowns
+  document.getElementById('editInstCurveTypeAdd')?.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value) {
+      addEditTag('editInstCurveTypesContainer', select.value, editCurveTypes);
+      select.value = '';
+    }
+  });
+
+  document.getElementById('editInstCommodityAdd')?.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value) {
+      addEditTag('editInstCommoditiesContainer', select.value, editCommodities);
+      select.value = '';
+    }
+  });
+
+  document.getElementById('editInstScenarioAdd')?.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value) {
+      addEditTag('editInstScenariosContainer', select.value, editScenarios);
+      select.value = '';
+    }
+  });
+
+  // Custom value buttons for edit modal
+  document.getElementById('editAddCustomCurveType')?.addEventListener('click', () => {
+    const value = prompt('Enter new curve type:');
+    if (value && value.trim()) {
+      const trimmed = value.trim();
+      addEditTag('editInstCurveTypesContainer', trimmed, editCurveTypes);
+      
+      // Add to dropdown for reuse in this session
+      const select = document.getElementById('editInstCurveTypeAdd') as HTMLSelectElement;
+      if (select && !availableOptions.curveTypes?.includes(trimmed)) {
+        if (!availableOptions.curveTypes) availableOptions.curveTypes = [];
+        availableOptions.curveTypes.push(trimmed);
+        const option = document.createElement('option');
+        option.value = trimmed;
+        option.textContent = trimmed;
+        select.appendChild(option);
+      }
+    }
+  });
+
+  document.getElementById('editAddCustomCommodity')?.addEventListener('click', () => {
+    const value = prompt('Enter new commodity:');
+    if (value && value.trim()) {
+      const trimmed = value.trim();
+      addEditTag('editInstCommoditiesContainer', trimmed, editCommodities);
+      
+      // Add to dropdown for reuse in this session
+      const select = document.getElementById('editInstCommodityAdd') as HTMLSelectElement;
+      if (select && !availableOptions.commodities?.includes(trimmed)) {
+        if (!availableOptions.commodities) availableOptions.commodities = [];
+        availableOptions.commodities.push(trimmed);
+        const option = document.createElement('option');
+        option.value = trimmed;
+        option.textContent = trimmed;
+        select.appendChild(option);
+      }
+    }
+  });
+
+  document.getElementById('editAddCustomScenario')?.addEventListener('click', () => {
+    const value = prompt('Enter new scenario:');
+    if (value && value.trim()) {
+      const trimmed = value.trim();
+      addEditTag('editInstScenariosContainer', trimmed, editScenarios);
+      
+      // Add to dropdown for reuse in this session
+      const select = document.getElementById('editInstScenarioAdd') as HTMLSelectElement;
+      if (select && !availableOptions.scenarios?.includes(trimmed)) {
+        if (!availableOptions.scenarios) availableOptions.scenarios = [];
+        availableOptions.scenarios.push(trimmed);
+        const option = document.createElement('option');
+        option.value = trimmed;
+        option.textContent = trimmed;
+        select.appendChild(option);
+      }
+    }
+  });
+
   loadDefinitions();
+  loadOptions();
   initAutocomplete();
 </script>
 </Layout>

@@ -32,6 +32,13 @@ export const GET: APIRoute = async ({ url }) => {
         createdBy: true,
         notes: true,
         modelType: true,
+        metadata: true,
+        // Array fields for template generation
+        curveTypes: true,
+        commodities: true,
+        scenarios: true,
+        granularity: true,
+        degradationType: true,
         curveDefinition: {
           select: {
             curveName: true,

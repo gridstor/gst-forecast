@@ -47,8 +47,18 @@ export const POST: APIRoute = async ({ request }) => {
     for (let i = 0; i < priceData.length; i++) {
       const row = priceData[i];
       
-      if (!row.timestamp || row.value === undefined || row.value === null) {
-        errors.push(`Row ${i + 1}: Missing timestamp or value`);
+      // Skip rows with empty values (template placeholders)
+      if (!row.value || row.value.toString().trim() === '') {
+        continue;
+      }
+      
+      if (!row.timestamp) {
+        errors.push(`Row ${i + 1}: Missing timestamp`);
+        continue;
+      }
+      
+      if (!row.curveType || !row.commodity || !row.scenario) {
+        errors.push(`Row ${i + 1}: Missing curveType, commodity, or scenario`);
         continue;
       }
 
@@ -64,31 +74,83 @@ export const POST: APIRoute = async ({ request }) => {
         continue;
       }
 
-      // Check if timestamp is within delivery period
-      if (timestamp < curveInstance.deliveryPeriodStart || timestamp > curveInstance.deliveryPeriodEnd) {
-        errors.push(`Row ${i + 1}: Timestamp outside delivery period`);
+      // Check if timestamp is within delivery period (compare dates only, not times)
+      const tsDate = new Date(timestamp.toISOString().split('T')[0]);
+      const startDate = new Date(curveInstance.deliveryPeriodStart.toISOString().split('T')[0]);
+      const endDate = new Date(curveInstance.deliveryPeriodEnd.toISOString().split('T')[0]);
+      
+      if (tsDate < startDate || tsDate > endDate) {
+        errors.push(`Row ${i + 1}: Timestamp ${timestamp.toISOString().split('T')[0]} outside delivery period (${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]})`);
         continue;
       }
 
-      // Handle p-value (default to 50 if not specified)
-      const pvalue = row.pvalue ? parseInt(row.pvalue) : 50;
+      // Validate that curveType/commodity/scenario are in the instance arrays
+      const instanceTypes = curveInstance.curveTypes || [];
+      const instanceCommodities = curveInstance.commodities || [];
+      const instanceScenarios = curveInstance.scenarios || [];
+      
+      // Log for debugging
+      if (i === 0) {
+        console.log('Instance delivery period:', {
+          start: startDate.toISOString(),
+          end: endDate.toISOString()
+        });
+        console.log('Instance validation arrays:', {
+          instanceTypes,
+          instanceCommodities,
+          instanceScenarios
+        });
+        console.log('First row values:', {
+          timestamp: timestamp.toISOString(),
+          timestampDate: tsDate.toISOString(),
+          curveType: row.curveType,
+          commodity: row.commodity,
+          scenario: row.scenario,
+          value: value
+        });
+      }
+      
+      if (instanceTypes.length > 0 && !instanceTypes.includes(row.curveType)) {
+        errors.push(`Row ${i + 1}: curveType "${row.curveType}" not in instance types: [${instanceTypes.join(', ')}]`);
+        continue;
+      }
+      
+      if (instanceCommodities.length > 0 && !instanceCommodities.includes(row.commodity)) {
+        errors.push(`Row ${i + 1}: commodity "${row.commodity}" not in instance commodities: [${instanceCommodities.join(', ')}]`);
+        continue;
+      }
+      
+      if (instanceScenarios.length > 0 && !instanceScenarios.includes(row.scenario)) {
+        errors.push(`Row ${i + 1}: scenario "${row.scenario}" not in instance scenarios: [${instanceScenarios.join(', ')}]`);
+        continue;
+      }
       
       validatedData.push({
         curveInstanceId: parseInt(curveInstanceId),
         timestamp,
-        pValue: pvalue,
         value,
+        curveType: row.curveType,
+        commodity: row.commodity,
+        scenario: row.scenario,
+        units: row.units || csvUnits || 'Unknown',
         flags: row.flags || []
       });
     }
 
     if (errors.length > 0) {
+      console.error('Validation errors:', errors);
       return new Response(
         JSON.stringify({ 
           error: 'Validation errors in price data',
-          validationErrors: errors,
+          validationErrors: errors.slice(0, 10), // Only return first 10 errors
+          totalErrors: errors.length,
           validatedCount: validatedData.length,
-          totalCount: priceData.length
+          totalCount: priceData.length,
+          instanceInfo: {
+            curveTypes: curveInstance.curveTypes,
+            commodities: curveInstance.commodities,
+            scenarios: curveInstance.scenarios
+          }
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -106,7 +168,7 @@ export const POST: APIRoute = async ({ request }) => {
       where: { curveInstanceId: parseInt(curveInstanceId) }
     });
 
-    // Insert curve data using tall format - one row per (timestamp, pValue) combination
+    // Insert curve data - one row per (timestamp, curveType, commodity, scenario) combination
     // Use createMany for better performance
     await prisma.curveData.createMany({
       data: validatedData

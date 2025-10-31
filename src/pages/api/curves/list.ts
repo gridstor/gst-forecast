@@ -1,48 +1,64 @@
 import type { APIRoute } from 'astro';
-import { createDatabase } from '../../../lib/db';
+import prisma from '../../../lib/prisma';
 
 export const GET: APIRoute = async ({ request }) => {
-  const db = await createDatabase();
-
   try {
-    const result = await db.query(`
-      SELECT 
-        cd.curve_id,
-        cd.mark_type,
-        cd.mark_case,
-        cd.location,
-        cd.market,
-        cd.mark_date,
-        cd.granularity,
-        cd.curve_start_date,
-        cd.curve_end_date,
-        cd.curve_creator,
-        cd.created_at,
-        COUNT(pf.id) as price_points
-      FROM curve_definitions cd
-      LEFT JOIN price_forecasts pf ON cd.curve_id = pf.curve_id
-      GROUP BY cd.curve_id, cd.mark_type, cd.mark_case, cd.location, cd.market, cd.mark_date, cd.granularity, cd.curve_start_date, cd.curve_end_date, cd.curve_creator, cd.created_at
-      ORDER BY cd.mark_date DESC, cd.created_at DESC
-    `);
-    
-    return new Response(JSON.stringify(result.rows), {
+    // Get all curve instances with their definition data
+    const instances = await prisma.curveInstance.findMany({
+      include: {
+        curveDefinition: {
+          select: {
+            curveName: true,
+            market: true,
+            location: true,
+            product: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Format the data for the dropdown
+    const curves = instances.map(instance => ({
+      id: instance.id,
+      curveName: instance.curveDefinition.curveName,
+      market: instance.curveDefinition.market,
+      location: instance.curveDefinition.location,
+      // All these are now arrays on instance level:
+      curveTypes: instance.curveTypes || [],
+      commodities: instance.commodities || [],
+      scenarios: instance.scenarios || [],
+      granularity: instance.granularity,
+      degradationType: instance.degradationType,
+      instanceVersion: instance.instanceVersion,
+      createdBy: instance.createdBy,
+      createdAt: instance.createdAt
+    }));
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      curves,
+      total: curves.length 
+    }), {
       status: 200,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+      headers: {
+        'Content-Type': 'application/json'
       }
     });
-  } catch (error: unknown) {
-    console.error('Error fetching curves:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    return new Response(JSON.stringify({ error: errorMessage }), {
+
+  } catch (error) {
+    console.error('Error fetching curve instances:', error);
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: 'Failed to fetch curve instances',
+      curves: []
+    }), {
       status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
+      headers: {
+        'Content-Type': 'application/json'
       }
     });
-  } finally {
-    await db.end();
   }
-}; 
+};

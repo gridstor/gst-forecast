@@ -38,11 +38,12 @@ export const GET: APIRoute = async ({ url }) => {
       paramIndex++;
     }
 
-    if (curveType) {
-      query += ` AND "curveType" = $${paramIndex}`;
-      params.push(curveType);
-      paramIndex++;
-    }
+    // curveType filter disabled - now an array field on CurveInstance
+    // if (curveType) {
+    //   query += ` AND "curveType" = ANY("curveTypes")`;
+    //   params.push(curveType);
+    //   paramIndex++;
+    // }
 
     query += ` ORDER BY 
       CASE WHEN schedule_status = 'SCHEDULED' AND is_overdue THEN 1

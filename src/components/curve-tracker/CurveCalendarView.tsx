@@ -65,22 +65,10 @@ const CurveCalendarView: React.FC<CurveCalendarViewProps> = ({ updates, onUpdate
 
   const handleEventClick = (info: any) => {
     const event = info.event;
-    const props = event.extendedProps;
+    const curveId = event.id;
     
-    toast((t) => (
-      <div className="p-4">
-        <h3 className="font-bold">{event.title}</h3>
-        <p>Market: {props.market}</p>
-        <p>Case: {props.markCase}</p>
-        <p>Health Score: {props.healthScore}%</p>
-        <p>Expected: {format(event.start, 'MMM d, yyyy')}</p>
-        {props.lastUpdate && (
-          <p>Last Update: {format(new Date(props.lastUpdate), 'MMM d, yyyy')}</p>
-        )}
-      </div>
-    ), {
-      duration: 4000,
-    });
+    // Jump to upload page with curve ID pre-populated
+    window.location.href = `/admin/upload?curveId=${curveId}&fromCalendar=true`;
   };
 
   return (

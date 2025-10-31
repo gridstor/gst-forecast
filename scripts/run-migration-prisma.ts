@@ -1,134 +1,97 @@
-import { PrismaClient } from '@prisma/client';
+// Run curve schema migration using Prisma's existing db connection
+// Usage: npx tsx scripts/run-migration-prisma.ts
+
+import { query } from '../src/lib/db';
 
 async function runMigration() {
-  console.log('🔗 Connecting to database via Prisma...');
-  
-  const prisma = new PrismaClient({
-    log: ['error', 'warn']
-  });
-
   try {
-    await prisma.$connect();
-    console.log('✅ Connected to AWS RDS successfully!');
+    console.log('🔌 Running migration using existing database connection...');
+    console.log('---');
     
-    console.log('\n📋 Starting CurveInstanceData structure update migration...');
-
-    // Step 1: Create PValueGranularity enum
-    console.log('1️⃣ Creating PValueGranularity enum...');
-    await prisma.$executeRaw`
-      DO $$ BEGIN
-          CREATE TYPE "Forecasts"."PValueGranularity" AS ENUM (
-              'HOURLY', 'DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY',
-              'ROLLING_7D', 'ROLLING_30D', 'ROLLING_90D', 'SEASONAL'
-          );
-      EXCEPTION
-          WHEN duplicate_object THEN null;
-      END $$;
-    `;
-    console.log('✅ PValueGranularity enum created');
-
-    // Step 2: Add pValueGranularity column
-    console.log('2️⃣ Adding pValueGranularity column...');
-    await prisma.$executeRaw`
-      ALTER TABLE "Forecasts"."PriceForecast" 
-      ADD COLUMN IF NOT EXISTS "pValueGranularity" "Forecasts"."PValueGranularity" DEFAULT 'MONTHLY';
-    `;
-    console.log('✅ pValueGranularity column added');
-
-    // Step 3: Add column comment
-    console.log('3️⃣ Adding column comments...');
-    await prisma.$executeRaw`
-      COMMENT ON COLUMN "Forecasts"."PriceForecast"."pValueGranularity" IS 
-      'Specifies the time window over which the P-value confidence intervals (valueP90, valueP10) were calculated.';
-    `;
-    console.log('✅ Column comments added');
-
-    // Step 4: Remove deprecated columns
-    console.log('4️⃣ Removing deprecated valueHigh and valueLow columns...');
-    await prisma.$executeRaw`
-      ALTER TABLE "Forecasts"."PriceForecast" 
-      DROP COLUMN IF EXISTS "valueHigh";
-    `;
-    await prisma.$executeRaw`
-      ALTER TABLE "Forecasts"."PriceForecast" 
-      DROP COLUMN IF EXISTS "valueLow";
-    `;
-    console.log('✅ Deprecated columns removed');
-
-    // Step 5: Update P-value column comments
-    console.log('5️⃣ Updating P-value column comments...');
-    await prisma.$executeRaw`
-      COMMENT ON COLUMN "Forecasts"."PriceForecast"."valueP90" IS 
-      '90th percentile value calculated over the time window specified by pValueGranularity.';
-    `;
-    await prisma.$executeRaw`
-      COMMENT ON COLUMN "Forecasts"."PriceForecast"."valueP10" IS 
-      '10th percentile value calculated over the time window specified by pValueGranularity.';
-    `;
-    await prisma.$executeRaw`
-      COMMENT ON COLUMN "Forecasts"."PriceForecast"."flags" IS 
-      'Array of data quality flags such as ["outlier", "holiday", "estimated"].';
-    `;
-    console.log('✅ P-value column comments updated');
-
-    // Step 6: Create indexes
-    console.log('6️⃣ Creating performance indexes...');
-    await prisma.$executeRaw`
-      CREATE INDEX IF NOT EXISTS "idx_priceforecast_pvalue_granularity" 
-      ON "Forecasts"."PriceForecast" ("pValueGranularity");
-    `;
-    await prisma.$executeRaw`
-      CREATE INDEX IF NOT EXISTS "idx_priceforecast_instance_timestamp_granularity" 
-      ON "Forecasts"."PriceForecast" ("curveInstanceId", "timestamp", "pValueGranularity");
-    `;
-    console.log('✅ Performance indexes created');
-
-    // Step 7: Verification
-    console.log('\n🔍 Verifying migration results...');
+    // Step 1: Add columns
+    console.log('Step 1: Adding columns to CurveInstance...');
+    await query(`
+      ALTER TABLE "Forecasts"."CurveInstance"
+        ADD COLUMN IF NOT EXISTS "curveType" VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS "commodity" VARCHAR(50)
+    `);
+    console.log('  ✅ Columns added');
     
-    // Check table structure
-    const tableStructure = await prisma.$queryRaw`
-      SELECT column_name, data_type, is_nullable, column_default
-      FROM information_schema.columns 
-      WHERE table_name = 'PriceForecast' 
-        AND table_schema = 'Forecasts'
-      ORDER BY ordinal_position;
-    `;
+    // Step 2: Migrate data
+    console.log('Step 2: Migrating existing data...');
+    const updateResult = await query(`
+      UPDATE "Forecasts"."CurveInstance" ci
+      SET 
+        "curveType" = cd."curveType",
+        "commodity" = cd."commodity"
+      FROM "Forecasts"."CurveDefinition" cd
+      WHERE ci."curveDefinitionId" = cd.id
+        AND ci."curveType" IS NULL
+    `);
+    console.log(`  ✅ Updated ${updateResult.rowCount} instances`);
     
-    console.log('\n📊 Updated table structure:');
-    console.table(tableStructure);
-
-    // Check enum values
-    const enumValues = await prisma.$queryRaw`
-      SELECT enumlabel 
-      FROM pg_enum 
-      WHERE enumtypid = (
-          SELECT oid 
-          FROM pg_type 
-          WHERE typname = 'PValueGranularity' 
-            AND typnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'Forecasts')
-      )
-      ORDER BY enumsortorder;
-    `;
+    // Step 3: Create new index
+    console.log('Step 3: Creating new index...');
+    await query(`
+      CREATE INDEX IF NOT EXISTS "CurveInstance_curveType_commodity_idx" 
+        ON "Forecasts"."CurveInstance"("curveType", "commodity")
+    `);
+    console.log('  ✅ Index created');
     
-    console.log('\n🏷️ PValueGranularity enum values:');
-    (enumValues as any[]).forEach(row => console.log(`  - ${row.enumlabel}`));
-
-    console.log('\n🎉 Migration completed successfully!');
-    console.log('\n📝 Summary of changes:');
-    console.log('  ✅ Added pValueGranularity field with MONTHLY default');
-    console.log('  ✅ Removed deprecated valueHigh and valueLow columns');
-    console.log('  ✅ Added detailed column comments');
-    console.log('  ✅ Created performance indexes');
-    console.log('  ✅ Table now supports granular P-value confidence intervals');
-
+    // Step 4: Drop old index
+    console.log('Step 4: Dropping old index...');
+    await query(`
+      DROP INDEX IF EXISTS "Forecasts"."CurveDefinition_curveType_batteryDuration_scenario_idx"
+    `);
+    console.log('  ✅ Old index dropped');
+    
+    // Step 5: Create updated index
+    console.log('Step 5: Creating updated index...');
+    await query(`
+      CREATE INDEX IF NOT EXISTS "CurveDefinition_batteryDuration_scenario_idx" 
+        ON "Forecasts"."CurveDefinition"("batteryDuration", "scenario")
+    `);
+    console.log('  ✅ New index created');
+    
+    // Verify
+    console.log('Step 6: Verifying migration...');
+    const verifyResult = await query(`
+      SELECT 
+        COUNT(*)::int as total_instances,
+        COUNT("curveType")::int as instances_with_type,
+        COUNT("commodity")::int as instances_with_commodity
+      FROM "Forecasts"."CurveInstance"
+    `);
+    
+    const stats = verifyResult.rows[0];
+    console.log('---');
+    console.log('📊 Migration Results:');
+    console.log(`  Total instances: ${stats.total_instances}`);
+    console.log(`  Instances with curveType: ${stats.instances_with_type}`);
+    console.log(`  Instances with commodity: ${stats.instances_with_commodity}`);
+    console.log('---');
+    
+    if (stats.total_instances === stats.instances_with_type && 
+        stats.total_instances === stats.instances_with_commodity) {
+      console.log('✅ Migration completed successfully!');
+      console.log('');
+      console.log('Next steps:');
+      console.log('  1. Run: npx prisma generate');
+      console.log('  2. Restart your dev server (Ctrl+C then npm run dev)');
+      console.log('');
+      console.log('Note: Old columns on CurveDefinition are preserved for safety.');
+      console.log('      You can drop them manually after verifying everything works.');
+    } else {
+      throw new Error('Verification failed: Not all instances have curveType and commodity');
+    }
+    
+    process.exit(0);
   } catch (error) {
-    console.error('\n❌ Migration failed:', error);
+    console.error('');
+    console.error('❌ Migration failed:', error);
     process.exit(1);
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
-// Run the migration
-runMigration(); 
+runMigration().catch(console.error);
+

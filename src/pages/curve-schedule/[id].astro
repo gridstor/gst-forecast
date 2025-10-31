@@ -28,69 +28,33 @@ try {
   const schedule = await prisma.curveSchedule.findUnique({
     where: { id: scheduleId },
     include: {
-      updateHistory: {
-        orderBy: { updateDate: 'desc' },
-        take: 5,
-        select: {
-          id: true,
-          updateDate: true,
-          updatedBy: true,
-          notes: true,
-          status: true,
-          fileReference: true
-        }
-      },
-      comments: {
-        orderBy: { commentDate: 'desc' },
-        select: {
-          id: true,
-          userName: true,
-          commentText: true,
-          commentDate: true,
-          isResolved: true,
-          createdBy: true
-        }
-      },
-      receipts: {
-        select: {
-          id: true,
-          receivedBy: true,
-          providerContact: true,
-          fileReference: true,
-          processingStatus: true,
-          notes: true,
-          receivedDate: true
-        }
-      },
-      curve: {
+      curveDefinition: {
         include: {
-          price_forecasts: {
-            orderBy: { markDate: 'desc' },
-            take: 1,
+          instances: {
+            orderBy: { forecastRunDate: 'desc' },
+            take: 5,
             select: {
               id: true,
-              curveId: true,
-              markDate: true,
-              flowDateStart: true,
-              value: true,
-              units: true,
-              location: true,
-              markCase: true,
-              curveCreator: true,
-              valueType: true,
-              createdAt: true
-            }
-          },
-          display_curves: {
-            select: {
-              displayId: true,
-              curveId: true,
-              displayOrder: true,
-              displayColor: true,
-              displayLabel: true,
-              createdAt: true
+              instanceVersion: true,
+              status: true,
+              forecastRunDate: true,
+              createdBy: true,
+              notes: true
             }
           }
+        }
+      },
+      scheduleRuns: {
+        orderBy: { runDate: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          runDate: true,
+          runType: true,
+          status: true,
+          instancesCreated: true,
+          startedAt: true,
+          completedAt: true
         }
       }
     }
@@ -100,8 +64,8 @@ try {
     return Astro.redirect('/curve-schedule', 404);
   }
 
-  pageData.schedule = schedule as CurveScheduleWithRelations;
-  pageData.associatedCurve = schedule.curve as CurveDefinition || null;
+  pageData.schedule = schedule;
+  pageData.associatedCurve = schedule.curveDefinition || null;
 
 } catch (e) {
   console.error('Error fetching curve data:', e);

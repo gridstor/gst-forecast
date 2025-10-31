@@ -6,14 +6,15 @@ export const GET: APIRoute = async () => {
     
     // Return fallback data for common energy markets until database is fully configured
     const fallbackLocations = [
-      { value: 'ERCOT-Houston', label: 'ERCOT - Houston', market: 'ERCOT', location: 'Houston' },
-      { value: 'ERCOT-Dallas', label: 'ERCOT - Dallas', market: 'ERCOT', location: 'Dallas' },
-      { value: 'ERCOT-Austin', label: 'ERCOT - Austin', market: 'ERCOT', location: 'Austin' },
-      { value: 'CAISO-SP15', label: 'CAISO - SP15', market: 'CAISO', location: 'SP15' },
-      { value: 'CAISO-NP15', label: 'CAISO - NP15', market: 'CAISO', location: 'NP15' },
-      { value: 'PJM-Zone_A', label: 'PJM - Zone A', market: 'PJM', location: 'Zone A' },
-      { value: 'MISO-Illinois', label: 'MISO - Illinois', market: 'MISO', location: 'Illinois' },
-      { value: 'SPP-North', label: 'SPP - North', market: 'SPP', location: 'North' }
+      { id: 'Houston', name: 'Houston', market: 'ERCOT', active: true },
+      { id: 'Dallas', name: 'Dallas', market: 'ERCOT', active: true },
+      { id: 'Austin', name: 'Austin', market: 'ERCOT', active: true },
+      { id: 'SP15', name: 'SP15', market: 'CAISO', active: true },
+      { id: 'NP15', name: 'NP15', market: 'CAISO', active: true },
+      { id: 'Goleta', name: 'Goleta', market: 'CAISO', active: true },
+      { id: 'Zone_A', name: 'Zone A', market: 'PJM', active: true },
+      { id: 'Illinois', name: 'Illinois', market: 'MISO', active: true },
+      { id: 'North', name: 'North', market: 'SPP', active: true }
     ];
     
     return new Response(JSON.stringify(fallbackLocations), {

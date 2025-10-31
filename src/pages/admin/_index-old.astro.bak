@@ -1,0 +1,431 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { query } from '../../lib/db';
+
+// Get some system stats for the dashboard
+let systemStats = {
+  totalCurves: 0,
+  totalInstances: 0,
+  totalPricePoints: 0,
+  lastActivity: 'N/A'
+};
+
+try {
+  // Get curve definitions count
+  const curveResult = await query(`
+    SELECT COUNT(*) as count 
+    FROM "Forecasts"."CurveDefinition" 
+    WHERE "isActive" = true
+  `);
+  systemStats.totalCurves = curveResult.rows[0]?.count || 0;
+
+  // Get curve instances count
+  const instanceResult = await query(`
+    SELECT COUNT(*) as count 
+    FROM "Forecasts"."CurveInstance"
+  `);
+  systemStats.totalInstances = instanceResult.rows[0]?.count || 0;
+
+  // Get price points count
+  const priceResult = await query(`
+    SELECT COUNT(*) as count 
+    FROM "Forecasts"."PriceForecast"
+  `);
+  systemStats.totalPricePoints = priceResult.rows[0]?.count || 0;
+
+  // Get last activity
+  const activityResult = await query(`
+    SELECT MAX("createdAt") as last_activity
+    FROM "Forecasts"."CurveDefinition"
+  `);
+  const lastActivity = activityResult.rows[0]?.last_activity;
+  if (lastActivity) {
+    systemStats.lastActivity = new Date(lastActivity).toLocaleDateString();
+  }
+
+} catch (error) {
+  console.error('Error fetching system stats:', error);
+}
+---
+
+<Layout title="Admin Tools">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Admin Tools</h1>
+      <p class="text-gray-600">System administration and data management tools for GST Forecast</p>
+    </div>
+
+    <!-- System Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-3 bg-blue-100 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Total Curves</h3>
+            <p class="text-2xl font-bold text-gray-900">{systemStats.totalCurves}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-3 bg-green-100 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Instances</h3>
+            <p class="text-2xl font-bold text-gray-900">{systemStats.totalInstances}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-3 bg-purple-100 rounded-full">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Price Points</h3>
+            <p class="text-2xl font-bold text-gray-900">{systemStats.totalPricePoints.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-3 bg-yellow-100 rounded-full">
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Last Activity</h3>
+            <p class="text-2xl font-bold text-gray-900">{systemStats.lastActivity}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin Tools Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      
+      <!-- Data Management Section -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-blue-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Data Management</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Upload and manage curve data with comprehensive tools</p>
+        <div class="space-y-3">
+          <a
+            href="/admin/upload"
+            class="block w-full bg-blue-600 text-white text-center py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+          >
+            Upload New Curves
+          </a>
+          <a
+            href="/admin/inventory"
+            class="block w-full bg-orange-600 text-white text-center py-2 px-4 rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-colors"
+          >
+            Manage Inventory
+          </a>
+          <a
+            href="/admin/curve-inventory"
+            class="block w-full bg-indigo-600 text-white text-center py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+          >
+            📊 Curve Inventory
+          </a>
+          <a
+            href="/admin/curve-schedule"
+            class="block w-full bg-purple-600 text-white text-center py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+          >
+            📅 Curve Schedule
+          </a>
+          <a
+            href="/admin/curve-logs"
+            class="block w-full bg-teal-600 text-white text-center py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors"
+          >
+            📋 Activity Logs
+          </a>
+          <a
+            href="/admin/api-health"
+            class="block w-full bg-red-600 text-white text-center py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+          >
+            🔍 API Health Check
+          </a>
+        </div>
+      </div>
+
+      <!-- Documentation & Help -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-indigo-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Documentation & Help</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Schema guides, workflows, and system documentation</p>
+        <div class="space-y-3">
+          <a
+            href="/admin/docs"
+            class="block w-full bg-indigo-600 text-white text-center py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+          >
+            📚 Database Schema Docs
+          </a>
+          <a
+            href="/curve-schedule/create-enhanced"
+            class="block w-full bg-teal-600 text-white text-center py-2 px-4 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors"
+          >
+            📅 Curve Schedule Workflow
+          </a>
+        </div>
+      </div>
+
+      <!-- System Operations -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-green-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">System Operations</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Database maintenance and system configuration</p>
+        <div class="space-y-3">
+          <button
+            id="check-db-health"
+            class="block w-full bg-green-600 text-white text-center py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+          >
+            Check Database Health
+          </button>
+          <button
+            id="clear-cache"
+            class="block w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          >
+            Clear Cache
+          </button>
+        </div>
+      </div>
+
+      <!-- Analytics & Reports -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-purple-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Analytics & Reports</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Generate reports and analyze system usage</p>
+        <div class="space-y-3">
+          <button
+            id="generate-report"
+            class="block w-full bg-purple-600 text-white text-center py-2 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors"
+          >
+            Generate Usage Report
+          </button>
+          <button
+            id="export-data"
+            class="block w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          >
+            Export Data
+          </button>
+        </div>
+      </div>
+
+      <!-- User Management -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-yellow-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">User Management</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Manage user access and permissions</p>
+        <div class="space-y-3">
+          <button
+            disabled
+            class="block w-full bg-gray-300 text-gray-500 text-center py-2 px-4 rounded-md cursor-not-allowed"
+          >
+            Coming Soon
+          </button>
+          <button
+            disabled
+            class="block w-full bg-gray-300 text-gray-500 text-center py-2 px-4 rounded-md cursor-not-allowed"
+          >
+            Coming Soon
+          </button>
+        </div>
+      </div>
+
+      <!-- API Management -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-red-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">API Management</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Monitor and manage API endpoints</p>
+        <div class="space-y-3">
+          <a
+            href="/admin/api-health"
+            class="block w-full bg-red-600 text-white text-center py-2 px-4 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors"
+          >
+            🔍 API Health Dashboard
+          </a>
+          <button
+            id="view-logs"
+            class="block w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          >
+            View API Logs
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-4">
+          <div class="p-2 bg-indigo-100 rounded-lg mr-3">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900">Quick Actions</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Common administrative tasks</p>
+        <div class="space-y-3">
+          <a
+            href="/curve-viewer/"
+            class="block w-full bg-indigo-600 text-white text-center py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+          >
+            Go to Curve Viewer
+          </a>
+          <a
+            href="/curve-tracker/"
+            class="block w-full bg-gray-100 text-gray-700 text-center py-2 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+          >
+            Go to Curve Tracker
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+      <div class="space-y-3">
+        <div class="flex items-center justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">System Status</span>
+          <span class="text-green-600 font-medium">Operational</span>
+        </div>
+        <div class="flex items-center justify-between py-2 border-b border-gray-100">
+          <span class="text-gray-600">Database Connection</span>
+          <span class="text-green-600 font-medium">Active</span>
+        </div>
+        <div class="flex items-center justify-between py-2">
+          <span class="text-gray-600">Last Backup</span>
+          <span class="text-gray-500">Automated</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Area -->
+  <div id="notification" class="fixed top-4 right-4 z-50 hidden p-4 rounded-lg shadow-lg"></div>
+</Layout>
+
+<script>
+  function showNotification(message: string, type: 'success' | 'error' | 'info' = 'info') {
+    const notification = document.getElementById('notification');
+    if (!notification) return;
+
+    const bgColor = type === 'success' ? 'bg-green-500' : 
+                   type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white ${bgColor}`;
+    notification.textContent = message;
+    notification.classList.remove('hidden');
+
+    setTimeout(() => {
+      notification.classList.add('hidden');
+    }, 3000);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Database health check
+    document.getElementById('check-db-health')?.addEventListener('click', async function() {
+      try {
+        const response = await fetch('/api/curves/list.json');
+        if (response.ok) {
+          showNotification('Database connection healthy', 'success');
+        } else {
+          showNotification('Database connection issues detected', 'error');
+        }
+      } catch (error) {
+        showNotification('Failed to check database health', 'error');
+      }
+    });
+
+    // Clear cache
+    document.getElementById('clear-cache')?.addEventListener('click', function() {
+      // Clear browser cache
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            caches.delete(name);
+          });
+        });
+      }
+      showNotification('Cache cleared successfully', 'success');
+    });
+
+    // Generate report
+    document.getElementById('generate-report')?.addEventListener('click', function() {
+      showNotification('Report generation feature coming soon', 'info');
+    });
+
+    // Export data
+    document.getElementById('export-data')?.addEventListener('click', function() {
+      showNotification('Data export feature coming soon', 'info');
+    });
+
+    // Old test endpoints code removed - now using comprehensive API Health Dashboard
+
+    // View logs
+    document.getElementById('view-logs')?.addEventListener('click', function() {
+      showNotification('Log viewing feature coming soon', 'info');
+    });
+  });
+</script>
+
+<style>
+  /* Additional custom styles */
+  .transition-colors {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+</style>
+

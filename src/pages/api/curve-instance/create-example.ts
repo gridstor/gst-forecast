@@ -12,7 +12,6 @@ interface CreateInstanceRequest {
   forecastData: Array<{
     timestamp: string;
     value: number;
-    confidence?: number;
   }>;
   inputs: Array<{
     type: string;

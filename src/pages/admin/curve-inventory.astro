@@ -1,8 +1,186 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { CurveInventory as CurveInventoryComponent } from '../../components/admin/curve-inventory';
+import FilterPanel from '../../components/curve-tracker/FilterPanel';
+import CurveTable from '../../components/curve-tracker/CurveTable';
+import StatusSummary from '../../components/curve-tracker/StatusSummary';
+import MarketSummary from '../../components/curve-tracker/MarketSummary';
+import { query } from '../../lib/db';
+
+// Fetch initial data from CurveDefinition table
+let curves = [];
+let totalCurves = 0;
+let overdueCurves = 0;
+let dueSoonCurves = 0;
+let marketDistribution = {};
+
+try {
+  const result = await query(`
+    SELECT 
+      id,
+      "curveName" as curve_name,
+      market,
+      location,
+      product,
+      "curveType" as curve_type,
+      "createdAt" as created_at,
+      "createdBy" as created_by,
+      description,
+      granularity
+    FROM "Forecasts"."CurveDefinition"
+    WHERE "isActive" = true
+    ORDER BY "createdAt" DESC
+  `);
+  
+  curves = result.rows.map(row => ({
+    id: row.id,
+    curveName: row.curve_name,
+    market: row.market,
+    location: row.location,
+    product: row.product,
+    curveType: row.curve_type,
+    granularity: row.granularity,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    description: row.description,
+    // For compatibility with existing components, add some mock data
+    nextUpdateDue: null, // No schedule data available yet
+    updateHistory: [],
+    receipts: [],
+    _count: { comments: 0 }
+  }));
+
+  // Calculate summary statistics
+  totalCurves = curves.length;
+  
+  // Market distribution
+  marketDistribution = curves.reduce((acc, curve) => {
+    acc[curve.market] = (acc[curve.market] || 0) + 1;
+    return acc;
+  }, {});
+
+} catch (error) {
+  console.error('Error fetching curves:', error);
+}
 ---
 
-<Layout title="Curve Inventory">
-	<CurveInventoryComponent client:load />
+<Layout title="Curve Inventory - Admin Tools">
+  <div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">📊 Curve Inventory</h1>
+          <p class="text-gray-600">Manage and track all curve definitions and instances</p>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="flex gap-3">
+          <a href="/admin/upload" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+            📤 Upload New Curve
+          </a>
+          <a href="/admin/curve-schedule" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors">
+            📅 Schedule Delivery
+          </a>
+          <a href="/admin/" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+            ← Back to Admin
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      
+      <!-- Total Curves -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-3 bg-blue-100 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Total Definitions</h3>
+            <p class="text-2xl font-bold text-gray-900">{totalCurves}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Distribution -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center mb-3">
+          <div class="p-3 bg-green-100 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Markets</h3>
+            <p class="text-lg font-bold text-gray-900">{Object.keys(marketDistribution).length}</p>
+          </div>
+        </div>
+        <div class="space-y-1">
+          {Object.entries(marketDistribution).map(([market, count]) => (
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-600">{market}</span>
+              <span class="font-medium">{count}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-3 bg-purple-100 rounded-full">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Admin Tools</h3>
+            <div class="mt-2 space-y-1">
+              <a href="/admin/inventory" class="block text-sm text-blue-600 hover:text-blue-800">Manage Inventory →</a>
+              <a href="/admin/curve-logs" class="block text-sm text-blue-600 hover:text-blue-800">Activity Logs →</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters and Table -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      
+      <!-- Filter Panel -->
+      <div class="lg:col-span-1">
+        <FilterPanel client:load initialData={curves} />
+      </div>
+      
+      <!-- Main Content -->
+      <div class="lg:col-span-3 space-y-6">
+        
+        <!-- Status Summary -->
+        <StatusSummary 
+          client:load 
+          totalCurves={totalCurves}
+          overdueCurves={overdueCurves}
+          dueSoonCurves={dueSoonCurves}
+        />
+        
+        <!-- Curves Table -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">Curve Definitions</h2>
+          </div>
+          <CurveTable client:load initialCurves={curves} />
+        </div>
+        
+        <!-- Market Summary -->
+        <MarketSummary client:load marketDistribution={marketDistribution} />
+        
+      </div>
+    </div>
+  </div>
 </Layout> 

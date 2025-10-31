@@ -1,0 +1,994 @@
+---
+// Demonstration page showing curve definition nesting
+// CurveDefinition -> CurveInstance -> CurveData
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+let definitions: any[] = [];
+let error: string | null = null;
+
+try {
+  // Fetch all curve definitions with instance counts
+  definitions = await prisma.curveDefinition.findMany({
+    where: {
+      isActive: true
+    },
+    select: {
+      id: true,
+      curveName: true,
+      market: true,
+      location: true,
+      batteryDuration: true,
+      description: true,
+      createdAt: true,
+      _count: {
+        select: {
+          instances: true,
+          schedules: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+} catch (e) {
+  error = e instanceof Error ? e.message : 'Unknown error';
+  console.error('Error fetching definitions:', e);
+} finally {
+  await prisma.$disconnect();
+}
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curve Nesting Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: white;
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+    }
+    
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 1.1rem;
+    }
+    
+    .hierarchy {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+    
+    .hierarchy h2 {
+      color: #667eea;
+      margin-bottom: 1rem;
+    }
+    
+    .level {
+      margin: 1rem 0;
+      padding: 1rem;
+      border-left: 4px solid #667eea;
+      background: #f8f9ff;
+      border-radius: 8px;
+    }
+    
+    .level-1 { border-left-color: #667eea; }
+    .level-2 { border-left-color: #f093fb; margin-left: 2rem; }
+    .level-3 { border-left-color: #4facfe; margin-left: 4rem; }
+    
+    .level-title {
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .badge {
+      background: #667eea;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    
+    .definitions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+    
+    .definition-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+    }
+    
+    .definition-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    
+    .definition-card h3 {
+      color: #667eea;
+      margin-bottom: 0.75rem;
+      font-size: 1.25rem;
+    }
+    
+    .definition-info {
+      display: grid;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .info-row {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #666;
+    }
+    
+    .info-value {
+      color: #333;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eee;
+    }
+    
+    .stat {
+      flex: 1;
+      text-align: center;
+    }
+    
+    .stat-value {
+      display: block;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #667eea;
+    }
+    
+    .stat-label {
+      display: block;
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+    
+    .view-button {
+      width: 100%;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: opacity 0.2s;
+    }
+    
+    .view-button:hover {
+      opacity: 0.9;
+    }
+    
+    .card-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    
+    .quick-download-btn {
+      flex: 1;
+      padding: 0.75rem;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .quick-download-btn:hover {
+      opacity: 0.9;
+    }
+    
+    .quick-download-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .error {
+      background: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      padding: 2rem;
+      overflow-y: auto;
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      max-width: 1000px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .close-button {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: #666;
+      cursor: pointer;
+      line-height: 1;
+    }
+    
+    pre {
+      background: #f5f5f5;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.9rem;
+    }
+    
+    .data-table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    
+    .data-table thead {
+      position: sticky;
+      top: 0;
+      background: #667eea;
+      color: white;
+      z-index: 10;
+    }
+    
+    .data-table th {
+      padding: 0.75rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    
+    .data-table td {
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .data-table tbody tr:hover {
+      background: #f8f9ff;
+    }
+    
+    .download-buttons {
+      display: flex;
+      gap: 1rem;
+      margin: 1rem 0;
+      flex-wrap: wrap;
+    }
+    
+    .download-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .download-btn:hover {
+      opacity: 0.9;
+    }
+    
+    .download-btn.json {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .download-btn.csv {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+    
+    .download-btn.excel {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+      color: white;
+    }
+    
+    .tab-buttons {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid #eee;
+    }
+    
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: 600;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .tab-btn:hover {
+      color: #667eea;
+    }
+    
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    .loading-spinner {
+      text-align: center;
+      padding: 2rem;
+      color: #667eea;
+    }
+    
+    .data-summary {
+      background: #f8f9ff;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .summary-label {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 0.25rem;
+    }
+    
+    .summary-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🗂️ Curve Data Structure Demo</h1>
+    <p class="subtitle">Demonstrating the nested hierarchy: Definition → Instances → Data</p>
+    
+    {error && (
+      <div class="error">
+        <strong>Error:</strong> {error}
+      </div>
+    )}
+    
+    <div class="hierarchy">
+      <h2>Data Model Hierarchy</h2>
+      
+      <div class="level level-1">
+        <div class="level-title">
+          <span>1️⃣ CurveDefinition</span>
+          <span class="badge">Unique</span>
+        </div>
+        <p>
+          Top-level curve definition with a unique <code>curveName</code>. 
+          Defines market, location, battery duration, and other metadata.
+        </p>
+      </div>
+      
+      <div class="level level-2">
+        <div class="level-title">
+          <span>2️⃣ CurveInstance</span>
+          <span class="badge">Many per Definition</span>
+        </div>
+        <p>
+          Each definition can have multiple instances (versions). Each instance has
+          its own curve types, commodities, scenarios, delivery period, and forecast run date.
+        </p>
+      </div>
+      
+      <div class="level level-3">
+        <div class="level-title">
+          <span>3️⃣ CurveData / PriceForecast</span>
+          <span class="badge">Many per Instance</span>
+        </div>
+        <p>
+          Each instance contains many data points. CurveData stores actual values with 
+          timestamps, while PriceForecast stores p-value distributions.
+        </p>
+      </div>
+    </div>
+    
+    <h2 style="color: white; margin-bottom: 1rem;">Active Curve Definitions ({definitions.length})</h2>
+    
+    <div class="definitions-grid">
+      {definitions.map(def => (
+        <div class="definition-card" data-definition-id={def.id}>
+          <h3>{def.curveName}</h3>
+          
+          <div class="definition-info">
+            <div class="info-row">
+              <span class="info-label">Market:</span>
+              <span class="info-value">{def.market}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Location:</span>
+              <span class="info-value">{def.location}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Battery:</span>
+              <span class="info-value">{def.batteryDuration}</span>
+            </div>
+          </div>
+          
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-value">{def._count.instances}</span>
+              <span class="stat-label">Instances</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">{def._count.schedules}</span>
+              <span class="stat-label">Schedules</span>
+            </div>
+          </div>
+          
+          <div class="card-actions">
+            <button class="quick-download-btn" onclick={`quickDownloadCSV(${def.id}, '${def.curveName}')`}>
+              📊 CSV
+            </button>
+            <button class="view-button" onclick={`viewDefinition(${def.id})`} style="flex: 2;">
+              View Full Data
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+  
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Full Nested Structure</h2>
+        <button class="close-button" onclick="closeModal()">&times;</button>
+      </div>
+      <div id="modal-body">
+        Loading...
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let currentData: any = null;
+    
+    async function quickDownloadCSV(definitionId: number, curveName: string) {
+      // Find the button that was clicked
+      const btn = window.event?.target as HTMLButtonElement;
+      const originalText = btn?.innerHTML;
+      
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '⏳';
+      }
+      
+      try {
+        // Fetch complete data from download endpoint
+        const response = await fetch(`/api/curves/definition/${definitionId}/download`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+        
+        const completeData = await response.json();
+        
+        // Build CSV
+        let csv = 'Instance Version,Timestamp,Curve Type,Commodity,Scenario,Value,Units\n';
+        
+        completeData.instances.forEach((instance: any) => {
+          instance.curveData.forEach((row: any) => {
+            csv += `${instance.instanceVersion},`;
+            csv += `${new Date(row.timestamp).toISOString()},`;
+            csv += `${row.curveType},`;
+            csv += `${row.commodity},`;
+            csv += `${row.scenario},`;
+            csv += `${row.value},`;
+            csv += `${row.units}\n`;
+          });
+        });
+        
+        // Download the CSV
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${curveName}_complete_data.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        if (btn) {
+          btn.innerHTML = '✓';
+          setTimeout(() => {
+            btn.disabled = false;
+            if (originalText) btn.innerHTML = originalText;
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Download error:', error);
+        alert('Error downloading CSV. Please try again.');
+        
+        if (btn) {
+          btn.disabled = false;
+          if (originalText) btn.innerHTML = originalText;
+        }
+      }
+    }
+    
+    async function viewDefinition(definitionId: number) {
+      const modal = document.getElementById('modal');
+      const modalBody = document.getElementById('modal-body');
+      
+      if (!modal || !modalBody) return;
+      
+      modal.classList.add('active');
+      modalBody.innerHTML = '<div class="loading-spinner">⏳ Loading curve data...</div>';
+      
+      try {
+        const response = await fetch(`/api/curves/definition/${definitionId}/full`);
+        currentData = await response.json();
+        
+        renderDataViewer(currentData);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        modalBody.innerHTML = `<div class="error">Error loading data: ${errorMessage}</div>`;
+      }
+    }
+    
+    function renderDataViewer(data: any) {
+      const modalBody = document.getElementById('modal-body');
+      if (!modalBody) return;
+      
+      // Create summary section
+      let html = '<div class="data-summary">';
+      html += `<div class="summary-item">
+        <span class="summary-label">Curve Name</span>
+        <span class="summary-value">${data.definition.curveName}</span>
+      </div>`;
+      html += `<div class="summary-item">
+        <span class="summary-label">Market / Location</span>
+        <span class="summary-value">${data.definition.market} / ${data.definition.location}</span>
+      </div>`;
+      html += `<div class="summary-item">
+        <span class="summary-label">Total Instances</span>
+        <span class="summary-value">${data.instances.length}</span>
+      </div>`;
+      html += `<div class="summary-item">
+        <span class="summary-label">Battery Duration</span>
+        <span class="summary-value">${data.definition.batteryDuration}</span>
+      </div>`;
+      html += '</div>';
+      
+      // Download buttons
+      html += '<div class="download-buttons">';
+      html += '<button class="download-btn json" onclick="downloadJSON()">📥 Download JSON</button>';
+      html += '<button class="download-btn csv" onclick="downloadCSV()">📊 Download CSV</button>';
+      html += '</div>';
+      
+      // Tab buttons
+      html += '<div class="tab-buttons">';
+      html += '<button class="tab-btn active" onclick="switchTab(\'overview\')">Overview</button>';
+      data.instances.forEach((instance: any, idx: number) => {
+        html += `<button class="tab-btn" onclick="switchTab('instance-${idx}')">Instance ${idx + 1}</button>`;
+      });
+      html += '</div>';
+      
+      // Overview tab
+      html += '<div id="tab-overview" class="tab-content active">';
+      html += '<h3>Definition Details</h3>';
+      html += '<pre>' + JSON.stringify(data.definition, null, 2) + '</pre>';
+      
+      if (data.schedules && data.schedules.length > 0) {
+        html += '<h3 style="margin-top: 1.5rem;">Schedules</h3>';
+        html += '<pre>' + JSON.stringify(data.schedules, null, 2) + '</pre>';
+      }
+      html += '</div>';
+      
+      // Instance tabs
+      data.instances.forEach((instance: any, idx: number) => {
+        html += `<div id="tab-instance-${idx}" class="tab-content">`;
+        html += `<h3>Instance ${idx + 1}: ${instance.instanceVersion}</h3>`;
+        
+        // Instance metadata
+        html += '<div class="data-summary">';
+        html += `<div class="summary-item">
+          <span class="summary-label">Curve Types</span>
+          <span class="summary-value">${instance.curveTypes.join(', ')}</span>
+        </div>`;
+        html += `<div class="summary-item">
+          <span class="summary-label">Commodities</span>
+          <span class="summary-value">${instance.commodities.join(', ')}</span>
+        </div>`;
+        html += `<div class="summary-item">
+          <span class="summary-label">Total Data Points</span>
+          <span class="summary-value">${instance.counts.totalCurveData.toLocaleString()}</span>
+        </div>`;
+        html += `<div class="summary-item">
+          <span class="summary-label">Price Forecasts</span>
+          <span class="summary-value">${instance.counts.totalPriceForecasts.toLocaleString()}</span>
+        </div>`;
+        html += '</div>';
+        
+        // Download buttons for this instance
+        html += '<div class="download-buttons">';
+        html += `<button class="download-btn json" onclick="downloadInstanceJSON(${idx})">📥 Download Instance JSON</button>`;
+        html += `<button class="download-btn csv" onclick="downloadInstanceCSV(${idx})">📊 Download Instance CSV</button>`;
+        html += '</div>';
+        
+        // Curve Data table (sample)
+        if (instance.sampleData.curveData.length > 0) {
+          html += '<h4>Curve Data (Sample - First 10 rows)</h4>';
+          html += '<div class="data-table-container">';
+          html += '<table class="data-table">';
+          html += '<thead><tr>';
+          html += '<th>Timestamp</th><th>Value</th><th>Curve Type</th><th>Commodity</th><th>Scenario</th><th>Units</th>';
+          html += '</tr></thead><tbody>';
+          
+          instance.sampleData.curveData.forEach((row: any) => {
+            html += '<tr>';
+            html += `<td>${new Date(row.timestamp).toLocaleString()}</td>`;
+            html += `<td>${row.value.toFixed(2)}</td>`;
+            html += `<td>${row.curveType}</td>`;
+            html += `<td>${row.commodity}</td>`;
+            html += `<td>${row.scenario}</td>`;
+            html += `<td>${row.units}</td>`;
+            html += '</tr>';
+          });
+          
+          html += '</tbody></table></div>';
+          html += `<p style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+            Showing ${instance.sampleData.curveData.length} of ${instance.counts.totalCurveData.toLocaleString()} total data points. 
+            Download to see all data.
+          </p>`;
+        }
+        
+        // Price Forecasts table (sample)
+        if (instance.sampleData.priceForecasts.length > 0) {
+          html += '<h4 style="margin-top: 1.5rem;">Price Forecasts (Sample - First 10 rows)</h4>';
+          html += '<div class="data-table-container">';
+          html += '<table class="data-table">';
+          html += '<thead><tr>';
+          html += '<th>Timestamp</th><th>P-Value</th><th>Value</th>';
+          html += '</tr></thead><tbody>';
+          
+          instance.sampleData.priceForecasts.forEach((row: any) => {
+            html += '<tr>';
+            html += `<td>${new Date(row.timestamp).toLocaleString()}</td>`;
+            html += `<td>${row.pValue}</td>`;
+            html += `<td>${row.value.toFixed(2)}</td>`;
+            html += '</tr>';
+          });
+          
+          html += '</tbody></table></div>';
+          html += `<p style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+            Showing ${instance.sampleData.priceForecasts.length} of ${instance.counts.totalPriceForecasts.toLocaleString()} total forecasts. 
+            Download to see all data.
+          </p>`;
+        }
+        
+        html += '</div>';
+      });
+      
+      modalBody.innerHTML = html;
+    }
+    
+    function switchTab(tabName: string) {
+      // Update button states
+      const buttons = document.querySelectorAll('.tab-btn');
+      buttons.forEach(btn => btn.classList.remove('active'));
+      
+      // Add active class to clicked button
+      const clickedButton = window.event?.target as HTMLElement;
+      if (clickedButton) {
+        clickedButton.classList.add('active');
+      }
+      
+      // Update tab content
+      const tabs = document.querySelectorAll('.tab-content');
+      tabs.forEach(tab => tab.classList.remove('active'));
+      
+      const activeTab = document.getElementById(`tab-${tabName}`);
+      if (activeTab) {
+        activeTab.classList.add('active');
+      }
+    }
+    
+    async function downloadJSON() {
+      if (!currentData) return;
+      
+      // Show loading state
+      const btn = window.event?.target as HTMLButtonElement;
+      const originalText = btn?.innerHTML;
+      if (btn) btn.innerHTML = '⏳ Preparing download...';
+      
+      try {
+        // Fetch complete data from download endpoint
+        const response = await fetch(`/api/curves/definition/${currentData.definition.id}/download`);
+        const completeData = await response.json();
+        
+        const dataStr = JSON.stringify(completeData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentData.definition.curveName}_complete_data.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        if (btn) btn.innerHTML = '✓ Downloaded!';
+        setTimeout(() => {
+          if (btn && originalText) btn.innerHTML = originalText;
+        }, 2000);
+      } catch (error) {
+        console.error('Download error:', error);
+        if (btn && originalText) btn.innerHTML = originalText;
+        alert('Error downloading data. Please try again.');
+      }
+    }
+    
+    async function downloadCSV() {
+      if (!currentData) return;
+      
+      // Show loading state
+      const btn = window.event?.target as HTMLButtonElement;
+      const originalText = btn?.innerHTML;
+      if (btn) btn.innerHTML = '⏳ Preparing CSV...';
+      
+      try {
+        // Fetch complete data from download endpoint
+        const response = await fetch(`/api/curves/definition/${currentData.definition.id}/download`);
+        const completeData = await response.json();
+        
+        let csv = 'Instance Version,Timestamp,Curve Type,Commodity,Scenario,Value,Units\n';
+        
+        completeData.instances.forEach((instance: any) => {
+          instance.curveData.forEach((row: any) => {
+            csv += `${instance.instanceVersion},`;
+            csv += `${new Date(row.timestamp).toISOString()},`;
+            csv += `${row.curveType},`;
+            csv += `${row.commodity},`;
+            csv += `${row.scenario},`;
+            csv += `${row.value},`;
+            csv += `${row.units}\n`;
+          });
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentData.definition.curveName}_complete_data.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        if (btn) btn.innerHTML = '✓ Downloaded!';
+        setTimeout(() => {
+          if (btn && originalText) btn.innerHTML = originalText;
+        }, 2000);
+      } catch (error) {
+        console.error('Download error:', error);
+        if (btn && originalText) btn.innerHTML = originalText;
+        alert('Error downloading CSV. Please try again.');
+      }
+    }
+    
+    async function downloadInstanceJSON(idx: number) {
+      if (!currentData) return;
+      
+      const instance = currentData.instances[idx];
+      
+      // Show loading state
+      const btn = window.event?.target as HTMLButtonElement;
+      const originalText = btn?.innerHTML;
+      if (btn) btn.innerHTML = '⏳ Preparing download...';
+      
+      try {
+        // Fetch complete data for this instance
+        const response = await fetch(`/api/curves/definition/${currentData.definition.id}/download?instanceId=${instance.id}`);
+        const completeData = await response.json();
+        
+        const dataStr = JSON.stringify(completeData.instances[0], null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentData.definition.curveName}_instance_${instance.instanceVersion}_complete.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        if (btn) btn.innerHTML = '✓ Downloaded!';
+        setTimeout(() => {
+          if (btn && originalText) btn.innerHTML = originalText;
+        }, 2000);
+      } catch (error) {
+        console.error('Download error:', error);
+        if (btn && originalText) btn.innerHTML = originalText;
+        alert('Error downloading instance data. Please try again.');
+      }
+    }
+    
+    async function downloadInstanceCSV(idx: number) {
+      if (!currentData) return;
+      
+      const instance = currentData.instances[idx];
+      
+      // Show loading state
+      const btn = window.event?.target as HTMLButtonElement;
+      const originalText = btn?.innerHTML;
+      if (btn) btn.innerHTML = '⏳ Preparing CSV...';
+      
+      try {
+        // Fetch complete data for this instance
+        const response = await fetch(`/api/curves/definition/${currentData.definition.id}/download?instanceId=${instance.id}`);
+        const completeData = await response.json();
+        
+        let csv = 'Timestamp,Curve Type,Commodity,Scenario,Value,Units\n';
+        
+        completeData.instances[0].curveData.forEach((row: any) => {
+          csv += `${new Date(row.timestamp).toISOString()},`;
+          csv += `${row.curveType},`;
+          csv += `${row.commodity},`;
+          csv += `${row.scenario},`;
+          csv += `${row.value},`;
+          csv += `${row.units}\n`;
+        });
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentData.definition.curveName}_instance_${instance.instanceVersion}_complete.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        if (btn) btn.innerHTML = '✓ Downloaded!';
+        setTimeout(() => {
+          if (btn && originalText) btn.innerHTML = originalText;
+        }, 2000);
+      } catch (error) {
+        console.error('Download error:', error);
+        if (btn && originalText) btn.innerHTML = originalText;
+        alert('Error downloading instance CSV. Please try again.');
+      }
+    }
+    
+    function closeModal() {
+      const modal = document.getElementById('modal');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+      currentData = null;
+    }
+    
+    // Close modal on background click
+    const modalElement = document.getElementById('modal');
+    if (modalElement) {
+      modalElement.addEventListener('click', (e) => {
+        if (e.target && (e.target as HTMLElement).id === 'modal') {
+          closeModal();
+        }
+      });
+    }
+  </script>
+</body>
+</html>
+

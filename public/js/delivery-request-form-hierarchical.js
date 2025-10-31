@@ -92,7 +92,7 @@ class DeliveryRequestForm {
 
     bindValidationListeners() {
         // Step 1 validation
-        const step1Fields = ['market', 'location', 'product', 'curveType'];
+        const step1Fields = ['market', 'location', 'product', 'curveType', 'granularity'];
         step1Fields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (field) {
@@ -279,7 +279,7 @@ class DeliveryRequestForm {
             this.setStepValid(1, isValid);
             return isValid;
         } else if (definitionOption.value === 'new') {
-            const requiredFields = ['market', 'location', 'product', 'curveType'];
+            const requiredFields = ['market', 'location', 'product', 'curveType', 'granularity'];
             const isValid = requiredFields.every(fieldId => {
                 const field = document.getElementById(fieldId);
                 return field && field.value.trim() !== '';
@@ -421,12 +421,12 @@ class DeliveryRequestForm {
             this.formData.curveType = document.getElementById('curveType').value;
             this.formData.batteryDuration = document.getElementById('batteryDuration').value;
             this.formData.scenario = document.getElementById('scenario').value;
+            this.formData.granularity = document.getElementById('granularity').value;
         }
 
         // Curve Instance
         this.formData.curveCreator = document.getElementById('curveCreator').value;
         this.formData.instanceVersion = document.getElementById('instanceVersion').value;
-        this.formData.granularity = document.getElementById('granularity').value;
         this.formData.deliveryPeriodStart = document.getElementById('deliveryPeriodStart').value;
         this.formData.deliveryPeriodEnd = document.getElementById('deliveryPeriodEnd').value;
         this.formData.modelType = document.getElementById('modelType').value;

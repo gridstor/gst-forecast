@@ -21,35 +21,48 @@ export function useCurves(location: string) {
     // First get the default curves for this location
     fetchDefaultCurves(location)
       .then(defaults => {
-        setMonthlyCurves(defaults.monthly);
-        setAnnualCurves(defaults.annual);
+        // Defensive programming: ensure defaults has the expected structure
+        const safeDefaults = {
+          monthly: Array.isArray(defaults?.monthly) ? defaults.monthly : [],
+          annual: Array.isArray(defaults?.annual) ? defaults.annual : []
+        };
+        
+        setMonthlyCurves(safeDefaults.monthly);
+        setAnnualCurves(safeDefaults.annual);
+        
         // Then fetch all curves for this location
         return fetchCurvesByLocation(location);
       })
       .then(curves => {
-        setCurves(curves);
+        // Ensure curves is an array
+        setCurves(Array.isArray(curves) ? curves : []);
       })
       .catch(err => {
         console.error('Error loading curves:', err);
         setError(`Failed to load curves: ${err.message}`);
+        // Set safe defaults on error
+        setMonthlyCurves([]);
+        setAnnualCurves([]);
+        setCurves([]);
       })
       .finally(() => setLoading(false));
   }, [location]);
 
   // Fetch monthly data when monthly curves change
   useEffect(() => {
-    if (monthlyCurves.length > 0) {
+    if (Array.isArray(monthlyCurves) && monthlyCurves.length > 0) {
       setLoading(true);
       fetchCurveData({ 
         curveIds: monthlyCurves,
         aggregation: 'monthly'
       })
       .then(data => {
-        setMonthlyData(data);
+        setMonthlyData(Array.isArray(data) ? data : []);
       })
       .catch(err => {
         console.error('Error loading monthly data:', err);
         setError(`Failed to load monthly data: ${err.message}`);
+        setMonthlyData([]);
       })
       .finally(() => setLoading(false));
     } else {
@@ -59,18 +72,19 @@ export function useCurves(location: string) {
 
   // Fetch annual data when annual curves change
   useEffect(() => {
-    if (annualCurves.length > 0) {
+    if (Array.isArray(annualCurves) && annualCurves.length > 0) {
       setLoading(true);
       fetchCurveData({ 
         curveIds: annualCurves,
         aggregation: 'annual'
       })
       .then(data => {
-        setAnnualData(data);
+        setAnnualData(Array.isArray(data) ? data : []);
       })
       .catch(err => {
         console.error('Error loading annual data:', err);
         setError(`Failed to load annual data: ${err.message}`);
+        setAnnualData([]);
       })
       .finally(() => setLoading(false));
     } else {

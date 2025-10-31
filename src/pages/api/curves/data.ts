@@ -1,58 +1,153 @@
 import type { APIRoute } from 'astro';
-import prisma from '../../../lib/prisma';
+import { query } from '../../../lib/db';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
     const searchParams = new URL(url).searchParams;
     const curveIds = searchParams.get('curves')?.split(',').map(Number) || [];
+    const curveInstanceId = searchParams.get('curveInstanceId') ? Number(searchParams.get('curveInstanceId')) : null;
     const aggregation = searchParams.get('aggregation') || 'monthly';
 
-    const data = await prisma.price_forecasts.findMany({
-      where: {
-        curve_id: { in: curveIds },
-      },
-      select: {
-        curve_id: true,
-        flow_date_start: true,
-        value: true,
-        curve_definitions: {
-          select: {
-            mark_type: true,
-            mark_case: true,
-            mark_date: true,
-            location: true,
-            curve_creator: true
-          }
-        }
-      },
-      orderBy: {
-        flow_date_start: 'asc'
+    if (curveIds.length === 0 && !curveInstanceId) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    let result;
+    
+    if (curveInstanceId) {
+      console.log(`Fetching curve data for instance ID: ${curveInstanceId}`);
+      
+      // First check if instance exists
+      const instanceCheck = await query(`
+        SELECT id, "curveDefinitionId"
+        FROM "Forecasts"."CurveInstance"
+        WHERE id = $1
+      `, [curveInstanceId]);
+      
+      if (instanceCheck.rows.length === 0) {
+        return new Response(JSON.stringify({
+          priceData: [],
+          totalCount: 0,
+          message: `No instance found with ID ${curveInstanceId}`
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
-    });
+      
+      // Query by specific curve instance ID (new CurveData structure)
+      result = await query(`
+        SELECT 
+          cd."timestamp",
+          cd."curveInstanceId",
+          cd.id,
+          cd.value,
+          cd."curveType",
+          cd.commodity,
+          cd.scenario,
+          cd.units as data_units,
+          ci."curveDefinitionId" as curve_id,
+          def."curveName" as curve_name,
+          def.location,
+          def.market,
+          ci."curveTypes" as curve_types,
+          ci.commodities,
+          ci.scenarios,
+          def."createdBy" as curve_creator,
+          def.units as def_units,
+          ci.metadata
+        FROM "Forecasts"."CurveData" cd
+        JOIN "Forecasts"."CurveInstance" ci ON cd."curveInstanceId" = ci.id
+        JOIN "Forecasts"."CurveDefinition" def ON ci."curveDefinitionId" = def.id
+        WHERE ci.id = $1
+        ORDER BY cd."timestamp" ASC, cd."curveType", cd.commodity, cd.scenario
+      `, [curveInstanceId]);
+    } else {
+      console.log(`Fetching curve data for definition IDs: ${curveIds.join(', ')}, aggregation: ${aggregation}`);
+      
+      // Query by curve definition IDs - TALL FORMAT
+      // For general curve viewing, just get P50 values (or any available p-value)
+      result = await query(`
+        SELECT 
+          pf.id,
+          pf."timestamp",
+          pf.value,
+          pf."pValue",
+          pf."curveInstanceId",
+          ci."curveDefinitionId" as curve_id,
+          cd."curveName" as curve_name,
+          cd.location,
+          cd.market,
+          ci."curveTypes" as curve_types,
+          ci.commodities,
+          ci.scenarios,
+          cd."createdBy" as curve_creator
+        FROM "Forecasts"."PriceForecast" pf
+        JOIN "Forecasts"."CurveInstance" ci ON pf."curveInstanceId" = ci.id
+        JOIN "Forecasts"."CurveDefinition" cd ON ci."curveDefinitionId" = cd.id
+        WHERE cd.id = ANY($1) AND pf."pValue" = 50
+        ORDER BY pf."timestamp" ASC
+      `, [curveIds]);
+    }
 
-    const formattedData = data
-      .filter(d => d.flow_date_start && d.value && d.curve_definitions)
-      .map(d => ({
-        date: d.flow_date_start?.toISOString() ?? '',
-        value: d.value ?? 0,
-        curveId: d.curve_id,
-        mark_type: d.curve_definitions?.mark_type ?? '',
-        mark_case: d.curve_definitions?.mark_case ?? '',
-        mark_date: d.curve_definitions?.mark_date?.toISOString() ?? '',
-        location: d.curve_definitions?.location ?? '',
-        curve_creator: d.curve_definitions?.curve_creator ?? ''
-      }))
-      .filter(d => d.date && d.value);
+    let responseData;
+    
+    if (curveInstanceId) {
+      // Format for instance-specific queries (for admin preview)
+      const priceData = result.rows.map(row => ({
+        id: row.id,
+        timestamp: row.timestamp?.toISOString() ?? '',
+        value: row.value ?? 0,
+        curveType: row.curveType,
+        commodity: row.commodity,
+        scenario: row.scenario,
+        units: row.data_units || row.def_units || '$/MWh',
+        curveInstanceId: row.curveInstanceId
+      }));
+      
+      responseData = {
+        priceData,
+        totalCount: priceData.length,
+        curveInstance: {
+          id: curveInstanceId,
+          curveName: result.rows[0]?.curve_name,
+          location: result.rows[0]?.location,
+          market: result.rows[0]?.market
+        }
+      };
+      
+      console.log(`Found ${priceData.length} data points for instance ${curveInstanceId}`);
+    } else {
+      // Format for definition queries (for chart display)
+      responseData = result.rows.map(row => ({
+        date: row.timestamp?.toISOString() ?? '',
+        value: row.value ?? 0,
+        curveId: row.curve_id,
+        curve_name: row.curve_name ?? '',
+        location: row.location ?? '',
+        market: row.market ?? '',
+        curve_type: row.curve_type ?? '',
+        curve_creator: row.curve_creator ?? ''
+      }));
+      
+      console.log(`Found ${responseData.length} data points for ${curveIds.length} definition(s)`);
+    }
 
-    return new Response(JSON.stringify(formattedData), {
+    return new Response(JSON.stringify(responseData), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error fetching curve data:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch curve data' }), 
-      { status: 500 }
+      JSON.stringify({ 
+        error: 'Failed to fetch curve data',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }), 
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 }; 

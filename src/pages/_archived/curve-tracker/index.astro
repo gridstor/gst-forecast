@@ -1,0 +1,138 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FilterPanel from '../../components/curve-tracker/FilterPanel';
+import CurveTable from '../../components/curve-tracker/CurveTable';
+import StatusSummary from '../../components/curve-tracker/StatusSummary';
+import MarketSummary from '../../components/curve-tracker/MarketSummary';
+import { query } from '../../lib/db';
+
+// Fetch initial data from CurveDefinition table
+let curves = [];
+let totalCurves = 0;
+let overdueCurves = 0;
+let dueSoonCurves = 0;
+let marketDistribution = {};
+
+try {
+  const result = await query(`
+    SELECT 
+      id,
+      "curveName" as curve_name,
+      market,
+      location,
+      product,
+      "curveType" as curve_type,
+      "createdAt" as created_at,
+      "createdBy" as created_by,
+      description
+    FROM "Forecasts"."CurveDefinition"
+    WHERE "isActive" = true
+    ORDER BY "createdAt" DESC
+  `);
+  
+  curves = result.rows.map(row => ({
+    id: row.id,
+    curveName: row.curve_name,
+    market: row.market,
+    location: row.location,
+    product: row.product,
+    curveType: row.curve_type,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    description: row.description,
+    // For compatibility with existing components, add some mock data
+    nextUpdateDue: null, // No schedule data available yet
+    updateHistory: [],
+    receipts: [],
+    _count: { comments: 0 }
+  }));
+
+  // Calculate summary statistics
+  totalCurves = curves.length;
+  // Since we don't have schedule data yet, set these to 0
+  overdueCurves = 0;
+  dueSoonCurves = 0;
+
+  // Calculate market distribution
+  marketDistribution = curves.reduce((acc, curve) => {
+    const market = curve.market || 'Unknown';
+    acc[market] = (acc[market] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+} catch (error) {
+  console.error('Error fetching curves:', error);
+  // Provide fallback empty data
+  curves = [];
+  totalCurves = 0;
+  overdueCurves = 0;
+  dueSoonCurves = 0;
+  marketDistribution = {};
+}
+---
+
+<Layout title="Curve Tracker Dashboard">
+  <!-- Page Header - Design System -->
+  <div class="mb-8">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Tracker Dashboard</h1>
+        <p class="text-base text-[#6B7280]">Track and manage your curve updates and schedules</p>
+      </div>
+      <div class="flex gap-3">
+        <a
+          href="/curve-tracker/upload"
+          class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-[#3B82F6] hover:bg-[#2563EB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] transition-colors"
+        >
+          Upload Curves
+        </a>
+        <a
+          href="/curve-tracker/inventory"
+          class="inline-flex items-center px-4 py-2 border border-[#E5E7EB] text-sm font-medium rounded-md text-[#6B7280] bg-white hover:bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] transition-colors"
+        >
+          View Inventory
+        </a>
+        <a
+          href="/curve-tracker/calendar"
+          class="inline-flex items-center px-4 py-2 border border-[#E5E7EB] text-sm font-medium rounded-md text-[#6B7280] bg-white hover:bg-[#F9FAFB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] transition-colors"
+        >
+          View Calendar
+        </a>
+      </div>
+    </div>
+  </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <StatusSummary
+        client:load
+        totalCurves={totalCurves}
+        overdueCurves={overdueCurves}
+        dueSoonCurves={dueSoonCurves}
+      />
+    </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+    <div class="lg:col-span-3">
+      <div class="bg-white rounded-lg p-6 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <FilterPanel client:load />
+        <CurveTable
+          client:load
+          initialCurves={curves}
+        />
+      </div>
+    </div>
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-lg p-6 accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <MarketSummary
+          client:load
+          marketDistribution={marketDistribution}
+        />
+      </div>
+    </div>
+  </div>
+  </div>
+</Layout>
+
+<style>
+  /* Add any custom styles here */
+</style> 

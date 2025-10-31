@@ -1,876 +1,1650 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import StepByStepUploader from '../../components/admin/StepByStepUploader';
-import CurveTemplateManager from '../../components/admin/CurveTemplateManager';
-import CurveManager from '../../components/admin/CurveManager';
 ---
 
-<Layout title="Upload Price Curves">
-  <div class="container mx-auto px-4 py-8">
-    <div id="notification" class="fixed top-4 right-4 z-50 hidden p-4 rounded-lg shadow-lg text-white">
-      <span id="notification-text"></span>
-    </div>
-    <h1 class="text-3xl font-bold mb-6">Price Curves Management</h1>
+<Layout title="Curve Management & Upload">
+  <!-- Page Header - Design System -->
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Management & Upload</h1>
+    <p class="text-base text-[#6B7280]">Select a definition and instance, then upload or manage data</p>
+  </div>
 
-    <div class="mb-8">
-      <h2 class="text-xl font-semibold mb-4">Step-by-Step Upload</h2>
-      <StepByStepUploader client:load />
-    </div>
-
-    <div class="border-t border-gray-200 my-8"></div>
-
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-xl font-semibold mb-4">Quick Upload Multiple Curves</h2>
-      <div class="space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Location</label>
-            <select id="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="">Select Location</option>
-              <option value="NP15">NP15</option>
-              <option value="SP15">SP15</option>
-              <option value="Goleta">Goleta</option>
-              <option value="Hidden Lakes">Hidden Lakes</option>
-              <option value="Houston">Houston</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Market</label>
-            <select id="market" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="">Select Market</option>
-              <option value="CAISO">CAISO</option>
-              <option value="ERCOT">ERCOT</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Mark Case</label>
-            <select id="markCase" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="P50">P50</option>
-              <option value="P25">P25</option>
-              <option value="P75">P75</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Value Type</label>
-            <select id="valueType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="">Select Value Type</option>
-              <option value="Revenue">Revenue</option>
-              <option value="Energy Arb">Energy Arbitrage</option>
-              <option value="AS">Ancillary Services</option>
-              <option value="TB2">TB2</option>
-              <option value="TB4">TB4</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Curve Creator</label>
-            <select id="curveCreator" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="">Select Curve Creator</option>
-              <option value="Gridstor">Gridstor</option>
-              <option value="Aurora">Aurora</option>
-              <option value="Actual">Actual</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Granularity</label>
-            <select id="granularity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="MONTHLY">Monthly</option>
-              <option value="ANNUAL">Annual</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Model Type</label>
-            <select id="modelType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="">Select Model Type</option>
-              <option value="Gridstor Forwards Regressions">Gridstor Forwards Regressions</option>
-              <option value="Aurora">Aurora</option>
-              <option value="Gridstor Stochastics">Gridstor Stochastics</option>
-              <option value="Actual">Actual</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Dispatch Optimization</label>
-            <select id="dispatchOpt" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-              <option value="">Select Dispatch Optimization</option>
-              <option value="TB Regression">TB Regression</option>
-              <option value="Aurora">Aurora</option>
-              <option value="Actual - Target">Actual - Target</option>
-              <option value="Actual - Revenue">Actual - Revenue</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">BESS Duration (hours)</label>
-            <input
-              type="number"
-              id="bessDuration"
-              step="0.1"
-              min="0"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="e.g., 4"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Mark Date</label>
-            <input
-              type="date"
-              id="markDate"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Start Date</label>
-            <input
-              type="date"
-              id="startDate"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">End Date</label>
-            <input
-              type="date"
-              id="endDate"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Fundamentals Description</label>
-            <input
-              type="text"
-              id="fundamentalsDesc"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter fundamentals description"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-gray-700">GridStor Purpose</label>
-            <input
-              type="text"
-              id="gridstorPurpose"
-              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              placeholder="Enter GridStor purpose"
-            />
-          </div>
+  <div class="max-w-[1800px] mx-auto">
+    <!-- Global Filters - Design System Card -->
+    <div class="bg-white rounded-lg p-6 mb-6 accent-border-gray" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div class="flex items-center gap-2 mb-4">
+        <svg class="w-5 h-5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+        </svg>
+        <h2 class="text-lg font-semibold text-[#1F2937]">Global Filters</h2>
+        <span class="text-sm text-[#6B7280]">(applies to all sections below)</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Market</label>
+          <select id="globalMarket" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="">All Markets</option>
+            <option value="CAISO">CAISO</option>
+            <option value="ERCOT">ERCOT</option>
+            <option value="PJM">PJM</option>
+            <option value="NYISO">NYISO</option>
+            <option value="ISO-NE">ISO-NE</option>
+            <option value="MISO">MISO</option>
+          </select>
         </div>
-
-        <div class="flex justify-end space-x-4">
-          <button
-            id="addToCurves"
-            class="inline-flex justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Add to Template
-          </button>
-          <button
-            id="generateTemplate"
-            class="inline-flex justify-center rounded-md border border-transparent bg-green-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-          >
-            Generate Template
-          </button>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location</label>
+          <input type="text" id="globalLocation" placeholder="Any location" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] placeholder-[#9CA3AF] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
         </div>
-
-        <div id="selectedCurves" class="hidden mt-4">
-          <h3 class="text-lg font-medium mb-2">Selected Curves</h3>
-          <div class="bg-gray-50 p-4 rounded-md">
-            <ul id="curvesList" class="list-disc list-inside"></ul>
-          </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Product</label>
+          <input type="text" id="globalProduct" placeholder="Any product" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] placeholder-[#9CA3AF] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Curve Type</label>
+          <select id="globalCurveType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="">All Types</option>
+            <option value="REVENUE">Revenue</option>
+            <option value="ENERGY">Energy</option>
+            <option value="AS">Ancillary Services</option>
+            <option value="RA">Resource Adequacy</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Granularity</label>
+          <select id="globalGranularity" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="">All</option>
+            <option value="HOURLY">Hourly</option>
+            <option value="DAILY">Daily</option>
+            <option value="MONTHLY">Monthly</option>
+            <option value="QUARTERLY">Quarterly</option>
+            <option value="ANNUAL">Annual</option>
+          </select>
         </div>
       </div>
+      <div class="mt-4 flex items-center justify-between">
+        <button id="clearFilters" class="text-sm text-[#3B82F6] hover:text-[#2563EB] font-medium">Clear All Filters</button>
+        <span id="filterCount" class="text-sm text-[#6B7280] font-mono"></span>
+      </div>
+    </div>
 
-      <div class="mt-8 border-t border-gray-200 pt-6">
-        <h3 class="text-lg font-medium mb-4">Upload CSV</h3>
-        <input
-          type="file"
-          accept=".csv"
-          id="csvUpload"
-          class="block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100"
-        />
-        <div id="csvPreview" class="hidden mt-4">
-          <h4 class="font-medium text-gray-700 mb-2">Preview</h4>
-          <div id="previewContent" class="bg-gray-50 p-4 rounded-md"></div>
-          <button
-            id="uploadCurves"
-            class="mt-4 inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            Upload Curves
-          </button>
+    <!-- Detail Panel (shows when item selected) - Design System -->
+    <div id="detailPanel" class="hidden bg-[#EFF6FF] rounded-lg p-6 mb-6 border-2 border-[#3B82F6]" style="box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+      <div class="flex items-start justify-between">
+        <div class="flex-1">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold text-[#1F2937]" id="detailTitle">Selected Item Details</h3>
+            <span id="detailBadge" class="px-2 py-1 text-xs font-mono rounded"></span>
+          </div>
+          <div id="detailContent" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm"></div>
+        </div>
+        <button id="closeDetail" class="text-[#9CA3AF] hover:text-[#6B7280] ml-4 transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Three Column Layout - Design System Cards -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- COLUMN 1: CURVE DEFINITIONS -->
+      <div class="bg-white rounded-lg overflow-hidden flex flex-col h-[800px] accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-[#F3F4F6]">
+          <h2 class="text-lg font-semibold text-[#1F2937]">1. Curve Definitions</h2>
+          <p class="text-sm text-[#6B7280] mt-1">Select or create a definition</p>
+        </div>
+
+          <!-- Search & Sort -->
+          <div class="px-6 py-3 border-b border-gray-200 space-y-3">
+            <input 
+              type="text" 
+              id="defSearch" 
+              placeholder="Search definitions..." 
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <select id="defSort" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="recent">Recent First</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="market">Market</option>
+              <option value="location">Location</option>
+            </select>
+          </div>
+
+          <!-- List -->
+          <div id="defList" class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="text-center text-gray-500 text-sm py-8">Loading definitions...</div>
+          </div>
+
+          <!-- Add New Button -->
+          <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] space-y-2">
+            <button id="addDefBtn" class="w-full px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] transition-colors text-sm font-medium">
+              + Add New Definition
+            </button>
+            <button id="useDefTemplateBtn" class="w-full px-4 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 transition-colors text-sm font-medium" disabled>
+              📋 Use Selected as Template
+            </button>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: CURVE INSTANCES -->
+        <div class="bg-white rounded-lg overflow-hidden flex flex-col h-[800px] accent-border-green" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-[#F3F4F6]">
+            <h2 class="text-lg font-semibold text-[#1F2937]">2. Curve Instances</h2>
+            <p class="text-sm text-[#6B7280] mt-1">Select or create an instance</p>
+          </div>
+
+          <!-- Search & Sort -->
+          <div class="px-6 py-3 border-b border-gray-200 space-y-3">
+            <input 
+              type="text" 
+              id="instSearch" 
+              placeholder="Search instances..." 
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              disabled
+            />
+            <select id="instSort" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent" disabled>
+              <option value="recent">Recent First</option>
+              <option value="version">Version</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+
+          <!-- List -->
+          <div id="instList" class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="text-center text-gray-500 text-sm py-8">Select a definition first</div>
+          </div>
+
+          <!-- Add New Button -->
+          <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] space-y-2">
+            <button id="addInstBtn" class="w-full px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] transition-colors text-sm font-medium" disabled>
+              + Add New Instance
+            </button>
+            <button id="useInstTemplateBtn" class="w-full px-4 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 transition-colors text-sm font-medium" disabled>
+              📋 Use Selected as Template
+            </button>
+          </div>
+        </div>
+
+        <!-- COLUMN 3: CURVE DATA -->
+        <div class="bg-white rounded-lg overflow-hidden flex flex-col h-[800px] accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-[#F3F4F6]">
+            <h2 class="text-lg font-semibold text-[#1F2937]">3. Curve Data</h2>
+            <p class="text-sm text-[#6B7280] mt-1">Upload or manage data</p>
+          </div>
+
+          <!-- Data Info -->
+          <div id="dataInfo" class="px-6 py-3 border-b border-gray-200">
+            <div class="text-center text-gray-500 text-sm py-8">Select an instance first</div>
+          </div>
+
+          <!-- Data Preview / Upload Area -->
+          <div id="dataContent" class="flex-1 overflow-y-auto px-6 py-4">
+            <!-- Will be populated dynamically -->
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 space-y-2">
+            <button id="downloadExistingDataBtn" class="w-full px-4 py-2 bg-purple-100 text-purple-700 border border-purple-300 rounded-md hover:bg-purple-200 transition-colors text-sm font-medium" disabled>
+              💾 Download Existing Data
+            </button>
+            <button id="downloadTemplateBtn" class="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors text-sm font-medium" disabled>
+              📥 Download Empty Template
+            </button>
+            <button id="uploadDataBtn" class="w-full px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] transition-colors text-sm font-medium" disabled>
+              📤 Upload New Data
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="mt-8 bg-white rounded-lg shadow-md p-6">
-      <h2 class="text-lg font-semibold mb-4">CSV Format Instructions</h2>
-      <div class="prose">
-        <p>The CSV template will include two sections:</p>
-        <ol class="list-decimal ml-6">
-          <li class="mb-2">
-            <strong>Curve Definitions</strong> - Contains metadata for each curve:
-            <ul class="list-disc ml-6 mt-1">
-              <li>curve_id - Unique identifier for each curve</li>
-              <li>location - Geographic location (e.g., "NP15", "SP15")</li>
-              <li>market - Market identifier (e.g., "CAISO")</li>
-              <li>mark_case - Scenario (default: "P50")</li>
-              <li>mark_type - Auto-generated based on other fields</li>
-              <li>value_type - Type of value (e.g., "Revenue", "Energy Arb")</li>
-              <li>curve_bess_duration - Battery duration in hours</li>
+    <!-- Notification Toast -->
+    <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white max-w-md"></div>
+
+    <!-- Add/Edit Definition Modal -->
+    <div id="defModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold" id="defModalTitle">Add Curve Definition</h3>
+          <button id="closeDefModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Curve Name *</label>
+              <input type="text" id="defCurveName" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Market *</label>
+              <select id="defMarket" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="">Select</option>
+                <option value="CAISO">CAISO</option>
+                <option value="ERCOT">ERCOT</option>
+                <option value="PJM">PJM</option>
+                <option value="NYISO">NYISO</option>
+                <option value="ISO-NE">ISO-NE</option>
+                <option value="MISO">MISO</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+              <input type="text" id="defLocation" class="w-full px-3 py-2 border rounded-md" placeholder="e.g., SP15, Houston" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Battery Duration</label>
+              <select id="defBatteryDuration" class="w-full px-3 py-2 border rounded-md">
+                <option value="UNKNOWN">Unknown</option>
+                <option value="2H">2 Hours</option>
+                <option value="4H">4 Hours</option>
+                <option value="8H">8 Hours</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Units *</label>
+              <select id="defUnits" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="$/MWh">$/MWh</option>
+                <option value="$/kW-month">$/kW-month</option>
+                <option value="$/MW">$/MW</option>
+                <option value="$/kW">$/kW</option>
+                <option value="MWh">MWh</option>
+                <option value="MW">MW</option>
+                <option value="%">%</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+              <input type="text" id="defTimezone" value="UTC" placeholder="UTC, America/Los_Angeles, etc." class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea id="defDescription" rows="2" class="w-full px-3 py-2 border rounded-md" placeholder="Optional description"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelDefModal" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+          <button id="saveDefModal" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors">Save Definition</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Instance Modal -->
+    <div id="instModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold" id="instModalTitle">Add Curve Instance</h3>
+          <button id="closeInstModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Instance Version *</label>
+              <input type="text" id="instVersion" placeholder="e.g., v1.0, 2024-Q1" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            
+            <!-- MULTI-SELECT: Instance-specific fields -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Curve Types *</label>
+              <div id="instCurveTypesContainer" class="flex flex-wrap gap-2 p-2 border rounded-md bg-white min-h-[42px]"></div>
+              <div class="mt-2 flex gap-2">
+                <select id="instCurveTypeAdd" class="flex-1 px-3 py-2 border rounded-md text-sm">
+                  <option value="">+ Select curve type...</option>
+                </select>
+                <button type="button" id="addCustomCurveType" class="px-3 py-2 bg-blue-100 text-blue-700 border border-blue-300 rounded-md hover:bg-blue-200 text-sm font-medium">
+                  ✏️ Custom
+                </button>
+              </div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Commodities *</label>
+              <div id="instCommoditiesContainer" class="flex flex-wrap gap-2 p-2 border rounded-md bg-white min-h-[42px]"></div>
+              <div class="mt-2 flex gap-2">
+                <select id="instCommodityAdd" class="flex-1 px-3 py-2 border rounded-md text-sm">
+                  <option value="">+ Select commodity...</option>
+                </select>
+                <button type="button" id="addCustomCommodity" class="px-3 py-2 bg-green-100 text-green-700 border border-green-300 rounded-md hover:bg-green-200 text-sm font-medium">
+                  ✏️ Custom
+                </button>
+              </div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Scenarios *</label>
+              <div id="instScenariosContainer" class="flex flex-wrap gap-2 p-2 border rounded-md bg-white min-h-[42px]"></div>
+              <div class="mt-2 flex gap-2">
+                <select id="instScenarioAdd" class="flex-1 px-3 py-2 border rounded-md text-sm">
+                  <option value="">+ Select scenario...</option>
+                </select>
+                <button type="button" id="addCustomScenario" class="px-3 py-2 bg-purple-100 text-purple-700 border border-purple-300 rounded-md hover:bg-purple-200 text-sm font-medium">
+                  ✏️ Custom
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Granularity *</label>
+              <select id="instGranularity" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUAL">Annual</option>
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Degradation Type</label>
+              <select id="instDegradationType" class="w-full px-3 py-2 border rounded-md">
+                <option value="NONE">None</option>
+                <option value="YEAR_1">Year 1</option>
+                <option value="YEAR_5">Year 5</option>
+                <option value="YEAR_10">Year 10</option>
+                <option value="YEAR_15">Year 15</option>
+                <option value="YEAR_20">Year 20</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Period Start *</label>
+              <input type="date" id="instStartDate" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Period End *</label>
+              <input type="date" id="instEndDate" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Model Type</label>
+              <input type="text" id="instModelType" placeholder="e.g., Aurora, Manual" class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Created By</label>
+              <input type="text" id="instCreatedBy" value="Upload System" class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Link to Schedule/Request (Optional)</label>
+              <select id="instScheduleId" class="w-full px-3 py-2 border rounded-md">
+                <option value="">None - No associated request</option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">Associate this curve with a delivery request or schedule</p>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea id="instNotes" rows="3" class="w-full px-3 py-2 border rounded-md"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelInstModal" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+          <button id="saveInstModal" class="px-4 py-2 bg-[#10B981] text-white rounded-md hover:bg-[#059669] font-medium transition-colors">Save Instance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Data Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Upload Curve Data</h3>
+          <button id="closeUploadModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="mb-4 p-4 bg-blue-50 rounded-lg text-sm">
+            <p class="font-medium mb-1">CSV Format (Multi-Value Structure):</p>
+            <code class="text-xs block">timestamp,value,curveType,commodity,scenario,units</code>
+            <p class="mt-2 text-gray-600">Example:</p>
+            <code class="text-xs block mt-1">2024-01-01T00:00:00Z,45.50,Revenue Forecast,EA Revenue,BASE,$/MWh</code>
+            <code class="text-xs block mt-1">2024-01-01T00:00:00Z,42.30,Revenue Forecast,EA Revenue,LOW,$/MWh</code>
+            <code class="text-xs block mt-1">2024-01-01T00:00:00Z,38.75,Revenue Forecast,AS Revenue,BASE,$/MWh</code>
+            <p class="text-xs text-gray-500 mt-2">💡 Each row can have different type/commodity/scenario combinations</p>
+          </div>
+          <input type="file" id="csvFileInput" accept=".csv" class="w-full mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+          <div id="csvPreview" class="hidden">
+            <h4 class="font-medium mb-2">Preview</h4>
+            <div id="csvPreviewContent" class="bg-gray-50 rounded-md p-3 max-h-64 overflow-auto text-sm"></div>
+            <p id="csvStats" class="text-sm text-gray-600 mt-2"></p>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelUploadModal" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+          <button id="confirmUploadModal" class="px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] font-medium transition-colors" disabled>Upload Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Generator Modal -->
+    <div id="templateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Generate CSV Template</h3>
+          <button id="closeTemplateModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 class="text-sm font-semibold text-blue-900 mb-2">Template will include:</h4>
+            <div id="templatePreview" class="text-xs text-blue-800 space-y-1"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Start Date *</label>
+              <input type="date" id="templateStart" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">End Date *</label>
+              <input type="date" id="templateEnd" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+          </div>
+          <div class="text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+            <p class="font-medium mb-1">📝 Template Structure:</p>
+            <ul class="text-xs space-y-1 list-disc list-inside">
+              <li>One row per timestamp for each type/commodity/scenario combination</li>
+              <li>Fill in values for the combinations you have data for</li>
+              <li>Leave value blank for combinations you don't have</li>
             </ul>
-          </li>
-          <li class="mb-2">
-            <strong>Price Data</strong> - Contains the actual price points:
-            <ul class="list-disc ml-6 mt-1">
-              <li>curve_id - References the curve definition</li>
-              <li>flow_date_start - Date in YYYY-MM-DD format</li>
-              <li>value - Numeric price value</li>
-            </ul>
-          </li>
-        </ol>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelTemplateModal" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium transition-colors">Cancel</button>
+          <button id="generateTemplateBtn" class="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] font-medium transition-colors">Generate Template</button>
+        </div>
       </div>
-    </div>
-
-    <div class="border-t border-gray-200 my-8"></div>
-
-    <div class="mb-8">
-      <h2 class="text-xl font-semibold mb-4">Manage Existing Curves</h2>
-      <CurveManager client:load />
     </div>
   </div>
 </Layout>
 
 <script>
-  // Extend Window interface
-  declare global {
-    interface Window {
-      removeCurve: (index: number) => void;
-      selectedCurves: any[];
+  // Check for URL parameters (from calendar click)
+  const urlParams = new URLSearchParams(window.location.search);
+  const curveIdFromCalendar = urlParams.get('curveId');
+  const fromCalendar = urlParams.get('fromCalendar') === 'true';
+
+  // State
+  let allDefs: any[] = [];
+  let allInsts: any[] = [];
+  let selectedDef: any = null;
+  let selectedInst: any = null;
+  let csvData: any[] = [];
+
+  // Toast notification
+  function toast(msg: string, type: 'success' | 'error' = 'success') {
+    const el = document.getElementById('toast')!;
+    el.textContent = msg;
+    el.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white max-w-md ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+
+  // Load definitions
+  async function loadDefinitions() {
+    try {
+      const res = await fetch('/api/curves/definitions');
+      allDefs = await res.json();
+      renderDefinitions();
+      
+      // Auto-select curve if coming from calendar
+      if (fromCalendar && curveIdFromCalendar) {
+        const curveId = parseInt(curveIdFromCalendar);
+        const matchingDef = allDefs.find(def => def.id === curveId);
+        if (matchingDef) {
+          selectDefinition(matchingDef);
+          toast('Curve pre-selected from calendar', 'success');
+        }
+      }
+    } catch (e) {
+      toast('Failed to load definitions', 'error');
+      console.error(e);
     }
   }
 
-  interface PricePoint {
-    flow_date_start: string;
-    value: number;
-  }
+  // Apply global filters
+  function applyGlobalFilters(items: any[], type: 'def' | 'inst') {
+    const market = (document.getElementById('globalMarket') as HTMLSelectElement).value;
+    const location = (document.getElementById('globalLocation') as HTMLInputElement).value.toLowerCase();
+    const product = (document.getElementById('globalProduct') as HTMLInputElement).value.toLowerCase();
+    const curveType = (document.getElementById('globalCurveType') as HTMLSelectElement).value;
+    const granularity = (document.getElementById('globalGranularity') as HTMLSelectElement).value;
 
-  interface ParsedCurve {
-    location: string;
-    market: string;
-    markCase: string;
-    markType: string;
-    granularity: string;
-    curveCreator: string;
-    markDate: string;
-    valueType: string;
-    curveStartDate: string;
-    curveEndDate: string;
-    markFundamentalsDesc: string;
-    markModelTypeDesc: string;
-    markDispatchOptimizationDesc: string;
-    gridstorPurpose: string;
-    curve_bess_duration: number | null;
-    pricePoints: PricePoint[];
-  }
-
-  interface CurveTemplate {
-    location: string;
-    market: string;
-    markCase: string;
-    valueType: string;
-    curveCreator: string;
-    granularity: string;
-    modelType: string;
-    dispatchOpt: string;
-    bessDuration: number | null;
-    markDate: string;
-    startDate: string;
-    endDate: string;
-    fundamentalsDesc: string;
-    gridstorPurpose: string;
-  }
-
-  interface CurveUploadDetails {
-    mark_type: string;
-    mark_case: string;
-    mark_date: string;
-    location: string;
-    market: string;
-    granularity: string;
-    curve_start_date: string;
-    curve_end_date: string;
-    curve_creator: string;
-    value_type: string;
-  }
-
-  interface CurveUploadData {
-    curveDetails: CurveUploadDetails | null;
-    pricePoints: Array<{
-      flow_date_start: string;
-      value: number;
-    }>;
-  }
-
-  // Simple notification helper
-  function showNotification(message: string, isError = false) {
-    const notification = document.getElementById('notification');
-    const notificationText = document.getElementById('notification-text');
-    if (!notification || !notificationText) return;
-
-    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white ${isError ? 'bg-red-500' : 'bg-green-500'}`;
-    notificationText.textContent = message;
-    notification.classList.remove('hidden');
-
-    setTimeout(() => {
-      notification.classList.add('hidden');
-    }, 3000);
-  }
-
-  // Date validation helper
-  function isValidDate(dateStr: string): boolean {
-    if (!dateStr) return false;
-    
-    // Try to parse M/D/YYYY format
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-      const month = parseInt(parts[0], 10);
-      const day = parseInt(parts[1], 10);
-      const year = parseInt(parts[2], 10);
-      
-      // Create date object and validate parts
-      const date = new Date(year, month - 1, day);
-      return date.getMonth() === month - 1 && 
-             date.getDate() === day && 
-             date.getFullYear() === year;
-    }
-    
-    // Fallback to ISO format check
-    const date = new Date(dateStr);
-    return date instanceof Date && !isNaN(date.getTime());
-  }
-
-  // Convert date to ISO format
-  function formatDateToISO(dateStr: string): string {
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-      const month = parts[0].padStart(2, '0');
-      const day = parts[1].padStart(2, '0');
-      const year = parts[2];
-      return `${year}-${month}-${day}`;
-    }
-    return dateStr;
-  }
-
-  // Initialize the file upload functionality
-  function initializeFileUpload() {
-    // Initialize the global selectedCurves array
-    window.selectedCurves = [];
-    
-    // Add the removeCurve function to the window object
-    window.removeCurve = (index: number) => {
-      window.selectedCurves.splice(index, 1);
-      updateCurvesList();
-    };
-    
-    const selectedCurves: CurveTemplate[] = [];
-    
-    // Initialize elements
-    const locationSelect = document.getElementById('location') as HTMLSelectElement;
-    const marketSelect = document.getElementById('market') as HTMLSelectElement;
-    const markCaseSelect = document.getElementById('markCase') as HTMLSelectElement;
-    const valueTypeSelect = document.getElementById('valueType') as HTMLSelectElement;
-    const curveCreatorSelect = document.getElementById('curveCreator') as HTMLSelectElement;
-    const granularitySelect = document.getElementById('granularity') as HTMLSelectElement;
-    const modelTypeSelect = document.getElementById('modelType') as HTMLSelectElement;
-    const dispatchOptSelect = document.getElementById('dispatchOpt') as HTMLSelectElement;
-    const bessDurationInput = document.getElementById('bessDuration') as HTMLInputElement;
-    const markDateInput = document.getElementById('markDate') as HTMLInputElement;
-    const startDateInput = document.getElementById('startDate') as HTMLInputElement;
-    const endDateInput = document.getElementById('endDate') as HTMLInputElement;
-    const fundamentalsDescInput = document.getElementById('fundamentalsDesc') as HTMLInputElement;
-    const gridstorPurposeInput = document.getElementById('gridstorPurpose') as HTMLInputElement;
-    const addButton = document.getElementById('addToCurves');
-    const generateButton = document.getElementById('generateTemplate');
-    const selectedCurvesDiv = document.getElementById('selectedCurves');
-    const curvesList = document.getElementById('curvesList');
-    
-    // Add curve to template
-    addButton?.addEventListener('click', () => {
-      const startDate = startDateInput.value;
-      const endDate = endDateInput.value;
-      
-      if (!startDate || !endDate) {
-        showNotification('Please select both start and end dates', true);
-        return;
+    return items.filter(item => {
+      if (type === 'def') {
+        if (market && item.market !== market) return false;
+        if (location && !item.location.toLowerCase().includes(location)) return false;
+        if (product && !item.product?.toLowerCase().includes(product)) return false;
+        if (curveType && item.curveType !== curveType) return false;
+        if (granularity && item.granularity !== granularity) return false;
       }
-      
-      if (new Date(startDate) > new Date(endDate)) {
-        showNotification('Start date must be before or equal to end date', true);
-        return;
-      }
-
-      const template: CurveTemplate = {
-        location: locationSelect.value,
-        market: marketSelect.value,
-        markCase: markCaseSelect.value,
-        valueType: valueTypeSelect.value,
-        curveCreator: curveCreatorSelect.value,
-        granularity: granularitySelect.value,
-        modelType: modelTypeSelect.value,
-        dispatchOpt: dispatchOptSelect.value,
-        bessDuration: bessDurationInput.value ? parseFloat(bessDurationInput.value) : null,
-        markDate: markDateInput.value,
-        startDate: startDate,
-        endDate: endDate,
-        fundamentalsDesc: fundamentalsDescInput.value,
-        gridstorPurpose: gridstorPurposeInput.value
-      };
-
-      if (!template.location || !template.market || !template.valueType || !template.curveCreator) {
-        showNotification('Please fill in all required fields', true);
-        return;
-      }
-
-      selectedCurves.push(template);
-      updateCurvesList();
-      
-      // Reset form
-      const form = document.querySelector('form');
-      if (form) form.reset();
+      // Instances inherit definition filters through selectedDef
+      return true;
     });
-    
-    // Update the displayed list of selected curves
-    function updateCurvesList() {
-      if (!curvesList || !selectedCurvesDiv) return;
-      
-      if (selectedCurves.length === 0) {
-        selectedCurvesDiv.classList.add('hidden');
-        return;
-      }
-      
-      selectedCurvesDiv.classList.remove('hidden');
-      curvesList.innerHTML = selectedCurves.map((curve, index) => `
-        <li class="flex items-center justify-between py-1">
-          <span>
-            ${curve.location} - ${curve.valueType}${curve.bessDuration ? ` (${curve.bessDuration}h)` : ''}<br>
-            <span class="text-sm text-gray-500">
-              ${curve.granularity}: ${new Date(curve.startDate).toLocaleDateString()} to ${new Date(curve.endDate).toLocaleDateString()}
-            </span>
-          </span>
-          <button
-            onclick="removeCurve(${index})"
-            class="text-red-600 hover:text-red-800 text-sm"
-          >
-            Remove
-          </button>
-        </li>
-      `).join('');
-    }
-    
-    // Generate dates based on granularity
-    function generateDates(startDate: string, endDate: string, granularity: string): string[] {
-      const dates: string[] = [];
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      
-      // Adjust dates to first of month/year based on granularity
-      if (granularity === 'ANNUAL') {
-        start.setMonth(0, 1);  // January 1st
-        end.setMonth(0, 1);    // January 1st
-      } else {
-        start.setDate(1);      // First of month
-        end.setDate(1);        // First of month
-      }
+  }
 
-      let currentDate = new Date(start);
-      
-      while (currentDate <= end) {
-        dates.push(currentDate.toISOString().split('T')[0]);
-        
-        if (granularity === 'MONTHLY') {
-          currentDate = new Date(currentDate.setMonth(currentDate.getMonth() + 1));
-        } else { // ANNUAL
-          currentDate = new Date(currentDate.setFullYear(currentDate.getFullYear() + 1));
-        }
-      }
-      
-      return dates;
+  function updateFilterCount() {
+    const filters = [
+      (document.getElementById('globalMarket') as HTMLSelectElement).value,
+      (document.getElementById('globalLocation') as HTMLInputElement).value,
+      (document.getElementById('globalProduct') as HTMLInputElement).value,
+      (document.getElementById('globalCurveType') as HTMLSelectElement).value,
+      (document.getElementById('globalGranularity') as HTMLSelectElement).value
+    ].filter(v => v).length;
+
+    const el = document.getElementById('filterCount')!;
+    el.textContent = filters > 0 ? `${filters} filter${filters > 1 ? 's' : ''} active` : '';
+  }
+
+  // Render definitions list
+  function renderDefinitions() {
+    const container = document.getElementById('defList')!;
+    const search = (document.getElementById('defSearch') as HTMLInputElement).value.toLowerCase();
+    const sort = (document.getElementById('defSort') as HTMLSelectElement).value;
+
+    // Apply global filters first
+    let filtered = applyGlobalFilters(allDefs, 'def');
+
+    // Then apply local search
+    filtered = filtered.filter(d => 
+      d.curveName.toLowerCase().includes(search) ||
+      d.market.toLowerCase().includes(search) ||
+      d.location.toLowerCase().includes(search) ||
+      d.product?.toLowerCase().includes(search)
+    );
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sort === 'name') return a.curveName.localeCompare(b.curveName);
+      if (sort === 'market') return a.market.localeCompare(b.market);
+      if (sort === 'location') return a.location.localeCompare(b.location);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    updateFilterCount();
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No definitions found</div>';
+      return;
     }
 
-    // Generate CSV template
-    function generateTemplate(templates: CurveTemplate[]): string {
-      let csv = '# Curve Definitions\n';
-      csv += 'flow_start_date,granularity,mark_date,mark_type,mark_case,value,units,location,market,curve_creator,value_type,curve_bess_duration,mark_fundamentals_desc,mark_model_type_desc,mark_dispatch_optimization_desc,gridstor_purpose\n';
-      
-      // Add rows for each curve based on granularity and date range
-      templates.forEach((template) => {
-        const dates = generateDates(template.startDate, template.endDate, template.granularity);
-        const markType = `${template.curveCreator}_${template.location}_${template.granularity}_${template.valueType}_${template.markDate}${template.bessDuration ? `_${template.bessDuration}h` : ''}`;
-        
-        dates.forEach(date => {
-          csv += `${date},${template.granularity},${template.markDate},${markType},${template.markCase},0.00,USD/MWh,${template.location},${template.market},${template.curveCreator},${template.valueType},${template.bessDuration || ''},${template.fundamentalsDesc || ''},${template.modelType || ''},${template.dispatchOpt || ''},${template.gridstorPurpose || ''}\n`;
-        });
+    container.innerHTML = filtered.map(d => `
+      <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedDef?.id === d.id ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-gray-200 hover:border-blue-300'}" data-def-id="${d.id}">
+        <div class="font-medium text-gray-900 text-sm">${d.curveName}</div>
+        <div class="text-xs text-gray-600 mt-1">${d.market} • ${d.location}</div>
+        <div class="text-xs text-gray-500 mt-1">${d.batteryDuration} • ${d.units || '$/MWh'}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-def-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-def-id');
+        selectDefinition(allDefs.find(d => d.id == id));
       });
-      
-      return csv;
+    });
+  }
+
+  // Select definition
+  function selectDefinition(def: any) {
+    selectedDef = def;
+    selectedInst = null;
+    renderDefinitions();
+    loadInstances(def.id);
+    
+    // Enable instance controls
+    (document.getElementById('instSearch') as HTMLInputElement).disabled = false;
+    (document.getElementById('instSort') as HTMLSelectElement).disabled = false;
+    (document.getElementById('addInstBtn') as HTMLButtonElement).disabled = false;
+    (document.getElementById('useDefTemplateBtn') as HTMLButtonElement).disabled = false;
+    
+    // Show detail panel
+    showDetailPanel('definition', def);
+    
+    // Clear data panel
+    updateDataPanel();
+  }
+
+  // Load instances for selected definition
+  async function loadInstances(defId: number) {
+    try {
+      const res = await fetch(`/api/curves/instances?definitionId=${defId}`);
+      const data = await res.json();
+      allInsts = data.instances || [];
+      renderInstances();
+    } catch (e) {
+      toast('Failed to load instances', 'error');
+      console.error(e);
     }
+  }
+
+  // Render instances list
+  function renderInstances() {
+    const container = document.getElementById('instList')!;
+    const search = (document.getElementById('instSearch') as HTMLInputElement).value.toLowerCase();
+    const sort = (document.getElementById('instSort') as HTMLSelectElement).value;
+
+    let filtered = allInsts.filter(i =>
+      i.instanceVersion.toLowerCase().includes(search) ||
+      i.status?.toLowerCase().includes(search) ||
+      i.createdBy?.toLowerCase().includes(search)
+    );
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sort === 'version') return a.instanceVersion.localeCompare(b.instanceVersion);
+      if (sort === 'status') return a.status.localeCompare(b.status);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No instances found</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(i => `
+      <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedInst?.id === i.id ? 'bg-green-50 border-green-500 shadow-md' : 'bg-white border-gray-200 hover:border-green-300'}" data-inst-id="${i.id}">
+        <div class="font-medium text-gray-900 text-sm">${i.instanceVersion}</div>
+        <div class="text-xs text-gray-600 mt-1">${i.status} • ${new Date(i.createdAt).toLocaleDateString()}</div>
+        <div class="text-xs text-gray-500 mt-1">By: ${i.createdBy || 'N/A'}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-inst-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-inst-id');
+        selectInstance(allInsts.find(i => i.id == id));
+      });
+    });
+  }
+
+  // Select instance
+  async function selectInstance(inst: any) {
+    selectedInst = inst;
+    renderInstances();
     
-    // Handle CSV upload and preview
-    const fileInput = document.getElementById('csvUpload') as HTMLInputElement;
-    const previewDiv = document.getElementById('csvPreview');
-    const previewContent = document.getElementById('previewContent');
-    const uploadButton = document.getElementById('uploadCurves');
+    // Enable instance template button
+    (document.getElementById('useInstTemplateBtn') as HTMLButtonElement).disabled = false;
     
-    function parseCSV(content: string): ParsedCurve[] {
-      console.log('Raw CSV content:', content);
-      const lines = content.split('\n')
-        .map(line => line.trim())
-        .filter(line => line && !line.startsWith('#')); // Skip empty lines and section headers
+    // Show detail panel with both definition and instance
+    await showDetailPanel('instance', inst);
+    
+    updateDataPanel();
+    loadExistingData(inst.id);
+  }
+
+  // Show detail panel with full field information
+  async function showDetailPanel(type: 'definition' | 'instance', data: any) {
+    const panel = document.getElementById('detailPanel')!;
+    const title = document.getElementById('detailTitle')!;
+    const badge = document.getElementById('detailBadge')!;
+    const content = document.getElementById('detailContent')!;
+
+    panel.classList.remove('hidden');
+
+    if (type === 'definition') {
+      title.textContent = 'Definition Details';
+      badge.textContent = 'Definition';
+      badge.className = 'px-2 py-1 text-xs font-medium rounded-full bg-blue-200 text-blue-900';
       
-      console.log('Parsed lines:', lines);
+      content.innerHTML = `
+        <div><span class="font-medium text-gray-700">ID:</span><div class="text-gray-900">${data.id}</div></div>
+        <div><span class="font-medium text-gray-700">Curve Name:</span><div class="text-gray-900">${data.curveName}</div></div>
+        <div><span class="font-medium text-gray-700">Market:</span><div class="text-gray-900">${data.market}</div></div>
+        <div><span class="font-medium text-gray-700">Location:</span><div class="text-gray-900">${data.location}</div></div>
+        <div><span class="font-medium text-gray-700">Battery Duration:</span><div class="text-gray-900">${data.batteryDuration}</div></div>
+        <div><span class="font-medium text-gray-700">Units:</span><div class="text-gray-900">${data.units || 'N/A'}</div></div>
+        <div><span class="font-medium text-gray-700">Created:</span><div class="text-gray-900">${new Date(data.createdAt).toLocaleString()}</div></div>
+      `;
+    } else {
+      title.textContent = 'Instance Details';
+      badge.textContent = 'Instance';
+      badge.className = 'px-2 py-1 text-xs font-medium rounded-full bg-green-200 text-green-900';
       
-      if (lines.length < 2) {
-        console.warn('Not enough lines in CSV:', lines.length);
-        return [];
-      }
-
-      const curves = new Map<string, ParsedCurve>();
-      
-      // Get header indices from the first line
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      console.log('CSV Headers:', headers);
-      
-      const requiredColumns = [
-        'flow_start_date',
-        'granularity',
-        'mark_date',
-        'mark_type',
-        'mark_case',
-        'value',
-        'location',
-        'market',
-        'curve_creator',
-        'value_type'
-      ];
-
-      // Check if all required columns are present
-      const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-      if (missingColumns.length > 0) {
-        console.error('Missing required columns:', missingColumns);
-        return [];
-      }
-
-      // Get indices for all columns
-      const columnIndices = {
-        flowStartDate: headers.indexOf('flow_start_date'),
-        granularity: headers.indexOf('granularity'),
-        markDate: headers.indexOf('mark_date'),
-        markType: headers.indexOf('mark_type'),
-        markCase: headers.indexOf('mark_case'),
-        value: headers.indexOf('value'),
-        location: headers.indexOf('location'),
-        market: headers.indexOf('market'),
-        curveCreator: headers.indexOf('curve_creator'),
-        valueType: headers.indexOf('value_type'),
-        bessDuration: headers.indexOf('curve_bess_duration'),
-        fundamentalsDesc: headers.indexOf('mark_fundamentals_desc'),
-        modelTypeDesc: headers.indexOf('mark_model_type_desc'),
-        dispatchOptDesc: headers.indexOf('mark_dispatch_optimization_desc'),
-        gridstorPurpose: headers.indexOf('gridstor_purpose')
-      };
-
-      console.log('Column indices:', columnIndices);
-
-      // Process each data row
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        console.log(`Processing line ${i}:`, values);
-
-        if (values.length < headers.length) {
-          console.warn(`Line ${i} has insufficient columns. Expected ${headers.length}, got ${values.length}`);
-          continue;
-        }
-
-        const extractedValues = {
-          flowStartDate: values[columnIndices.flowStartDate],
-          granularity: values[columnIndices.granularity],
-          markDate: values[columnIndices.markDate],
-          markType: values[columnIndices.markType],
-          markCase: values[columnIndices.markCase],
-          value: parseFloat(values[columnIndices.value]),
-          location: values[columnIndices.location],
-          market: values[columnIndices.market],
-          curveCreator: values[columnIndices.curveCreator],
-          valueType: values[columnIndices.valueType],
-          bessDuration: columnIndices.bessDuration >= 0 ? (values[columnIndices.bessDuration] ? parseFloat(values[columnIndices.bessDuration]) : null) : null,
-          fundamentalsDesc: columnIndices.fundamentalsDesc >= 0 ? values[columnIndices.fundamentalsDesc] : '',
-          modelTypeDesc: columnIndices.modelTypeDesc >= 0 ? values[columnIndices.modelTypeDesc] : '',
-          dispatchOptDesc: columnIndices.dispatchOptDesc >= 0 ? values[columnIndices.dispatchOptDesc] : '',
-          gridstorPurpose: columnIndices.gridstorPurpose >= 0 ? values[columnIndices.gridstorPurpose] : ''
-        };
-
-        console.log('Extracted values:', extractedValues);
-
+      // Check for linked schedule
+      let linkedScheduleHtml = '';
+      if (data.metadata && data.metadata.linkedScheduleId) {
         try {
-          // Validate date
-          if (!isValidDate(extractedValues.flowStartDate)) {
-            console.warn(`Invalid date format at line ${i + 1}: ${extractedValues.flowStartDate}`);
-            continue;
-          }
-
-          // Convert dates to ISO format
-          const isoFlowStartDate = formatDateToISO(extractedValues.flowStartDate);
-          const isoMarkDate = formatDateToISO(extractedValues.markDate);
-
-          const key = `${extractedValues.location}-${extractedValues.valueType}-${extractedValues.markType}`;
-          console.log('Generated key:', key);
-
-          if (!curves.has(key)) {
-            console.log('Creating new curve for key:', key);
-            curves.set(key, {
-              location: extractedValues.location,
-              market: extractedValues.market,
-              markCase: extractedValues.markCase,
-              markType: extractedValues.markType,
-              granularity: extractedValues.granularity,
-              curveCreator: extractedValues.curveCreator,
-              markDate: isoMarkDate,
-              valueType: extractedValues.valueType,
-              curveStartDate: isoFlowStartDate,
-              curveEndDate: isoFlowStartDate,
-              markFundamentalsDesc: extractedValues.fundamentalsDesc,
-              markModelTypeDesc: extractedValues.modelTypeDesc,
-              markDispatchOptimizationDesc: extractedValues.dispatchOptDesc,
-              gridstorPurpose: extractedValues.gridstorPurpose,
-              curve_bess_duration: extractedValues.bessDuration,
-              pricePoints: []
-            });
-          }
-
-          const curve = curves.get(key)!;
-          curve.pricePoints.push({
-            flow_date_start: isoFlowStartDate,
-            value: extractedValues.value
-          });
-
-          // Update curve end date if this date is later
-          if (isoFlowStartDate > curve.curveEndDate) {
-            curve.curveEndDate = isoFlowStartDate;
+          const res = await fetch(`/api/curve-schedule/${data.metadata.linkedScheduleId}`);
+          const result = await res.json();
+          if (result.success) {
+            const schedule = result.data;
+            const isRequest = schedule.scheduleType === 'AD_HOC';
+            linkedScheduleHtml = `
+              <div class="col-span-2 md:col-span-4 mb-2 pb-2 border-b border-blue-300">
+                <div class="text-xs font-medium text-blue-900">
+                  ${isRequest ? '📋 Fulfills Request' : '🔄 Linked to Schedule'}
+                </div>
+                <div class="text-xs text-blue-700 mt-1">
+                  ${schedule.curveDefinition.curveName}
+                  ${isRequest && schedule.metadata?.dueDate ? ` - Due: ${schedule.metadata.dueDate}` : ''}
+                </div>
+              </div>
+            `;
           }
         } catch (error) {
-          console.error(`Error processing line ${i + 1}:`, error);
+          console.error('Error loading linked schedule:', error);
         }
       }
+      
+      const curveTypeTags = (data.curveTypes || []).map((t: string) => 
+        `<span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">${t}</span>`
+      ).join(' ');
+      const commodityTags = (data.commodities || []).map((c: string) => 
+        `<span class="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs">${c}</span>`
+      ).join(' ');
+      const scenarioTags = (data.scenarios || []).map((s: string) => 
+        `<span class="inline-block px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs">${s}</span>`
+      ).join(' ');
+      
+      content.innerHTML = `
+        <div class="col-span-2 md:col-span-4 mb-2 pb-2 border-b border-gray-300">
+          <div class="font-medium text-sm text-blue-900 mb-1">Definition: ${selectedDef.curveName}</div>
+          <div class="text-xs text-gray-600">${selectedDef.market} • ${selectedDef.location}</div>
+        </div>
+        ${linkedScheduleHtml}
+        <div><span class="font-medium text-gray-700">Instance ID:</span><div class="text-gray-900">${data.id}</div></div>
+        <div><span class="font-medium text-gray-700">Version:</span><div class="text-gray-900">${data.instanceVersion}</div></div>
+        <div><span class="font-medium text-gray-700">Status:</span><div class="text-gray-900"><span class="px-2 py-0.5 rounded-full text-xs ${data.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">${data.status}</span></div></div>
+        <div class="col-span-2 md:col-span-4"><span class="font-medium text-gray-700">Curve Types:</span><div class="text-gray-900 mt-1">${curveTypeTags || 'None'}</div></div>
+        <div class="col-span-2 md:col-span-4"><span class="font-medium text-gray-700">Commodities:</span><div class="text-gray-900 mt-1">${commodityTags || 'None'}</div></div>
+        <div class="col-span-2 md:col-span-4"><span class="font-medium text-gray-700">Scenarios:</span><div class="text-gray-900 mt-1">${scenarioTags || 'None'}</div></div>
+        <div><span class="font-medium text-gray-700">Granularity:</span><div class="text-gray-900">${data.granularity || 'N/A'}</div></div>
+        <div><span class="font-medium text-gray-700">Degradation:</span><div class="text-gray-900">${data.degradationType || 'N/A'}</div></div>
+        <div><span class="font-medium text-gray-700">Delivery Start:</span><div class="text-gray-900">${data.deliveryPeriodStart.split('T')[0]}</div></div>
+        <div><span class="font-medium text-gray-700">Delivery End:</span><div class="text-gray-900">${data.deliveryPeriodEnd.split('T')[0]}</div></div>
+        <div><span class="font-medium text-gray-700">Created By:</span><div class="text-gray-900">${data.createdBy || 'N/A'}</div></div>
+        <div><span class="font-medium text-gray-700">Created At:</span><div class="text-gray-900">${new Date(data.createdAt).toLocaleString()}</div></div>
+        <div class="col-span-2 md:col-span-4"><span class="font-medium text-gray-700">Notes:</span><div class="text-gray-900 mt-1">${data.notes || 'No notes'}</div></div>
+      `;
+    }
+  }
 
-      const result = Array.from(curves.values());
-      console.log('Final parsed curves:', result);
-      return result;
+  // Update data panel
+  function updateDataPanel() {
+    const info = document.getElementById('dataInfo')!;
+    const content = document.getElementById('dataContent')!;
+    const downloadExistingBtn = document.getElementById('downloadExistingDataBtn') as HTMLButtonElement;
+    const downloadBtn = document.getElementById('downloadTemplateBtn') as HTMLButtonElement;
+    const uploadBtn = document.getElementById('uploadDataBtn') as HTMLButtonElement;
+
+    if (!selectedInst) {
+      info.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">Select an instance first</div>';
+      content.innerHTML = '';
+      downloadExistingBtn.disabled = true;
+      downloadBtn.disabled = true;
+      uploadBtn.disabled = true;
+      return;
     }
 
-    // Add file input handler
-    fileInput?.addEventListener('change', async (event) => {
-      const file = fileInput.files?.[0];
-      if (!file || !previewDiv || !previewContent) return;
+    info.innerHTML = `
+      <div class="text-sm">
+        <div class="font-medium text-gray-900">${selectedDef.curveName}</div>
+        <div class="text-gray-600 mt-1">${selectedInst.instanceVersion}</div>
+        <div class="text-gray-500 mt-1">Period: ${selectedInst.deliveryPeriodStart.split('T')[0]} to ${selectedInst.deliveryPeriodEnd.split('T')[0]}</div>
+      </div>
+    `;
+    
+    content.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">Loading data...</div>';
+    downloadExistingBtn.disabled = true; // Will enable if data exists
+    downloadBtn.disabled = false;
+    uploadBtn.disabled = false;
+  }
+
+  // Load existing data
+  let currentData: any[] = [];
+  
+  async function loadExistingData(instId: number) {
+    const content = document.getElementById('dataContent')!;
+    const downloadExistingBtn = document.getElementById('downloadExistingDataBtn') as HTMLButtonElement;
+    
+    try {
+      const res = await fetch(`/api/curves/${instId}/data`);
+      const data = await res.json();
+      currentData = data;
       
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const content = e.target?.result as string;
-        const curves = parseCSV(content);
+      if (data.length > 0) {
+        // Enable download existing data button
+        downloadExistingBtn.disabled = false;
         
-        if (curves.length === 0) {
-          previewContent.innerHTML = `
-            <div class="text-red-600">
-              <p>No valid curves found in the CSV file</p>
-            </div>
-          `;
-          showNotification('No valid curves found in the CSV file', true);
-          return;
-        }
-        
-        previewContent.innerHTML = `
-          <div class="space-y-4">
-            ${curves.map((curve, index) => `
-              <div class="border-b pb-4 last:border-b-0">
-                <h5 class="font-medium">Curve ${index + 1}</h5>
-                <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mt-2">
-                  <div>
-                    <dt class="font-medium text-gray-500">Location:</dt>
-                    <dd>${curve.location}</dd>
-                  </div>
-                  <div>
-                    <dt class="font-medium text-gray-500">Market:</dt>
-                    <dd>${curve.market}</dd>
-                  </div>
-                  <div>
-                    <dt class="font-medium text-gray-500">Mark Type:</dt>
-                    <dd>${curve.markType}</dd>
-                  </div>
-                  <div>
-                    <dt class="font-medium text-gray-500">Value Type:</dt>
-                    <dd>${curve.valueType}</dd>
-                  </div>
-                  <div>
-                    <dt class="font-medium text-gray-500">BESS Duration:</dt>
-                    <dd>${curve.curve_bess_duration ? `${curve.curve_bess_duration}h` : 'N/A'}</dd>
-                  </div>
-                  <div>
-                    <dt class="font-medium text-gray-500">Price Points:</dt>
-                    <dd>${curve.pricePoints.length}</dd>
-                  </div>
-                  <div>
-                    <dt class="font-medium text-gray-500">Date Range:</dt>
-                    <dd>${curve.curveStartDate} to ${curve.curveEndDate}</dd>
-                  </div>
-                </dl>
+        content.innerHTML = `
+          <div class="space-y-3">
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="font-medium text-green-900 mb-2">✅ Existing Data Found</div>
+              <div class="text-sm text-green-800">
+                <div><strong>${data.length}</strong> data points</div>
+                <div>From: <strong>${data[0].timestamp ? new Date(data[0].timestamp).toISOString().split('T')[0] : 'N/A'}</strong></div>
+                <div>To: <strong>${data[data.length-1].timestamp ? new Date(data[data.length-1].timestamp).toISOString().split('T')[0] : 'N/A'}</strong></div>
+                <div class="mt-2 pt-2 border-t border-green-300">
+                  <div>Types: ${[...new Set(data.map((d: any) => d.curveType))].join(', ')}</div>
+                  <div>Commodities: ${[...new Set(data.map((d: any) => d.commodity))].join(', ')}</div>
+                  <div>Scenarios: ${[...new Set(data.map((d: any) => d.scenario))].join(', ')}</div>
+                </div>
               </div>
-            `).join('')}
+            </div>
+            <div class="text-sm text-gray-600 p-3 bg-blue-50 rounded-lg">
+              <p class="font-medium mb-1">💡 Quick Actions:</p>
+              <ul class="list-disc list-inside space-y-1 text-xs">
+                <li>Download existing data to edit and re-upload</li>
+                <li>Download empty template for new data</li>
+                <li>Upload new CSV to replace all existing data</li>
+              </ul>
+            </div>
           </div>
         `;
+      } else {
+        downloadExistingBtn.disabled = true;
+        currentData = [];
         
-        previewDiv.classList.remove('hidden');
-        showNotification('CSV file loaded successfully');
-      };
+        content.innerHTML = `
+          <div class="text-center py-8">
+            <div class="text-gray-500 mb-4">📭 No data uploaded yet</div>
+            <p class="text-sm text-gray-600">Download a template or upload your CSV file to get started.</p>
+          </div>
+        `;
+      }
+    } catch (e) {
+      downloadExistingBtn.disabled = true;
+      currentData = [];
+      content.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No data available</div>';
+    }
+  }
+
+  // Modal handlers
+  document.getElementById('addDefBtn')?.addEventListener('click', () => {
+    document.getElementById('defModalTitle')!.textContent = 'Add Curve Definition';
+    clearDefForm();
+    document.getElementById('defModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('useDefTemplateBtn')?.addEventListener('click', () => {
+    if (!selectedDef) return;
+    document.getElementById('defModalTitle')!.textContent = 'Create Definition from Template';
+    fillDefForm(selectedDef);
+    // Append " (Copy)" to curve name
+    (document.getElementById('defCurveName') as HTMLInputElement).value += ' (Copy)';
+    document.getElementById('defModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeDefModal')?.addEventListener('click', () => {
+    document.getElementById('defModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelDefModal')?.addEventListener('click', () => {
+    document.getElementById('defModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('saveDefModal')?.addEventListener('click', async () => {
+    const data = {
+      curveName: (document.getElementById('defCurveName') as HTMLInputElement).value,
+      market: (document.getElementById('defMarket') as HTMLSelectElement).value,
+      location: (document.getElementById('defLocation') as HTMLInputElement).value,
+      // product, commodity, curveType, scenario, degradationType, granularity removed - now on instance
+      batteryDuration: (document.getElementById('defBatteryDuration') as HTMLSelectElement).value,
+      units: (document.getElementById('defUnits') as HTMLSelectElement).value,
+      timezone: (document.getElementById('defTimezone') as HTMLInputElement)?.value || 'UTC',
+      description: (document.getElementById('defDescription') as HTMLTextAreaElement)?.value
+    };
+
+    try {
+      console.log('Creating definition with data:', data);
+      const res = await fetch('/api/curve-upload/create-definition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      console.log('Server response:', result);
       
-      reader.readAsText(file);
+      if (!res.ok) {
+        console.error('Error details:', result.details, result.stack);
+        throw new Error(result.details || result.error || 'Unknown error');
+      }
+      
+      toast('Definition created successfully');
+      document.getElementById('defModal')!.classList.add('hidden');
+      await loadDefinitions();
+      selectDefinition(result.curveDefinition);
+    } catch (e: any) {
+      console.error('Create definition error:', e);
+      toast(e.message || 'Failed to create definition', 'error');
+    }
+  });
+
+  document.getElementById('addInstBtn')?.addEventListener('click', async () => {
+    document.getElementById('instModalTitle')!.textContent = 'Add Curve Instance';
+    clearInstForm();
+    await loadSchedulesForDropdown();
+    document.getElementById('instModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('useInstTemplateBtn')?.addEventListener('click', async () => {
+    if (!selectedInst) return;
+    document.getElementById('instModalTitle')!.textContent = 'Create Instance from Template';
+    fillInstForm(selectedInst);
+    // Append " (Copy)" to version
+    (document.getElementById('instVersion') as HTMLInputElement).value += ' (Copy)';
+    await loadSchedulesForDropdown();
+    document.getElementById('instModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeInstModal')?.addEventListener('click', () => {
+    document.getElementById('instModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelInstModal')?.addEventListener('click', () => {
+    document.getElementById('instModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('saveInstModal')?.addEventListener('click', async () => {
+    const scheduleId = (document.getElementById('instScheduleId') as HTMLSelectElement).value;
+    
+    // Validate multi-select fields
+    if (selectedCurveTypes.length === 0) {
+      toast('Please select at least one curve type', 'error');
+      return;
+    }
+    if (selectedCommodities.length === 0) {
+      toast('Please select at least one commodity', 'error');
+      return;
+    }
+    if (selectedScenarios.length === 0) {
+      toast('Please select at least one scenario', 'error');
+      return;
+    }
+    
+    const data = {
+      curveDefinitionId: selectedDef.id,
+      instanceVersion: (document.getElementById('instVersion') as HTMLInputElement).value,
+      deliveryPeriodStart: (document.getElementById('instStartDate') as HTMLInputElement).value,
+      deliveryPeriodEnd: (document.getElementById('instEndDate') as HTMLInputElement).value,
+      modelType: (document.getElementById('instModelType') as HTMLInputElement).value,
+      createdBy: (document.getElementById('instCreatedBy') as HTMLInputElement).value,
+      notes: (document.getElementById('instNotes') as HTMLTextAreaElement).value,
+      // NEW: Arrays for multi-value fields
+      curveTypes: selectedCurveTypes,
+      commodities: selectedCommodities,
+      scenarios: selectedScenarios,
+      granularity: (document.getElementById('instGranularity') as HTMLSelectElement).value,
+      degradationType: (document.getElementById('instDegradationType') as HTMLSelectElement)?.value || 'NONE',
+      // Link to schedule/request if selected
+      linkedScheduleId: scheduleId ? parseInt(scheduleId) : null
+    };
+
+    try {
+      const res = await fetch('/api/curve-upload/create-instance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      
+      toast('Instance created successfully');
+      document.getElementById('instModal')!.classList.add('hidden');
+      await loadInstances(selectedDef.id);
+      selectInstance(result.curveInstance);
+    } catch (e: any) {
+      toast(e.message || 'Failed to create instance', 'error');
+    }
+  });
+
+  // Upload data modal
+  document.getElementById('uploadDataBtn')?.addEventListener('click', () => {
+    document.getElementById('uploadModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeUploadModal')?.addEventListener('click', () => {
+    document.getElementById('uploadModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelUploadModal')?.addEventListener('click', () => {
+    document.getElementById('uploadModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('csvFileInput')?.addEventListener('change', (e: any) => {
+    const file = e.target.files[0];
+    if (!file) {
+      csvData = [];
+      document.getElementById('csvPreview')!.classList.add('hidden');
+      (document.getElementById('confirmUploadModal') as HTMLButtonElement).disabled = true;
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        csvData = parseCSV(e.target.result);
+        showCSVPreview(csvData);
+        (document.getElementById('confirmUploadModal') as HTMLButtonElement).disabled = false;
+      } catch (err: any) {
+        toast(err.message, 'error');
+        csvData = [];
+        (document.getElementById('confirmUploadModal') as HTMLButtonElement).disabled = true;
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('confirmUploadModal')?.addEventListener('click', async () => {
+    const btn = document.getElementById('confirmUploadModal') as HTMLButtonElement;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Uploading...';
+    
+    try {
+      const res = await fetch('/api/curve-upload/upload-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curveInstanceId: selectedInst.id, priceData: csvData })
+      });
+      const result = await res.json();
+      
+      if (!res.ok) {
+        console.error('Upload validation errors:', result);
+        
+        // Show detailed error information
+        let errorMsg = result.error || 'Upload failed';
+        if (result.validationErrors && result.validationErrors.length > 0) {
+          errorMsg += '\n\nFirst errors:\n' + result.validationErrors.slice(0, 3).join('\n');
+        }
+        if (result.instanceInfo) {
+          errorMsg += '\n\nInstance expects:\n';
+          errorMsg += `Types: ${result.instanceInfo.curveTypes?.join(', ') || 'None'}\n`;
+          errorMsg += `Commodities: ${result.instanceInfo.commodities?.join(', ') || 'None'}\n`;
+          errorMsg += `Scenarios: ${result.instanceInfo.scenarios?.join(', ') || 'None'}`;
+        }
+        
+        alert(errorMsg);
+        throw new Error(result.error);
+      }
+      
+      toast(`Successfully uploaded ${result.recordsCreated} data points`);
+      document.getElementById('uploadModal')!.classList.add('hidden');
+      
+      // Reset the modal
+      (document.getElementById('csvFileInput') as HTMLInputElement).value = '';
+      document.getElementById('csvPreview')!.classList.add('hidden');
+      csvData = [];
+      
+      // Reload data in Column 3
+      loadExistingData(selectedInst.id);
+    } catch (e: any) {
+      toast(e.message || 'Upload failed', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  });
+
+  // Template generator
+  document.getElementById('downloadTemplateBtn')?.addEventListener('click', () => {
+    if (!selectedInst) return;
+    
+    // Parse dates properly to ensure they match delivery period
+    const startDate = new Date(selectedInst.deliveryPeriodStart);
+    const endDate = new Date(selectedInst.deliveryPeriodEnd);
+    
+    const start = startDate.toISOString().split('T')[0];
+    const end = endDate.toISOString().split('T')[0];
+    
+    console.log('Template date range:', { 
+      start, 
+      end,
+      deliveryPeriodStart: selectedInst.deliveryPeriodStart,
+      deliveryPeriodEnd: selectedInst.deliveryPeriodEnd
     });
     
-    // Handle curve upload
-    uploadButton?.addEventListener('click', async () => {
-      const file = fileInput?.files?.[0];
-      if (!file) {
-        showNotification('Please select a file to upload', true);
-        return;
+    (document.getElementById('templateStart') as HTMLInputElement).value = start;
+    (document.getElementById('templateEnd') as HTMLInputElement).value = end;
+    
+    // Show template preview
+    const preview = document.getElementById('templatePreview');
+    if (preview) {
+      const types = selectedInst.curveTypes || [];
+      const commodities = selectedInst.commodities || [];
+      const scenarios = selectedInst.scenarios || [];
+      const totalCombinations = types.length * commodities.length * scenarios.length;
+      
+      console.log('Template preview data:', {
+        types,
+        commodities, 
+        scenarios,
+        granularity: selectedInst.granularity
+      });
+      
+      if (types.length === 0 || commodities.length === 0 || scenarios.length === 0) {
+        preview.innerHTML = `
+          <div class="text-orange-900">
+            <strong>⚠️ Warning:</strong> Instance is missing required fields!
+            <div class="mt-2 text-sm">
+              ${types.length === 0 ? '<div>• No curve types selected</div>' : ''}
+              ${commodities.length === 0 ? '<div>• No commodities selected</div>' : ''}
+              ${scenarios.length === 0 ? '<div>• No scenarios selected</div>' : ''}
+            </div>
+            <div class="mt-2 text-sm">
+              Please edit this instance and add the missing fields before generating a template.
+            </div>
+          </div>
+        `;
+      } else {
+        preview.innerHTML = `
+          <div><strong>Curve Types:</strong> ${types.join(', ')}</div>
+          <div><strong>Commodities:</strong> ${commodities.join(', ')}</div>
+          <div><strong>Scenarios:</strong> ${scenarios.join(', ')}</div>
+          <div><strong>Granularity:</strong> ${selectedInst.granularity || 'N/A'}</div>
+          <div class="mt-2 pt-2 border-t border-blue-300 font-semibold">
+            Total combinations: ${totalCombinations} (per timestamp)
+          </div>
+        `;
       }
+    }
+    
+    document.getElementById('templateModal')!.classList.remove('hidden');
+  });
 
-      try {
-        showNotification('Processing file...');
-        
-        // First parse the CSV to validate and transform the data
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const content = e.target?.result as string;
-            const curves = parseCSV(content);
-            
-            if (curves.length === 0) {
-              showNotification('No valid curves found in the CSV file', true);
-              return;
-            }
+  document.getElementById('closeTemplateModal')?.addEventListener('click', () => {
+    document.getElementById('templateModal')!.classList.add('hidden');
+  });
 
-            showNotification(`Found ${curves.length} curves. Preparing to upload...`);
-            console.log('Curves to upload:', curves);
+  document.getElementById('cancelTemplateModal')?.addEventListener('click', () => {
+    document.getElementById('templateModal')!.classList.add('hidden');
+  });
 
-            // For each curve, create a separate upload request
-            for (const curve of curves) {
-              const curveData = {
-                curveDetails: {
-                  mark_type: curve.markType,
-                  mark_case: curve.markCase,
-                  mark_date: curve.markDate,
-                  location: curve.location,
-                  market: curve.market,
-                  granularity: curve.granularity,
-                  curve_start_date: curve.curveStartDate,
-                  curve_end_date: curve.curveEndDate,
-                  curve_creator: curve.curveCreator,
-                  value_type: curve.valueType,
-                  curve_bess_duration: curve.curve_bess_duration,
-                  mark_fundamentals_desc: curve.markFundamentalsDesc,
-                  mark_model_type_desc: curve.markModelTypeDesc,
-                  mark_dispatch_optimization_desc: curve.markDispatchOptimizationDesc,
-                  gridstor_purpose: curve.gridstorPurpose
-                },
-                pricePoints: curve.pricePoints
-              };
+  document.getElementById('generateTemplateBtn')?.addEventListener('click', () => {
+    if (!selectedInst) return;
+    
+    const start = (document.getElementById('templateStart') as HTMLInputElement).value;
+    const end = (document.getElementById('templateEnd') as HTMLInputElement).value;
+    
+    if (!start || !end) {
+      toast('Please select start and end dates', 'error');
+      return;
+    }
+    
+    const gran = selectedInst.granularity || 'MONTHLY';
+    const units = selectedDef.units || '$/MWh';
+    
+    const types = selectedInst.curveTypes || [];
+    const commodities = selectedInst.commodities || [];
+    const scenarios = selectedInst.scenarios || [];
 
-              console.log('Uploading curve:', curveData);
-              
-              try {
-                const response = await fetch('/api/curves/upload.json', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                  },
-                  body: JSON.stringify(curveData)
-                });
+    if (types.length === 0 || commodities.length === 0 || scenarios.length === 0) {
+      toast('Instance must have at least one curve type, commodity, and scenario', 'error');
+      return;
+    }
 
-                console.log('Upload response status:', response.status);
-                const responseData = await response.json();
-                console.log('Upload response:', responseData);
-
-                if (!response.ok) {
-                  throw new Error(responseData.error || `Failed to upload curve: ${response.statusText}`);
-                }
-
-                showNotification(`Successfully uploaded curve for ${curve.location}`);
-              } catch (uploadError) {
-                console.error('Error uploading curve:', uploadError);
-                showNotification(`Failed to upload curve for ${curve.location}: ${uploadError.message}`, true);
-              }
-            }
-
-            // Reset the form
-            if (fileInput) fileInput.value = '';
-            if (previewDiv) previewDiv.classList.add('hidden');
-            if (previewContent) previewContent.innerHTML = '';
-            
-            showNotification('All curves processed');
-          } catch (error) {
-            console.error('Error processing file:', error);
-            showNotification(`Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`, true);
+    const timestamps = generateTimestamps(start, end, gran);
+    const rows = [];
+    
+    // Generate rows for each combination of timestamp, type, commodity, scenario
+    for (const ts of timestamps) {
+      for (const type of types) {
+        for (const commodity of commodities) {
+          for (const scenario of scenarios) {
+            rows.push(`${ts},,${type},${commodity},${scenario},${units}`);
           }
-        };
-
-        reader.onerror = (error) => {
-          console.error('Error reading file:', error);
-          showNotification('Error reading file', true);
-        };
-
-        reader.readAsText(file);
-      } catch (error) {
-        console.error('Upload error:', error);
-        showNotification(error instanceof Error ? error.message : 'Failed to upload curves', true);
+        }
       }
-    });
+    }
+    
+    const csv = ['timestamp,value,curveType,commodity,scenario,units', ...rows].join('\n');
+    downloadCSV(csv, `template_${selectedDef.curveName}_${selectedInst.instanceVersion}_${start}_to_${end}.csv`);
+    
+    document.getElementById('templateModal')!.classList.add('hidden');
+    toast(`Template downloaded with ${rows.length} rows (${timestamps.length} timestamps × ${types.length * commodities.length * scenarios.length} combinations)`);
+  });
 
-    generateButton?.addEventListener('click', () => {
-      if (selectedCurves.length === 0) {
-        showNotification('Please add at least one curve', true);
-        return;
-      }
-      
-      const csv = generateTemplate(selectedCurves);
-      
-      // Download the template
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'curve_template.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+  // Search & sort handlers
+  document.getElementById('defSearch')?.addEventListener('input', renderDefinitions);
+  document.getElementById('defSort')?.addEventListener('change', renderDefinitions);
+  document.getElementById('instSearch')?.addEventListener('input', renderInstances);
+  document.getElementById('instSort')?.addEventListener('change', renderInstances);
+
+  // Helper functions
+  function clearDefForm() {
+    ['defCurveName', 'defMarket', 'defLocation', 'defBatteryDuration', 'defUnits', 'defTimezone', 'defDescription'].forEach(id => {
+      const el = document.getElementById(id) as any;
+      if (el) el.value = id === 'defUnits' ? '$/MWh' : (id === 'defBatteryDuration' ? 'UNKNOWN' : (id === 'defTimezone' ? 'UTC' : ''));
     });
   }
 
-  // Initialize the functionality
-  initializeFileUpload();
-</script>
+  function fillDefForm(def: any) {
+    (document.getElementById('defCurveName') as HTMLInputElement).value = def.curveName;
+    (document.getElementById('defMarket') as HTMLSelectElement).value = def.market;
+    (document.getElementById('defLocation') as HTMLInputElement).value = def.location;
+    (document.getElementById('defBatteryDuration') as HTMLSelectElement).value = def.batteryDuration || 'UNKNOWN';
+    (document.getElementById('defUnits') as HTMLSelectElement).value = def.units || '$/MWh';
+    (document.getElementById('defTimezone') as HTMLInputElement).value = def.timezone || 'UTC';
+    (document.getElementById('defDescription') as HTMLTextAreaElement).value = def.description || '';
+  }
 
-<style>
-  /* Add any custom styles here */
-</style> 
+  function clearInstForm() {
+    ['instVersion', 'instGranularity', 'instDegradationType', 'instStartDate', 'instEndDate', 'instModelType', 'instCreatedBy', 'instNotes'].forEach(id => {
+      const el = document.getElementById(id) as any;
+      if (el) {
+        if (id === 'instCreatedBy') el.value = 'Upload System';
+        else if (id === 'instGranularity') el.value = 'MONTHLY';
+        else if (id === 'instDegradationType') el.value = 'NONE';
+        else el.value = '';
+      }
+    });
+    (document.getElementById('instScheduleId') as HTMLSelectElement).value = '';
+    
+    // Clear multi-select arrays
+    selectedCurveTypes = [];
+    selectedCommodities = [];
+    selectedScenarios = [];
+    renderTags('instCurveTypesContainer', selectedCurveTypes);
+    renderTags('instCommoditiesContainer', selectedCommodities);
+    renderTags('instScenariosContainer', selectedScenarios);
+  }
+
+  // Load available schedules/requests for linking
+  async function loadSchedulesForDropdown() {
+    try {
+      const response = await fetch('/api/curve-schedule/list');
+      const result = await response.json();
+      
+      const select = document.getElementById('instScheduleId') as HTMLSelectElement;
+      if (!select) return;
+      
+      select.innerHTML = '<option value="">None - No associated request</option>';
+      
+      if (result.schedules && result.schedules.length > 0) {
+        result.schedules.forEach((schedule: any) => {
+          const isRequest = schedule.scheduleType === 'AD_HOC';
+          const label = isRequest 
+            ? `📋 Request: ${schedule.curveDefinition.curveName} (Due: ${schedule.metadata?.dueDate || 'TBD'})`
+            : `🔄 Schedule: ${schedule.curveDefinition.curveName} (${schedule.frequency})`;
+          
+          const option = document.createElement('option');
+          option.value = schedule.id;
+          option.textContent = label;
+          
+          // Highlight if it matches current definition
+          if (selectedDef && schedule.curveDefinitionId === selectedDef.id) {
+            option.textContent = '⭐ ' + option.textContent;
+          }
+          
+          select.appendChild(option);
+        });
+      }
+    } catch (error) {
+      console.error('Error loading schedules:', error);
+    }
+  }
+
+  function fillInstForm(inst: any) {
+    (document.getElementById('instVersion') as HTMLInputElement).value = inst.instanceVersion;
+    (document.getElementById('instGranularity') as HTMLSelectElement).value = inst.granularity || 'MONTHLY';
+    (document.getElementById('instDegradationType') as HTMLSelectElement).value = inst.degradationType || 'NONE';
+    (document.getElementById('instStartDate') as HTMLInputElement).value = inst.deliveryPeriodStart.split('T')[0];
+    (document.getElementById('instEndDate') as HTMLInputElement).value = inst.deliveryPeriodEnd.split('T')[0];
+    (document.getElementById('instModelType') as HTMLInputElement).value = inst.modelType || '';
+    (document.getElementById('instCreatedBy') as HTMLInputElement).value = inst.createdBy || 'Upload System';
+    (document.getElementById('instNotes') as HTMLTextAreaElement).value = inst.notes || '';
+    
+    // Populate multi-select arrays
+    selectedCurveTypes = inst.curveTypes || [];
+    selectedCommodities = inst.commodities || [];
+    selectedScenarios = inst.scenarios || [];
+    renderTags('instCurveTypesContainer', selectedCurveTypes);
+    renderTags('instCommoditiesContainer', selectedCommodities);
+    renderTags('instScenariosContainer', selectedScenarios);
+  }
+
+  function parseCSV(text: string): any[] {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const row: any = {};
+      headers.forEach((h, idx) => row[h] = values[idx]);
+      data.push(row);
+    }
+    return data;
+  }
+
+  function showCSVPreview(data: any[]) {
+    const preview = document.getElementById('csvPreview')!;
+    const content = document.getElementById('csvPreviewContent')!;
+    const stats = document.getElementById('csvStats')!;
+    
+    const sample = data.slice(0, 10);
+    const headers = Object.keys(sample[0]);
+    
+    content.innerHTML = `
+      <div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <div class="flex items-center justify-between">
+          <div class="text-sm font-medium text-blue-900">📊 Data Preview</div>
+          <div class="text-xs text-blue-700">Showing first 10 of ${data.length} rows</div>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-xs border-collapse">
+          <thead class="bg-gray-100 sticky top-0">
+            <tr>
+              ${headers.map(k => `<th class="px-3 py-2 text-left font-medium text-gray-700 border-b-2 border-gray-300">${k}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${sample.map((row, idx) => `
+              <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50">
+                ${Object.values(row).map((v: any) => `<td class="px-3 py-2 border-b border-gray-200 text-gray-900">${v || '<span class="text-gray-400">empty</span>'}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+    
+    // Show summary stats
+    const timestamps = data.map(r => r.timestamp).filter(Boolean);
+    const dateRange = timestamps.length > 0 ? 
+      `${timestamps[0].split('T')[0]} to ${timestamps[timestamps.length-1].split('T')[0]}` : 
+      'N/A';
+    
+    const curveTypes = new Set(data.map(r => r.curveType).filter(Boolean));
+    const commodities = new Set(data.map(r => r.commodity).filter(Boolean));
+    const scenarios = new Set(data.map(r => r.scenario).filter(Boolean));
+    
+    stats.innerHTML = `
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div><span class="font-medium">Total Rows:</span> ${data.length}</div>
+        <div><span class="font-medium">Date Range:</span> ${dateRange}</div>
+        <div><span class="font-medium">Curve Types:</span> ${curveTypes.size > 0 ? Array.from(curveTypes).join(', ') : 'N/A'}</div>
+        <div><span class="font-medium">Commodities:</span> ${commodities.size > 0 ? Array.from(commodities).join(', ') : 'N/A'}</div>
+        <div><span class="font-medium">Scenarios:</span> ${scenarios.size > 0 ? Array.from(scenarios).join(', ') : 'N/A'}</div>
+        <div><span class="font-medium">Unique Combinations:</span> ${curveTypes.size * commodities.size * scenarios.size}</div>
+      </div>
+    `;
+    
+    preview.classList.remove('hidden');
+  }
+
+  function generateTimestamps(start: string, end: string, gran: string): string[] {
+    const result: string[] = [];
+    let curr = new Date(start + 'T00:00:00Z');
+    const endDate = new Date(end + 'T23:59:59Z'); // Include the end date
+    
+    console.log('Generating timestamps:', { start, end, gran, currStart: curr.toISOString(), endDate: endDate.toISOString() });
+    
+    while (curr <= endDate) {
+      result.push(curr.toISOString());
+      if (gran === 'HOURLY') curr = new Date(curr.getTime() + 3600000);
+      else if (gran === 'DAILY') curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate() + 1));
+      else if (gran === 'MONTHLY') curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth() + 1, 1));
+      else if (gran === 'QUARTERLY') curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth() + 3, 1));
+      else if (gran === 'ANNUAL') curr = new Date(Date.UTC(curr.getUTCFullYear() + 1, 0, 1));
+      else break;
+    }
+    
+    console.log(`Generated ${result.length} timestamps from ${result[0]} to ${result[result.length-1]}`);
+    return result;
+  }
+
+  function downloadCSV(content: string, filename: string) {
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Global filter handlers
+  document.getElementById('globalMarket')?.addEventListener('change', () => {
+    renderDefinitions();
+    if (selectedDef) renderInstances();
+  });
+  document.getElementById('globalLocation')?.addEventListener('input', () => {
+    renderDefinitions();
+    if (selectedDef) renderInstances();
+  });
+  document.getElementById('globalProduct')?.addEventListener('input', () => {
+    renderDefinitions();
+    if (selectedDef) renderInstances();
+  });
+  document.getElementById('globalCurveType')?.addEventListener('change', () => {
+    renderDefinitions();
+    if (selectedDef) renderInstances();
+  });
+  document.getElementById('globalGranularity')?.addEventListener('change', () => {
+    renderDefinitions();
+    if (selectedDef) renderInstances();
+  });
+
+  document.getElementById('clearFilters')?.addEventListener('click', () => {
+    (document.getElementById('globalMarket') as HTMLSelectElement).value = '';
+    (document.getElementById('globalLocation') as HTMLInputElement).value = '';
+    (document.getElementById('globalProduct') as HTMLInputElement).value = '';
+    (document.getElementById('globalCurveType') as HTMLSelectElement).value = '';
+    (document.getElementById('globalGranularity') as HTMLSelectElement).value = '';
+    renderDefinitions();
+    if (selectedDef) renderInstances();
+  });
+
+  document.getElementById('closeDetail')?.addEventListener('click', () => {
+    document.getElementById('detailPanel')!.classList.add('hidden');
+  });
+
+  // Download existing data as CSV
+  document.getElementById('downloadExistingDataBtn')?.addEventListener('click', () => {
+    if (currentData.length === 0) {
+      toast('No data to download', 'error');
+      return;
+    }
+
+    const units = selectedDef.units || '$/MWh';
+    const rows = [];
+    
+    const types = selectedInst.curveTypes || ['Unknown'];
+    const commodities = selectedInst.commodities || ['Unknown'];
+    const scenarios = selectedInst.scenarios || ['Unknown'];
+    
+    // Export existing data in new format
+    for (const point of currentData) {
+      const timestamp = point.timestamp;
+      const value = point.value;
+      
+      if (value !== null && value !== undefined) {
+        rows.push(`${timestamp},${value},${point.curveType || types[0]},${point.commodity || commodities[0]},${point.scenario || scenarios[0]},${units}`);
+      }
+    }
+
+    const csv = ['timestamp,value,curveType,commodity,scenario,units', ...rows].join('\n');
+    const filename = `${selectedDef.curveName}_${selectedInst.instanceVersion}_data.csv`;
+    downloadCSV(csv, filename);
+    toast('Existing data downloaded - edit and re-upload!');
+  });
+
+  // Initialize autocomplete for form fields
+  async function initAutocomplete() {
+    try {
+      const { initializeAutocompleteFields } = await import('../../lib/autocomplete-fields');
+      await initializeAutocompleteFields(document.body);
+      console.log('✓ Autocomplete fields initialized with database values');
+    } catch (e) {
+      console.error('Failed to initialize autocomplete:', e);
+    }
+  }
+
+  // ==================== MULTI-SELECT TAG SYSTEM ====================
+  
+  let selectedCurveTypes: string[] = [];
+  let selectedCommodities: string[] = [];
+  let selectedScenarios: string[] = [];
+  let availableOptions: any = {};
+
+  // Load available options from database
+  async function loadOptions() {
+    try {
+      const response = await fetch('/api/curves/options');
+      const result = await response.json();
+      availableOptions = result.options;
+      
+      // Populate dropdowns
+      populateSelect('instCurveTypeAdd', availableOptions.curveTypes);
+      populateSelect('instCommodityAdd', availableOptions.commodities);
+      populateSelect('instScenarioAdd', availableOptions.scenarios);
+    } catch (error) {
+      console.error('Error loading options:', error);
+    }
+  }
+
+  function populateSelect(selectId: string, options: string[]) {
+    const select = document.getElementById(selectId) as HTMLSelectElement;
+    if (!select) return;
+    
+    // Clear except first option
+    select.innerHTML = select.options[0].outerHTML;
+    
+    options.forEach(opt => {
+      const option = document.createElement('option');
+      option.value = opt;
+      option.textContent = opt;
+      select.appendChild(option);
+    });
+  }
+
+  function addTag(containerEl: string, value: string, arrayRef: string[]) {
+    if (!value || arrayRef.includes(value)) return;
+    
+    arrayRef.push(value);
+    renderTags(containerEl, arrayRef);
+  }
+
+  function removeTag(containerEl: string, value: string, arrayRef: string[]) {
+    const index = arrayRef.indexOf(value);
+    if (index > -1) {
+      arrayRef.splice(index, 1);
+      renderTags(containerEl, arrayRef);
+    }
+  }
+
+  function renderTags(containerEl: string, values: string[]) {
+    const container = document.getElementById(containerEl);
+    if (!container) return;
+    
+    container.innerHTML = values.map(val => `
+      <span class="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+        ${val}
+        <button 
+          type="button"
+          class="hover:bg-blue-200 rounded-full p-0.5"
+          onclick="removeTagByContainer('${containerEl}', '${val}')"
+        >
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </span>
+    `).join('');
+  }
+
+  (window as any).removeTagByContainer = function(containerEl: string, value: string) {
+    if (containerEl === 'instCurveTypesContainer') removeTag(containerEl, value, selectedCurveTypes);
+    else if (containerEl === 'instCommoditiesContainer') removeTag(containerEl, value, selectedCommodities);
+    else if (containerEl === 'instScenariosContainer') removeTag(containerEl, value, selectedScenarios);
+  }
+
+  // Add event listeners for dropdowns
+  document.getElementById('instCurveTypeAdd')?.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value) {
+      addTag('instCurveTypesContainer', select.value, selectedCurveTypes);
+      select.value = '';
+    }
+  });
+
+  document.getElementById('instCommodityAdd')?.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value) {
+      addTag('instCommoditiesContainer', select.value, selectedCommodities);
+      select.value = '';
+    }
+  });
+
+  document.getElementById('instScenarioAdd')?.addEventListener('change', (e) => {
+    const select = e.target as HTMLSelectElement;
+    if (select.value) {
+      addTag('instScenariosContainer', select.value, selectedScenarios);
+      select.value = '';
+    }
+  });
+
+  // Custom value buttons
+  document.getElementById('addCustomCurveType')?.addEventListener('click', () => {
+    const value = prompt('Enter new curve type:');
+    if (value && value.trim()) {
+      const trimmed = value.trim();
+      addTag('instCurveTypesContainer', trimmed, selectedCurveTypes);
+      
+      // Add to dropdown for reuse in this session
+      const select = document.getElementById('instCurveTypeAdd') as HTMLSelectElement;
+      if (select && !availableOptions.curveTypes.includes(trimmed)) {
+        availableOptions.curveTypes.push(trimmed);
+        const option = document.createElement('option');
+        option.value = trimmed;
+        option.textContent = trimmed;
+        select.appendChild(option);
+      }
+    }
+  });
+
+  document.getElementById('addCustomCommodity')?.addEventListener('click', () => {
+    const value = prompt('Enter new commodity:');
+    if (value && value.trim()) {
+      const trimmed = value.trim();
+      addTag('instCommoditiesContainer', trimmed, selectedCommodities);
+      
+      // Add to dropdown for reuse in this session
+      const select = document.getElementById('instCommodityAdd') as HTMLSelectElement;
+      if (select && !availableOptions.commodities.includes(trimmed)) {
+        availableOptions.commodities.push(trimmed);
+        const option = document.createElement('option');
+        option.value = trimmed;
+        option.textContent = trimmed;
+        select.appendChild(option);
+      }
+    }
+  });
+
+  document.getElementById('addCustomScenario')?.addEventListener('click', () => {
+    const value = prompt('Enter new scenario:');
+    if (value && value.trim()) {
+      const trimmed = value.trim();
+      addTag('instScenariosContainer', trimmed, selectedScenarios);
+      
+      // Add to dropdown for reuse in this session
+      const select = document.getElementById('instScenarioAdd') as HTMLSelectElement;
+      if (select && !availableOptions.scenarios.includes(trimmed)) {
+        availableOptions.scenarios.push(trimmed);
+        const option = document.createElement('option');
+        option.value = trimmed;
+        option.textContent = trimmed;
+        select.appendChild(option);
+      }
+    }
+  });
+
+  // Initialize
+  loadDefinitions();
+  loadOptions();
+  initAutocomplete();
+</script>
+</Layout>
+

@@ -1,0 +1,594 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Curve Viewer">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Curve Viewer</h1>
+        <p class="text-gray-600 mt-1">Visualize and analyze curve data</p>
+      </div>
+      <div class="space-x-4">
+        <a href="/curve-tracker/inventory" 
+           class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+          Back to Inventory
+        </a>
+        <a href="/curve-tracker/upload" 
+           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          Upload Curves
+        </a>
+      </div>
+    </div>
+
+    <!-- Curve Selection Panel -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Select Curves to View</h2>
+      
+      <!-- Filters for Curve Selection -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div>
+          <label for="viewerMarketFilter" class="block text-sm font-medium text-gray-700 mb-1">Market</label>
+          <select id="viewerMarketFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Markets</option>
+          </select>
+        </div>
+        <div>
+          <label for="viewerLocationFilter" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+          <select id="viewerLocationFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Locations</option>
+          </select>
+        </div>
+        <div>
+          <label for="viewerMarkTypeFilter" class="block text-sm font-medium text-gray-700 mb-1">Mark Type</label>
+          <select id="viewerMarkTypeFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Types</option>
+          </select>
+        </div>
+        <div>
+          <label for="viewerMarkCaseFilter" class="block text-sm font-medium text-gray-700 mb-1">Mark Case</label>
+          <select id="viewerMarkCaseFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Cases</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Available Curves -->
+      <div class="mb-4">
+        <h3 class="text-md font-medium text-gray-900 mb-2">Available Curves</h3>
+        <div id="availableCurves" class="max-h-48 overflow-y-auto border border-gray-200 rounded-md p-3">
+          <div id="curvesLoading" class="text-center py-4">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+            <p class="text-sm text-gray-600">Loading curves...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selected Curves -->
+      <div>
+        <h3 class="text-md font-medium text-gray-900 mb-2">Selected Curves (<span id="selectedCount">0</span>)</h3>
+        <div id="selectedCurves" class="min-h-[60px] border border-gray-200 rounded-md p-3 bg-gray-50">
+          <p id="noSelection" class="text-sm text-gray-500 text-center py-2">No curves selected</p>
+        </div>
+      </div>
+
+      <!-- Chart Controls -->
+      <div class="mt-4 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <button id="clearSelection" disabled
+                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            Clear Selection
+          </button>
+          <button id="exportChart" disabled
+                  class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            Export Chart
+          </button>
+        </div>
+        <button id="updateChart" disabled
+                class="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+          Update Chart
+        </button>
+      </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Price Curves</h2>
+        <div class="flex items-center space-x-2">
+          <button id="zoomReset" class="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
+            Reset Zoom
+          </button>
+          <select id="chartTimeframe" class="text-xs border border-gray-300 rounded px-2 py-1">
+            <option value="all">All Data</option>
+            <option value="ytd">Year to Date</option>
+            <option value="3m">Last 3 Months</option>
+            <option value="1m">Last Month</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Chart Canvas -->
+      <div class="relative" style="height: 500px;">
+        <canvas id="curveChart"></canvas>
+        <div id="chartEmpty" class="absolute inset-0 flex items-center justify-center text-gray-500">
+          <div class="text-center">
+            <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <h3 class="text-lg font-medium mb-2">No Data to Display</h3>
+            <p class="text-sm">Select curves from above to view price data</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend and Statistics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <!-- Chart Legend -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Chart Legend</h3>
+        <div id="chartLegend" class="space-y-2">
+          <p class="text-sm text-gray-500">Legend will appear when curves are selected</p>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
+        <div id="chartStats" class="space-y-3">
+          <p class="text-sm text-gray-500">Statistics will appear when curves are selected</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <script>
+    let availableCurves = [];
+    let selectedCurveIds = new Set();
+    let chart = null;
+    let chartData = {};
+
+    // Color palette for different curves
+    const colorPalette = [
+      '#3B82F6', '#EF4444', '#10B981', '#F59E0B', 
+      '#8B5CF6', '#F97316', '#06B6D4', '#84CC16',
+      '#EC4899', '#6366F1', '#14B8A6', '#F97316'
+    ];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      await loadAvailableCurves();
+      setupEventListeners();
+      setupChart();
+      
+      // Check for curve parameter in URL, or default to Oct25
+      const urlParams = new URLSearchParams(window.location.search);
+      const curveId = urlParams.get('curve');
+      
+      if (curveId) {
+        selectCurveById(parseInt(curveId));
+      } else {
+        // Auto-select Oct25 instance (or first instance with "Oct" or "25" in version)
+        const oct25 = availableCurves.curves?.find(c => 
+          c.instanceVersion?.includes('Oct') || 
+          c.instanceVersion?.includes('25') ||
+          c.instanceVersion?.includes('OCT')
+        );
+        if (oct25) {
+          console.log('Auto-selecting Oct25 instance:', oct25);
+          selectCurveById(oct25.id);
+          await updateChart();
+        }
+      }
+    });
+
+    async function loadAvailableCurves() {
+      try {
+        const response = await fetch('/api/curves/list');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        availableCurves = result; // Keep the full response
+        
+        console.log('Loaded curves:', result);
+        
+        populateFilters();
+        renderAvailableCurves();
+        
+        const loadingEl = document.getElementById('curvesLoading');
+        if (loadingEl) loadingEl.style.display = 'none';
+        
+      } catch (error) {
+        console.error('Error loading curves:', error);
+        const loadingEl = document.getElementById('curvesLoading');
+        if (loadingEl) {
+          loadingEl.innerHTML = `
+            <p class="text-sm text-red-600">Error loading curves: ${error.message}</p>
+          `;
+        }
+      }
+    }
+
+    function populateFilters() {
+      const curves = availableCurves.curves || [];
+      const markets = [...new Set(curves.map(c => c.market).filter(Boolean))].sort();
+      const locations = [...new Set(curves.map(c => c.location).filter(Boolean))].sort();
+      const curveTypes = [...new Set(curves.flatMap(c => c.curveTypes || []))].sort();
+      const commodities = [...new Set(curves.flatMap(c => c.commodities || []))].sort();
+
+      populateSelectOptions('viewerMarketFilter', markets);
+      populateSelectOptions('viewerLocationFilter', locations);
+      populateSelectOptions('viewerMarkTypeFilter', curveTypes);
+      populateSelectOptions('viewerMarkCaseFilter', commodities);
+    }
+
+    function populateSelectOptions(selectId, options) {
+      const select = document.getElementById(selectId);
+      
+      // Clear existing options except the first one
+      while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+      }
+      
+      options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        select.appendChild(optionElement);
+      });
+    }
+
+    function renderAvailableCurves() {
+      const container = document.getElementById('availableCurves');
+      if (!container) return;
+      
+      const filters = getFilters();
+      const curves = availableCurves.curves || [];
+      
+      const filteredCurves = curves.filter(curve => {
+        const hasType = curve.curveTypes?.includes(filters.markType) || !filters.markType;
+        const hasCommodity = curve.commodities?.includes(filters.markCase) || !filters.markCase;
+        
+        return (!filters.market || curve.market === filters.market) &&
+               (!filters.location || curve.location === filters.location) &&
+               hasType &&
+               hasCommodity;
+      });
+
+      if (filteredCurves.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No curves match the selected filters</p>';
+        return;
+      }
+
+      container.innerHTML = filteredCurves.map(curve => `
+        <div class="flex items-center justify-between p-2 border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+             onclick="toggleCurveSelection(${curve.id})">
+          <div>
+            <div class="font-medium text-sm">${curve.curveName || 'N/A'}</div>
+            <div class="text-xs text-gray-500">${curve.instanceVersion || 'N/A'} | ${curve.market || 'N/A'} - ${curve.location || 'N/A'}</div>
+            <div class="text-xs text-gray-400 mt-1">
+              Types: ${(curve.curveTypes || []).join(', ') || 'None'} | 
+              Commodities: ${(curve.commodities || []).join(', ') || 'None'}
+            </div>
+          </div>
+          <div class="flex items-center">
+            <span class="text-xs text-gray-400 mr-2">ID: ${curve.id}</span>
+            <input type="checkbox" ${selectedCurveIds.has(curve.id) ? 'checked' : ''} 
+                   onchange="toggleCurveSelection(${curve.id})" 
+                   onclick="event.stopPropagation()">
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getFilters() {
+      return {
+        market: document.getElementById('viewerMarketFilter').value,
+        location: document.getElementById('viewerLocationFilter').value,
+        markType: document.getElementById('viewerMarkTypeFilter').value,
+        markCase: document.getElementById('viewerMarkCaseFilter').value
+      };
+    }
+
+    function toggleCurveSelection(curveId) {
+      if (selectedCurveIds.has(curveId)) {
+        selectedCurveIds.delete(curveId);
+      } else {
+        selectedCurveIds.add(curveId);
+      }
+      updateSelectedCurvesDisplay();
+      updateButtonStates();
+    }
+
+    function selectCurveById(curveId) {
+      selectedCurveIds.add(curveId);
+      updateSelectedCurvesDisplay();
+      updateButtonStates();
+      renderAvailableCurves();
+    }
+
+    function updateSelectedCurvesDisplay() {
+      const container = document.getElementById('selectedCurves');
+      const countSpan = document.getElementById('selectedCount');
+      const noSelection = document.getElementById('noSelection');
+      
+      if (!container || !countSpan || !noSelection) return;
+      
+      countSpan.textContent = selectedCurveIds.size.toString();
+
+      if (selectedCurveIds.size === 0) {
+        noSelection.style.display = 'block';
+        const items = container.querySelectorAll('.selected-curve-item');
+        items.forEach(item => item.remove());
+        return;
+      }
+
+      noSelection.style.display = 'none';
+      
+      const curves = availableCurves.curves || [];
+      const selectedCurves = curves.filter(curve => selectedCurveIds.has(curve.id));
+      
+      container.innerHTML = `
+        <div class="text-sm text-gray-500 mb-2">${selectedCurveIds.size} instance(s) selected</div>
+        ${selectedCurves.map((curve, index) => `
+          <div class="selected-curve-item flex items-center justify-between p-2 bg-white rounded border mb-1">
+            <div class="flex items-center">
+              <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${colorPalette[index % colorPalette.length]}"></div>
+              <div>
+                <div class="font-medium text-sm">${curve.curveName || 'N/A'} - ${curve.instanceVersion || 'N/A'}</div>
+                <div class="text-xs text-gray-500">${curve.market || 'N/A'} | ${curve.location || 'N/A'}</div>
+              </div>
+            </div>
+            <button onclick="toggleCurveSelection(${curve.id})" 
+                    class="text-red-600 hover:text-red-800 text-sm">×</button>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function updateButtonStates() {
+      const hasSelection = selectedCurveIds.size > 0;
+      document.getElementById('clearSelection').disabled = !hasSelection;
+      document.getElementById('exportChart').disabled = !hasSelection;
+      document.getElementById('updateChart').disabled = !hasSelection;
+    }
+
+    function setupEventListeners() {
+      // Filter changes
+      ['viewerMarketFilter', 'viewerLocationFilter', 'viewerMarkTypeFilter', 'viewerMarkCaseFilter']
+        .forEach(filterId => {
+          document.getElementById(filterId).addEventListener('change', renderAvailableCurves);
+        });
+
+      // Button clicks
+      document.getElementById('clearSelection').addEventListener('click', clearSelection);
+      document.getElementById('updateChart').addEventListener('click', updateChart);
+      document.getElementById('exportChart').addEventListener('click', exportChart);
+      document.getElementById('zoomReset').addEventListener('click', resetZoom);
+      document.getElementById('chartTimeframe').addEventListener('change', updateChart);
+    }
+
+    function clearSelection() {
+      selectedCurveIds.clear();
+      updateSelectedCurvesDisplay();
+      updateButtonStates();
+      renderAvailableCurves();
+      
+      if (chart) {
+        chart.data.datasets = [];
+        chart.update();
+        document.getElementById('chartEmpty').style.display = 'flex';
+      }
+      
+      updateLegendAndStats();
+    }
+
+    async function updateChart() {
+      if (selectedCurveIds.size === 0) return;
+
+      try {
+        // Show loading state
+        if (chart) {
+          chart.data.datasets = [];
+          chart.update();
+        }
+
+        // Load data for selected curves
+        const datasets = [];
+        let curveIndex = 0;
+
+        for (const curveId of selectedCurveIds) {
+          const curves = availableCurves.curves || [];
+          const curve = curves.find(c => c.id === curveId);
+          if (!curve) continue;
+
+          try {
+            const response = await fetch(`/api/curves/${curveId}/data`);
+            if (response.ok) {
+              const data = await response.json();
+              
+              // Group data by commodity and scenario for multiple lines
+              const dataArray = Array.isArray(data) ? data : (data.priceData || []);
+              
+              if (dataArray.length > 0) {
+                // Group by commodity + scenario combination
+                const groupedData = {};
+                dataArray.forEach(point => {
+                  const key = `${point.commodity || 'Unknown'} - ${point.scenario || 'Unknown'}`;
+                  if (!groupedData[key]) {
+                    groupedData[key] = [];
+                  }
+                  groupedData[key].push({
+                    x: new Date(point.timestamp || point.flow_date_start),
+                    y: point.value
+                  });
+                });
+                
+                // Create a dataset for each commodity+scenario combination
+                Object.entries(groupedData).forEach(([label, points]) => {
+                  datasets.push({
+                    label: `${curve.curveName} - ${label}`,
+                    data: points,
+                    borderColor: colorPalette[curveIndex % colorPalette.length],
+                    backgroundColor: colorPalette[curveIndex % colorPalette.length] + '20',
+                    fill: false,
+                    tension: 0.1
+                  });
+                  curveIndex++;
+                });
+              }
+            }
+          } catch (error) {
+            console.error(`Error loading data for curve ${curveId}:`, error);
+          }
+        }
+
+        // Update chart
+        if (chart && datasets.length > 0) {
+          chart.data.datasets = datasets;
+          chart.update();
+          document.getElementById('chartEmpty').style.display = 'none';
+          
+          updateLegendAndStats();
+        } else if (datasets.length === 0) {
+          // Show empty state if no data loaded
+          document.getElementById('chartEmpty').style.display = 'flex';
+        }
+
+      } catch (error) {
+        console.error('Error updating chart:', error);
+        alert('Error loading chart data: ' + error.message);
+      }
+    }
+
+    function setupChart() {
+      const ctx = document.getElementById('curveChart').getContext('2d');
+      
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: []
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          scales: {
+            x: {
+              type: 'time',
+              time: {
+                displayFormats: {
+                  day: 'MMM dd',
+                  month: 'MMM yyyy'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Date'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Price ($/MWh)'
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false // We'll create our own legend
+            },
+            zoom: {
+              zoom: {
+                wheel: {
+                  enabled: true,
+                },
+                pinch: {
+                  enabled: true
+                },
+                mode: 'x',
+              },
+              pan: {
+                enabled: true,
+                mode: 'x',
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateLegendAndStats() {
+      const legendContainer = document.getElementById('chartLegend');
+      const statsContainer = document.getElementById('chartStats');
+
+      if (selectedCurveIds.size === 0) {
+        legendContainer.innerHTML = '<p class="text-sm text-gray-500">Legend will appear when curves are selected</p>';
+        statsContainer.innerHTML = '<p class="text-sm text-gray-500">Statistics will appear when curves are selected</p>';
+        return;
+      }
+
+      // Update legend
+      const curves = availableCurves.curves || [];
+      const selectedCurves = curves.filter(curve => selectedCurveIds.has(curve.id));
+      legendContainer.innerHTML = selectedCurves.map((curve, index) => `
+        <div class="flex items-center text-sm">
+          <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${colorPalette[index % colorPalette.length]}"></div>
+          <span class="font-medium">${curve.curveName}</span>
+          <span class="text-gray-500 ml-2">(${curve.instanceVersion})</span>
+        </div>
+      `).join('');
+
+      // Update statistics
+      const totalDatasets = chart?.data?.datasets?.length || 0;
+      const markets = new Set(selectedCurves.map(c => c.market)).size;
+      const locations = new Set(selectedCurves.map(c => c.location)).size;
+
+      statsContainer.innerHTML = `
+        <div class="text-sm">
+          <div class="flex justify-between py-1">
+            <span class="text-gray-600">Selected Instances:</span>
+            <span class="font-medium">${selectedCurveIds.size}</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-gray-600">Plot Lines:</span>
+            <span class="font-medium">${totalDatasets}</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-gray-600">Markets:</span>
+            <span class="font-medium">${markets}</span>
+          </div>
+          <div class="flex justify-between py-1">
+            <span class="text-gray-600">Locations:</span>
+            <span class="font-medium">${locations}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function resetZoom() {
+      if (chart) {
+        chart.resetZoom();
+      }
+    }
+
+    function exportChart() {
+      if (!chart) return;
+      
+      const link = document.createElement('a');
+      link.download = 'curve-chart.png';
+      link.href = chart.toBase64Image();
+      link.click();
+    }
+  </script>
+</Layout>

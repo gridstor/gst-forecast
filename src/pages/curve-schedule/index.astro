@@ -1,4 +1,2037 @@
 ---
-// Redirect to the new schedule management page
-return Astro.redirect('/curve-schedule/manage');
---- 
+import Layout from '../../layouts/Layout.astro';
+import { prisma } from '../../lib/prisma';
+
+// Get the current month's start and end dates (with URL param support)
+const urlParams = new URL(Astro.request.url).searchParams;
+const yearParam = urlParams.get('year');
+const monthParam = urlParams.get('month');
+
+const today = new Date();
+const currentYear = yearParam ? parseInt(yearParam) : today.getFullYear();
+const currentMonth = monthParam ? parseInt(monthParam) - 1 : today.getMonth();
+
+const displayDate = new Date(currentYear, currentMonth, 1);
+const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+// Fetch all curve schedules with their definitions for the calendar
+let schedules: any[] = [];
+let schedulesByDate: Record<string, any[]> = {};
+try {
+  schedules = await prisma.curveSchedule.findMany({
+    select: {
+      id: true,
+      scheduleType: true,
+      importance: true,
+      frequency: true,
+      isActive: true,
+      responsibleTeam: true,
+      metadata: true,
+      curveDefinition: {
+        select: {
+          curveName: true,
+          location: true,
+          market: true
+        }
+      },
+      scheduleRuns: {
+        where: {
+          runDate: {
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth
+          }
+        },
+        select: {
+          runDate: true,
+          status: true
+        },
+        orderBy: {
+          runDate: 'asc'
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // Group schedules by their run dates
+  schedules.forEach((schedule: any) => {
+    schedule.scheduleRuns.forEach((run: any) => {
+      const dateKey = run.runDate.toISOString().split('T')[0];
+      if (!schedulesByDate[dateKey]) {
+        schedulesByDate[dateKey] = [];
+      }
+      schedulesByDate[dateKey].push({
+        id: schedule.id,
+        name: schedule.curveDefinition.curveName,
+        location: schedule.curveDefinition.location,
+        market: schedule.curveDefinition.market,
+        importance: schedule.importance,
+        status: run.status,
+        type: 'scheduled'
+      });
+    });
+  });
+} catch (error) {
+  console.error('Error fetching curve schedule:', error);
+}
+
+// Fetch recently uploaded curves for current month
+try {
+  const uploadedCurves = await prisma.curveInstance.findMany({
+    where: {
+      createdAt: {
+        gte: firstDayOfMonth,
+        lte: lastDayOfMonth
+      }
+    },
+    include: {
+      curveDefinition: {
+        select: {
+          curveName: true,
+          location: true,
+          market: true
+        }
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // Add uploaded curves to calendar
+  uploadedCurves.forEach(curve => {
+    const dateKey = curve.createdAt.toISOString().split('T')[0];
+    if (!schedulesByDate[dateKey]) {
+      schedulesByDate[dateKey] = [];
+    }
+    schedulesByDate[dateKey].push({
+      id: curve.id,
+      name: curve.curveDefinition.curveName,
+      location: curve.curveDefinition.location,
+      market: curve.curveDefinition.market,
+      instanceVersion: curve.instanceVersion,
+      status: curve.status,
+      type: 'uploaded',
+      importance: 2 // Default to medium for display
+    });
+  });
+} catch (error) {
+  console.error('Error fetching uploaded curves:', error);
+}
+
+// Get all dates in the current month
+const datesInMonth = Array.from(
+  { length: lastDayOfMonth.getDate() },
+  (_, i) => new Date(currentYear, currentMonth, i + 1)
+);
+
+// Get the day of week for the first day (0 = Sunday)
+const firstDayOfWeek = firstDayOfMonth.getDay();
+
+// Add empty cells for days before the first day of the month
+const calendarDays = Array(firstDayOfWeek).fill(null).concat(datesInMonth);
+
+// Function to get the importance class
+function getImportanceClass(importance: number): string {
+  switch (importance) {
+    case 1: return 'bg-red-100 border-red-200';
+    case 2: return 'bg-orange-100 border-orange-200';
+    case 3: return 'bg-yellow-100 border-yellow-200';
+    default: return 'bg-gray-100 border-gray-200';
+  }
+}
+
+// Function to get status badge color
+function getStatusClass(status: string): string {
+  switch (status) {
+    case 'COMPLETED': return 'bg-green-100 text-green-800';
+    case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+    case 'FAILED': return 'bg-red-100 text-red-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
+}
+---
+
+<Layout title="Curve Schedule">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    
+    <!-- SECTION: CURVE SCHEDULE CALENDAR -->
+    <section class="mb-8">
+      <div class="mb-6 flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Curve Schedule Calendar</h1>
+          <p class="text-base text-[#6B7280]">View and manage scheduled curve updates and delivery periods</p>
+        </div>
+        <a href="/revenue-forecasts/admin" class="inline-flex items-center px-3 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors">
+          ← Back to Admin
+        </a>
+      </div>
+      <div class="bg-white rounded-lg shadow-md overflow-hidden accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="p-6 border-b border-[#E5E7EB]">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-4">
+              <button 
+                id="prevMonth" 
+                class="p-2 hover:bg-[#F3F4F6] rounded-md transition-colors"
+                title="Previous Month"
+                type="button"
+              >
+                <svg class="w-5 h-5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+              </button>
+              <h3 id="currentMonth" class="text-lg font-semibold text-[#1F2937] min-w-[180px] text-center">
+                {displayDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h3>
+              <button 
+                id="nextMonth" 
+                class="p-2 hover:bg-[#F3F4F6] rounded-md transition-colors"
+                title="Next Month"
+                type="button"
+              >
+                <svg class="w-5 h-5 text-[#6B7280]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+            <div class="text-sm text-[#6B7280]">
+              Click any day's <span class="text-[#8B5CF6]">+</span> to add notes
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-px bg-[#E5E7EB] border-b border-[#E5E7EB]">
+          {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((day) => (
+            <div class="bg-[#F9FAFB] p-3 text-center text-sm font-medium text-[#6B7280]">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div id="calendarGrid" class="grid grid-cols-7 gap-px bg-[#E5E7EB]" data-schedules={JSON.stringify(schedulesByDate)}>
+          {calendarDays.map((date) => (
+            <div 
+              class={`bg-white min-h-[120px] p-2 ${
+                date && date.toISOString().split('T')[0] === today.toISOString().split('T')[0]
+                  ? 'ring-2 ring-inset ring-[#3B82F6] bg-[#EFF6FF]'
+                  : ''
+              }`}
+              data-date={date ? date.toISOString().split('T')[0] : ''}
+            >
+              {date && (
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="font-medium text-sm text-[#111827]">
+                      {date.getDate()}
+                    </div>
+                    <button 
+                      class="add-note-btn p-0.5 hover:bg-[#E5E7EB] rounded transition-colors group"
+                      data-date={date.toISOString().split('T')[0]}
+                      title="Add note"
+                      type="button"
+                      onclick="event.stopPropagation(); openNoteModal(this.dataset.date);"
+                    >
+                      <svg class="w-3.5 h-3.5 text-[#8B5CF6] group-hover:text-[#7C3AED]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <!-- Notes container -->
+                  <div class="notes-container space-y-1 mb-1" data-date={date.toISOString().split('T')[0]}>
+                  </div>
+                  
+                  <!-- Schedules and Uploaded Curves -->
+                  <div class="space-y-1">
+                    {(() => {
+                      const dateKey = date.toISOString().split('T')[0];
+                      const items = schedulesByDate[dateKey] || [];
+                      const maxVisible = 3; // Show max 3 items initially
+                      const visibleItems = items.slice(0, maxVisible);
+                      const hasMore = items.length > maxVisible;
+                      const moreCount = items.length - maxVisible;
+                      
+                      return (
+                        <>
+                          {visibleItems.map((schedule: any) => (
+                            <div
+                              class={`block text-xs p-1.5 rounded border ${
+                                schedule.type === 'uploaded' 
+                                  ? 'bg-blue-50 border-blue-200' 
+                                  : getImportanceClass(schedule.importance)
+                              } hover:opacity-75 transition-opacity`}
+                              title={schedule.type === 'uploaded' ? `Uploaded: ${schedule.instanceVersion}` : 'Scheduled Update'}
+                            >
+                              <div class="flex items-center gap-1">
+                                <span class="text-xs">
+                                  {schedule.type === 'uploaded' ? '⬆️' : '📅'}
+                                </span>
+                                <div class="font-medium truncate flex-1" title={`${schedule.name} - ${schedule.location}`}>
+                                  {schedule.name}
+                                </div>
+                              </div>
+                              <div class="flex items-center justify-between mt-0.5">
+                                <span class="text-[0.65rem] text-gray-600 truncate">{schedule.location}</span>
+                                <span class={`text-[0.6rem] px-1 py-0.5 rounded ${getStatusClass(schedule.status)}`}>
+                                  {schedule.status}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                          {hasMore && (
+                            <button
+                              class="w-full text-xs p-1.5 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 font-medium transition-colors"
+                              onclick={`showAllForDate('${dateKey}')`}
+                              type="button"
+                            >
+                              +{moreCount} more
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <!-- Calendar Legend -->
+        <div class="p-4 bg-[#F9FAFB] border-t border-[#E5E7EB]">
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-4">
+              <h4 class="text-sm font-medium text-[#6B7280]">Scheduled Priority:</h4>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded bg-red-100 border border-red-200"></div>
+                <span class="text-xs text-[#6B7280]">High</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded bg-orange-100 border border-orange-200"></div>
+                <span class="text-xs text-[#6B7280]">Medium</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded bg-yellow-100 border border-yellow-200"></div>
+                <span class="text-xs text-[#6B7280]">Low</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <h4 class="text-sm font-medium text-[#6B7280]">Item Types:</h4>
+              <div class="flex items-center gap-2">
+                <span class="text-xs">📅</span>
+                <span class="text-xs text-[#6B7280]">Scheduled Update</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs">⬆️</span>
+                <span class="text-xs text-[#6B7280]">Uploaded Curve</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: EXISTING SCHEDULES -->
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Existing Schedules</h2>
+        <p class="text-base text-[#6B7280]">View and manage all active curve schedules</p>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md overflow-hidden" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-[#E5E7EB]">
+            <thead class="bg-[#F9FAFB]">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Curve Name</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Type</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Location</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Frequency</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Priority</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Active</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-[#E5E7EB]">
+              {schedules.length === 0 ? (
+                <tr>
+                  <td colspan="7" class="px-4 py-8 text-center text-[#6B7280]">
+                    No schedules found. Create your first schedule below.
+                  </td>
+                </tr>
+              ) : (
+                schedules.map((schedule: any) => (
+                  <tr class="hover:bg-[#F9FAFB] transition-colors">
+                    <td class="px-4 py-3 text-sm text-[#111827] font-medium">{schedule.curveDefinition.curveName}</td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">
+                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        schedule.scheduleType === 'AD_HOC' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'
+                      }`}>
+                        {schedule.scheduleType === 'AD_HOC' ? '📋 Request' : '🔄 Schedule'}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.curveDefinition.location}</td>
+                    <td class="px-4 py-3 text-sm text-[#6B7280]">{schedule.frequency}</td>
+                    <td class="px-4 py-3">
+                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        schedule.importance === 1 ? 'bg-red-100 text-red-800' :
+                        schedule.importance === 2 ? 'bg-orange-100 text-orange-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {schedule.importance === 1 ? 'High' : schedule.importance === 2 ? 'Medium' : 'Low'}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3">
+                      <span class={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        schedule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {schedule.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                      <div class="flex items-center gap-2">
+                        <button 
+                          data-schedule-id={schedule.id}
+                          data-action="edit"
+                          class="edit-schedule-btn text-[#3B82F6] hover:text-[#2563EB] font-medium cursor-pointer"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          data-schedule-id={schedule.id}
+                          data-schedule-name={schedule.curveDefinition.curveName}
+                          data-action="delete"
+                          class="delete-schedule-btn text-[#EF4444] hover:text-[#DC2626] font-medium cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CREATE NEW SCHEDULE SECTION -->
+    <section class="mb-8">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Create New Schedule</h2>
+        <p class="text-base text-[#6B7280]">Select a curve definition and configure its delivery schedule</p>
+      </div>
+
+      <!-- Two Column Layout matching upload page methodology -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- COLUMN 1: CURVE DEFINITION SELECTION -->
+        <div class="bg-white rounded-lg overflow-hidden flex flex-col max-h-[600px] accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div class="px-6 py-4 border-b border-[#F3F4F6]">
+            <h3 class="text-lg font-semibold text-[#1F2937]">1. Select Curve Definition</h3>
+            <p class="text-sm text-[#6B7280] mt-1">Choose which curve to schedule</p>
+          </div>
+
+          <!-- Search -->
+          <div class="px-6 py-3 border-b border-gray-200">
+            <input 
+              type="text" 
+              id="scheduleDefSearch" 
+              placeholder="Search definitions..." 
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <!-- List -->
+          <div id="scheduleDefList" class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="text-center text-gray-500 text-sm py-8">Loading definitions...</div>
+          </div>
+
+          <!-- Create New -->
+          <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB]">
+            <a href="/admin/upload" class="block w-full px-4 py-2 bg-[#3B82F6] text-white rounded-md hover:bg-[#2563EB] transition-colors text-sm font-medium text-center">
+              + Create New Definition
+            </a>
+            <p class="text-xs text-[#6B7280] mt-2 text-center">Or go to curve uploader to create</p>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: REQUEST/SCHEDULE CONFIGURATION -->
+        <div class="bg-white rounded-lg overflow-hidden flex flex-col max-h-[600px] accent-border-purple" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <div class="px-6 py-4 border-b border-[#F3F4F6]">
+            <h3 class="text-lg font-semibold text-[#1F2937]">2. Create Request or Schedule</h3>
+            <p class="text-sm text-[#6B7280] mt-1">Choose your workflow</p>
+          </div>
+
+          <div id="scheduleConfigPanel" class="flex-1 overflow-y-auto px-6 py-4">
+            <div class="text-center text-gray-500 text-sm py-8">Select a curve definition first</div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB]">
+            <button id="saveScheduleBtn" class="w-full px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors text-sm font-medium" disabled>
+              💾 Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OLD FORM - REMOVED (kept for reference but properly hidden) -->
+    <div style="display: none;">
+    <form id="deliveryRequestForm" class="space-y-8">
+      
+      <!-- STEP 1: Curve Definition Selection (HIDDEN) -->
+      <div id="step1" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center mb-4">
+          <span class="text-2xl mr-3">🏗️</span>
+          <h2 class="text-xl font-bold text-gray-900">Step 1: Curve Definition</h2>
+          <div class="ml-auto">
+            <span class="text-sm text-gray-500" id="step1-status">Required</span>
+          </div>
+        </div>
+        
+        <p class="text-gray-600 mb-6">Select an existing curve definition or create a new one</p>
+        
+        <!-- Definition Selection -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Curve Definition *</label>
+          <select id="definitionOption" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Select a curve definition...</option>
+            <option value="new">+ Create New Definition</option>
+          </select>
+        </div>
+        
+        <!-- New Definition Form (Hidden by default) -->
+        <div id="newDefinitionForm" class="hidden bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <h3 class="font-medium text-gray-900 mb-4">Create New Curve Definition</h3>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Curve Name -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700">Curve Name *</label>
+              <input
+                type="text"
+                id="curveName"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="e.g., Channel_View_Revenue_4H_ANNUAL"
+              />
+            </div>
+            
+            <!-- Market -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Market *</label>
+              <select id="market" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Market</option>
+                <option value="CAISO">CAISO</option>
+                <option value="ERCOT">ERCOT</option>
+                <option value="PJM">PJM</option>
+                <option value="NYISO">NYISO</option>
+                <option value="ISO-NE">ISO-NE</option>
+                <option value="MISO">MISO</option>
+              </select>
+            </div>
+            
+            <!-- Location -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Location *</label>
+              <select id="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Location</option>
+                <option value="Channel View">Channel View</option>
+                <option value="NP15">NP15</option>
+                <option value="SP15">SP15</option>
+                <option value="ZP26">ZP26</option>
+                <option value="Houston">Houston</option>
+                <option value="North">North</option>
+                <option value="West">West</option>
+                <option value="MASS">MASS Hub</option>
+              </select>
+            </div>
+            
+            <!-- Product -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Product *</label>
+              <input
+                type="text"
+                id="product"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="e.g., Energy, AS, Total"
+              />
+            </div>
+            
+            <!-- Curve Type -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Curve Type *</label>
+              <select id="curveType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Type</option>
+                <option value="ENERGY">Energy</option>
+                <option value="REVENUE">Revenue</option>
+                <option value="TB4">TB4</option>
+                <option value="ENERGY_ARB">Energy Arbitrage</option>
+                <option value="AS">Ancillary Services</option>
+                <option value="TOTAL">Total</option>
+              </select>
+            </div>
+            
+            <!-- Battery Duration -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Battery Duration</label>
+              <select id="batteryDuration" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="UNKNOWN">Unknown</option>
+                <option value="HOUR_1">1 Hour</option>
+                <option value="HOUR_2">2 Hours</option>
+                <option value="HOUR_4">4 Hours</option>
+                <option value="HOUR_6">6 Hours</option>
+                <option value="HOUR_8">8 Hours</option>
+              </select>
+            </div>
+            
+            <!-- Granularity -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Granularity *</label>
+              <select id="granularity" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Granularity</option>
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUAL">Annual</option>
+              </select>
+            </div>
+            
+            <!-- Scenario -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Scenario</label>
+              <select id="scenario" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="BASE">Base Case</option>
+                <option value="BULL">Bull Case</option>
+                <option value="BEAR">Bear Case</option>
+                <option value="P95">P95</option>
+                <option value="P50">P50</option>
+                <option value="P5">P5</option>
+              </select>
+            </div>
+            
+            <!-- Degradation Type -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Degradation Type</label>
+              <select id="degradationType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="NONE">None</option>
+                <option value="LINEAR">Linear</option>
+                <option value="DATE">Date-based</option>
+                <option value="PERCENTAGE">Percentage</option>
+              </select>
+            </div>
+            
+            <!-- Description -->
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                id="description"
+                rows="3"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Optional description of this curve definition..."
+              ></textarea>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Step 1 Actions -->
+        <div class="flex justify-end mt-6">
+          <button
+            type="button"
+            id="step1Next"
+            class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled
+          >
+            Next: Instance Details
+          </button>
+        </div>
+      </div>
+      
+      <!-- STEP 2: Curve Instance -->
+      <div id="step2" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500 hidden">
+        <div class="flex items-center mb-4">
+          <span class="text-2xl mr-3">📈</span>
+          <h2 class="text-xl font-bold text-gray-900">Step 2: Curve Instance</h2>
+          <div class="ml-auto">
+            <span class="text-sm text-gray-500" id="step2-status">Required</span>
+          </div>
+        </div>
+        
+        <p class="text-gray-600 mb-6">Define the specific forecast run details</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Instance Version -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Instance Version *</label>
+            <input
+              type="text"
+              id="instanceVersion"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              placeholder="e.g., Aug 2025, v1.0, Q3-2024"
+            />
+          </div>
+          
+          <!-- Created By -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Created By</label>
+            <input
+              type="text"
+              id="createdBy"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              placeholder="e.g., GridStor Internal, Aurora"
+              value="GridStor Internal"
+            />
+          </div>
+          
+          <!-- Delivery Period Start -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Delivery Period Start *</label>
+            <input
+              type="date"
+              id="deliveryPeriodStart"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+            />
+          </div>
+          
+          <!-- Delivery Period End -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Delivery Period End *</label>
+            <input
+              type="date"
+              id="deliveryPeriodEnd"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+            />
+          </div>
+          
+          <!-- Model Type -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Model Type</label>
+            <input
+              type="text"
+              id="modelType"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              placeholder="e.g., Fundamental, Statistical"
+              value="Fundamental"
+            />
+          </div>
+          
+          <!-- Notes -->
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Notes</label>
+            <textarea
+              id="notes"
+              rows="3"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              placeholder="Optional notes about this instance..."
+            ></textarea>
+          </div>
+        </div>
+        
+        <!-- Step 2 Actions -->
+        <div class="flex justify-between mt-6">
+          <button
+            type="button"
+            id="step2Back"
+            class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            Back
+          </button>
+          <button
+            type="button"
+            id="step2Next"
+            class="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled
+          >
+            Next: Delivery Request
+          </button>
+        </div>
+      </div>
+      
+      <!-- STEP 3: Delivery Request -->
+      <div id="step3" class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500 hidden">
+        <div class="flex items-center mb-4">
+          <span class="text-2xl mr-3">📋</span>
+          <h2 class="text-xl font-bold text-gray-900">Step 3: Delivery Request</h2>
+          <div class="ml-auto">
+            <span class="text-sm text-gray-500" id="step3-status">Required</span>
+          </div>
+        </div>
+        
+        <p class="text-gray-600 mb-6">Set delivery tracking and responsibility details</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Due Date -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Due Date *</label>
+            <input
+              type="date"
+              id="dueDate"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+            />
+          </div>
+          
+          <!-- Priority -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Priority</label>
+            <select id="priority" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="LOW">Low</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+          </div>
+          
+          <!-- Requested By -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Requested By</label>
+            <input
+              type="text"
+              id="requestedBy"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+              placeholder="e.g., John Doe, Analytics Team"
+              value="GridStor Analytics"
+            />
+          </div>
+          
+          <!-- Responsible Team -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Responsible Team</label>
+            <input
+              type="text"
+              id="responsibleTeam"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+              placeholder="e.g., Forecasting, External Vendor"
+              value="Forecasting Team"
+            />
+          </div>
+          
+          <!-- Request Notes -->
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700">Request Notes</label>
+            <textarea
+              id="requestNotes"
+              rows="3"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500"
+              placeholder="Additional details about this delivery request..."
+            ></textarea>
+          </div>
+        </div>
+        
+        <!-- Step 3 Actions -->
+        <div class="flex justify-between mt-6">
+          <button
+            type="button"
+            id="step3Back"
+            class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+          >
+            Back
+          </button>
+          <button
+            type="submit"
+            id="createRequest"
+            class="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled
+          >
+            Create Delivery Request
+          </button>
+        </div>
+      </div>
+    </form>
+    </div>
+    <!-- END OF OLD FORM WRAPPER -->
+
+  <!-- SUCCESS/ERROR/MODAL COMPONENTS (MOVED OUTSIDE HIDDEN WRAPPER) -->
+  
+  <!-- Success/Error Messages -->
+  <div id="notification" class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white hidden">
+    <p id="notification-text"></p>
+  </div>
+
+  <!-- Note Modal -->
+  <div id="noteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6 border-b border-[#E5E7EB]">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-[#1F2937]">Add Note</h3>
+            <button onclick="closeNoteModal()" type="button" class="text-[#6B7280] hover:text-[#374151] transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <p id="noteModalDate" class="text-sm text-[#6B7280] mt-1"></p>
+        </div>
+        <div class="p-6">
+          <textarea 
+            id="noteTextarea" 
+            rows="4" 
+            class="w-full border border-[#E5E7EB] rounded-md px-3 py-2 text-sm text-[#111827] focus:border-[#8B5CF6] focus:ring-2 focus:ring-[#8B5CF6] focus:ring-opacity-50 outline-none resize-none"
+            placeholder="Enter your note here..."
+          ></textarea>
+        </div>
+        <div class="p-6 border-t border-[#E5E7EB] flex justify-end gap-3">
+          <button 
+            onclick="closeNoteModal()" 
+            type="button"
+            class="px-4 py-2 text-sm font-medium text-[#6B7280] hover:text-[#374151] transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onclick="saveNote()" 
+            type="button"
+            class="px-4 py-2 text-sm font-medium bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] transition-colors"
+          >
+            Save Note
+          </button>
+        </div>
+      </div>
+    </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white"></div>
+
+  <!-- Show All Curves Modal -->
+  <div id="showAllCurvesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+      <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-[#1F2937]">All Curves</h3>
+          <p id="allCurvesDate" class="text-sm text-[#6B7280] mt-1"></p>
+        </div>
+        <button id="closeAllCurves" class="text-[#9CA3AF] hover:text-[#6B7280]">✕</button>
+      </div>
+      <div id="allCurvesList" class="px-6 py-4 overflow-y-auto flex-1">
+        <!-- Items will be dynamically added here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Schedule Modal -->
+    <div id="editScheduleModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] min-h-[400px] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-[#1F2937]" id="editScheduleTitle">Edit Schedule</h3>
+          <button id="closeEditSchedule" class="text-[#9CA3AF] hover:text-[#6B7280]">✕</button>
+        </div>
+        <div class="px-6 py-4">
+          <input type="hidden" id="editScheduleId" />
+          <input type="hidden" id="editScheduleType" />
+          
+          <!-- Curve Info (read-only) -->
+          <div class="mb-4 p-4 bg-[#F9FAFB] rounded-lg">
+            <div class="text-sm font-medium text-[#6B7280]">Curve Definition:</div>
+            <div id="editCurveName" class="text-base text-[#111827] font-mono"></div>
+          </div>
+
+          <!-- Linked Instances -->
+          <div id="linkedInstancesSection" class="mb-4 hidden">
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="text-sm font-medium text-green-900 mb-2">✅ Fulfilled By:</div>
+              <div id="linkedInstancesList" class="text-xs text-green-800 space-y-1"></div>
+            </div>
+          </div>
+
+          <!-- Link Instances Section -->
+          <div id="linkInstancesSection" class="mb-4 hidden">
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-sm font-medium text-blue-900">🔗 Link Curve Instance</div>
+                <button id="toggleInstanceList" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                  Show Available Instances
+                </button>
+              </div>
+              <div id="availableInstancesList" class="hidden mt-2 max-h-40 overflow-y-auto space-y-2"></div>
+            </div>
+          </div>
+
+          <!-- Quick Request Fields -->
+          <div id="editQuickFields" class="space-y-4 hidden">
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Due Date *</label>
+              <input type="date" id="editDueDate" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Requested By</label>
+              <input type="text" id="editRequestedBy" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Status</label>
+              <select id="editStatus" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority</label>
+              <select id="editPriority" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="1">High</option>
+                <option value="2">Medium</option>
+                <option value="3">Low</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Notes</label>
+              <textarea id="editNotes" rows="4" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md"></textarea>
+            </div>
+          </div>
+
+          <!-- Recurring Schedule Fields -->
+          <div id="editRecurringFields" class="space-y-4 hidden">
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Frequency</label>
+              <select id="editFrequency" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUALLY">Annual</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Week (for weekly)</label>
+              <select id="editDayOfWeek" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="">N/A</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Month (for monthly)</label>
+              <input type="number" id="editDayOfMonth" min="1" max="31" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority</label>
+              <select id="editImportance" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md">
+                <option value="1">High</option>
+                <option value="2">Medium</option>
+                <option value="3">Low</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Responsible Team</label>
+              <input type="text" id="editTeam" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Notification Emails</label>
+              <input type="text" id="editEmails" placeholder="email1@example.com, email2@example.com" class="w-full px-3 py-2 border border-[#E5E7EB] rounded-md" />
+            </div>
+          </div>
+
+          <!-- Common Fields -->
+          <div class="mt-4">
+            <label class="flex items-center gap-2">
+              <input type="checkbox" id="editIsActive" class="w-4 h-4 text-[#3B82F6] border-[#E5E7EB] rounded" />
+              <span class="text-sm text-[#6B7280]">Active</span>
+            </label>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-[#E5E7EB] bg-[#F9FAFB] flex justify-end gap-3">
+          <button id="cancelEditSchedule" class="px-4 py-2 border border-[#E5E7EB] rounded-md text-[#6B7280] hover:bg-[#F3F4F6] font-medium">Cancel</button>
+          <button id="saveEditSchedule" class="px-4 py-2 bg-[#8B5CF6] text-white rounded-md hover:bg-[#7C3AED] font-medium">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+  <script>
+    // ==================== NEW SCHEDULE CREATION ====================
+    let selectedDefinitionId: number | null = null;
+    let allDefinitions: any[] = [];
+
+    // Fetch all curve definitions
+    async function loadDefinitions() {
+      try {
+        const response = await fetch('/api/curves/definitions');
+        const data = await response.json();
+        allDefinitions = data;
+        renderDefinitionsList(allDefinitions);
+      } catch (error) {
+        console.error('Error loading definitions:', error);
+        const list = document.getElementById('scheduleDefList');
+        if (list) {
+          list.innerHTML = '<div class="text-center text-red-500 text-sm py-8">Error loading definitions</div>';
+        }
+      }
+    }
+
+    // Render definitions list
+    function renderDefinitionsList(definitions: any[]) {
+      const list = document.getElementById('scheduleDefList');
+      if (!list) return;
+
+      if (definitions.length === 0) {
+        list.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No definitions found.<br/>Create one using the button below.</div>';
+        return;
+      }
+
+      list.innerHTML = definitions.map(def => `
+        <div 
+          class="p-3 mb-2 border border-[#E5E7EB] rounded-md cursor-pointer hover:bg-[#EFF6FF] hover:border-[#3B82F6] transition-all ${selectedDefinitionId === def.id ? 'bg-[#EFF6FF] border-[#3B82F6] ring-2 ring-[#3B82F6]' : ''}"
+          onclick="selectDefinition(${def.id})"
+        >
+          <div class="font-medium text-sm text-[#111827]">${def.curveName}</div>
+          <div class="text-xs text-[#6B7280] mt-1">${def.market} • ${def.location}</div>
+          <div class="text-xs text-[#6B7280] mt-1 font-mono">${def.batteryDuration} • ${def.units || '$/MWh'}</div>
+        </div>
+      `).join('');
+    }
+
+    // Select definition (expose to global scope for onclick handlers)
+    (window as any).selectDefinition = function(defId: number) {
+      selectedDefinitionId = defId;
+      const definition = allDefinitions.find(d => d.id === defId);
+      
+      renderDefinitionsList(allDefinitions);
+      showScheduleConfigPanel(definition);
+    }
+
+    // Show schedule configuration panel
+    function showScheduleConfigPanel(definition: any) {
+      const panel = document.getElementById('scheduleConfigPanel');
+      const saveBtn = document.getElementById('saveScheduleBtn') as HTMLButtonElement;
+      
+      if (!panel || !saveBtn) return;
+
+      saveBtn.disabled = false;
+
+      panel.innerHTML = `
+        <div class="space-y-4">
+          <!-- Selected Definition Info -->
+          <div class="bg-[#F9FAFB] rounded-lg p-4 border border-[#E5E7EB]">
+            <h4 class="font-medium text-sm text-[#111827] mb-2">Selected Curve:</h4>
+            <div class="text-xs text-[#6B7280]">
+              <div class="font-mono">${definition.curveName}</div>
+              <div class="mt-1">${definition.market} • ${definition.location}</div>
+            </div>
+          </div>
+
+          <!-- Workflow Selector -->
+          <div class="bg-white rounded-lg border-2 border-[#8B5CF6] p-4">
+            <label class="block text-sm font-semibold text-[#111827] mb-3">Choose Workflow:</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button 
+                type="button"
+                id="quickRequestBtn"
+                class="px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium bg-[#8B5CF6] border-[#8B5CF6] text-white"
+                onclick="switchWorkflow('quick')"
+              >
+                📋 Quick Request
+                <div class="text-xs font-normal mt-1 opacity-90">One-time delivery</div>
+              </button>
+              <button 
+                type="button"
+                id="recurringScheduleBtn"
+                class="px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium border-[#E5E7EB] text-[#6B7280] hover:border-[#8B5CF6]"
+                onclick="switchWorkflow('recurring')"
+              >
+                🔄 Recurring Schedule
+                <div class="text-xs font-normal mt-1">Regular cadence</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Request Form -->
+          <div id="quickRequestForm" class="space-y-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
+              <strong>Quick Request:</strong> Track a one-time curve delivery request
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Due Date *</label>
+              <input type="date" id="quickDueDate" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" required />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Requested By</label>
+              <input type="text" id="quickRequestedBy" placeholder="e.g., John Doe, Sales Team" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority</label>
+              <select id="quickPriority" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+                <option value="3">Low</option>
+                <option value="2" selected>Medium</option>
+                <option value="1">High</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Request Notes</label>
+              <textarea id="quickNotes" rows="4" placeholder="What is needed and why..." class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]"></textarea>
+            </div>
+
+            <div class="text-xs text-[#6B7280] italic">
+              💡 After delivery, link the curve instance that fulfilled this request
+            </div>
+          </div>
+
+          <!-- Recurring Schedule Form -->
+          <div id="recurringScheduleForm" class="space-y-4 hidden">
+            <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+              <strong>Recurring Schedule:</strong> Set up ongoing curve updates
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Update Frequency *</label>
+              <select id="scheduleFrequency" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+                <option value="DAILY">Daily</option>
+                <option value="WEEKLY">Weekly</option>
+                <option value="MONTHLY" selected>Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUALLY">Annual</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Week (for weekly)</label>
+              <select id="scheduleDayOfWeek" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md">
+                <option value="">N/A</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Day of Month (for monthly)</label>
+              <input type="number" id="scheduleDayOfMonth" min="1" max="31" placeholder="e.g., 15" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Priority Level</label>
+              <select id="scheduleImportance" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]">
+                <option value="1">High (Red)</option>
+                <option value="2" selected>Medium (Orange)</option>
+                <option value="3">Low (Yellow)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Responsible Team</label>
+              <input type="text" id="scheduleTeam" value="Market Analysis" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-[#6B7280] mb-2">Notification Emails</label>
+              <input type="text" id="scheduleEmails" placeholder="email1@example.com, email2@example.com" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md focus:ring-2 focus:ring-[#8B5CF6]" />
+              <p class="text-xs text-[#9CA3AF] mt-1">Comma-separated list</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Workflow switcher
+    (window as any).switchWorkflow = function(type: 'quick' | 'recurring') {
+      const quickForm = document.getElementById('quickRequestForm');
+      const recurringForm = document.getElementById('recurringScheduleForm');
+      const quickBtn = document.getElementById('quickRequestBtn');
+      const recurringBtn = document.getElementById('recurringScheduleBtn');
+      const saveBtn = document.getElementById('saveScheduleBtn');
+      
+      if (type === 'quick') {
+        quickForm?.classList.remove('hidden');
+        recurringForm?.classList.add('hidden');
+        quickBtn?.classList.add('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        quickBtn?.classList.remove('border-[#E5E7EB]', 'text-[#6B7280]');
+        recurringBtn?.classList.remove('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        recurringBtn?.classList.add('border-[#E5E7EB]', 'text-[#6B7280]');
+        if (saveBtn) saveBtn.textContent = '💾 Create Request';
+      } else {
+        quickForm?.classList.add('hidden');
+        recurringForm?.classList.remove('hidden');
+        recurringBtn?.classList.add('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        recurringBtn?.classList.remove('border-[#E5E7EB]', 'text-[#6B7280]');
+        quickBtn?.classList.remove('bg-[#8B5CF6]', 'border-[#8B5CF6]', 'text-white');
+        quickBtn?.classList.add('border-[#E5E7EB]', 'text-[#6B7280]');
+        if (saveBtn) saveBtn.textContent = '💾 Create Schedule';
+      }
+    }
+
+    // Search definitions
+    document.getElementById('scheduleDefSearch')?.addEventListener('input', (e) => {
+      const searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+      const filtered = allDefinitions.filter(def => 
+        def.curveName.toLowerCase().includes(searchTerm) ||
+        def.market.toLowerCase().includes(searchTerm) ||
+        def.location.toLowerCase().includes(searchTerm)
+      );
+      renderDefinitionsList(filtered);
+    });
+
+    // Save schedule or request
+    document.getElementById('saveScheduleBtn')?.addEventListener('click', async () => {
+      if (!selectedDefinitionId) return;
+
+      // Check which workflow is active
+      const quickForm = document.getElementById('quickRequestForm');
+      const isQuickRequest = !quickForm?.classList.contains('hidden');
+
+      if (isQuickRequest) {
+        // Quick Request workflow
+        const dueDate = (document.getElementById('quickDueDate') as HTMLInputElement)?.value;
+        const requestedBy = (document.getElementById('quickRequestedBy') as HTMLInputElement)?.value;
+        const priority = (document.getElementById('quickPriority') as HTMLSelectElement)?.value;
+        const notes = (document.getElementById('quickNotes') as HTMLTextAreaElement)?.value;
+
+        if (!dueDate) {
+          showToast('Please select a due date', 'error');
+          return;
+        }
+
+        const scheduleData = {
+          curveDefinitionId: selectedDefinitionId,
+          frequency: 'ON_DEMAND',
+          dayOfWeek: null,
+          dayOfMonth: null,
+          leadTimeDays: 0,
+          freshnessDays: 30,
+          importance: parseInt(priority || '2'),
+          responsibleTeam: requestedBy || 'Unknown',
+          notificationEmails: [],
+          scheduleType: 'AD_HOC',
+          notes: notes || '',
+          dueDate: dueDate
+        };
+
+        try {
+          const response = await fetch('/api/curve-schedule/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleData)
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            showToast('Request created successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            showToast(result.message || 'Error creating request', 'error');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showToast('Failed to create request', 'error');
+        }
+      } else {
+        // Recurring Schedule workflow
+        const frequency = (document.getElementById('scheduleFrequency') as HTMLSelectElement)?.value;
+        const dayOfWeek = (document.getElementById('scheduleDayOfWeek') as HTMLSelectElement)?.value;
+        const dayOfMonth = (document.getElementById('scheduleDayOfMonth') as HTMLInputElement)?.value;
+        const importance = (document.getElementById('scheduleImportance') as HTMLSelectElement)?.value;
+        const team = (document.getElementById('scheduleTeam') as HTMLInputElement)?.value;
+        const emails = (document.getElementById('scheduleEmails') as HTMLInputElement)?.value;
+
+        const emailArray = emails ? emails.split(',').map(e => e.trim()).filter(e => e) : [];
+
+        const scheduleData = {
+          curveDefinitionId: selectedDefinitionId,
+          frequency,
+          dayOfWeek: dayOfWeek ? parseInt(dayOfWeek) : null,
+          dayOfMonth: dayOfMonth ? parseInt(dayOfMonth) : null,
+          leadTimeDays: 0,
+          freshnessDays: 30,
+          importance: parseInt(importance || '2'),
+          responsibleTeam: team || 'Market Analysis',
+          notificationEmails: emailArray,
+          scheduleType: 'REGULAR'
+        };
+
+        try {
+          const response = await fetch('/api/curve-schedule/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(scheduleData)
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            showToast('Schedule created successfully!', 'success');
+            setTimeout(() => window.location.reload(), 1500);
+          } else {
+            showToast(result.message || 'Error creating schedule', 'error');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          showToast('Failed to create schedule', 'error');
+        }
+      }
+    });
+
+    function showToast(message: string, type: 'success' | 'error') {
+      const toast = document.getElementById('toast');
+      if (!toast) return;
+
+      toast.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white ${
+        type === 'success' ? 'bg-green-600' : 'bg-red-600'
+      }`;
+      toast.textContent = message;
+      toast.classList.remove('hidden');
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3000);
+    }
+
+    // Load definitions on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDefinitions();
+    });
+
+    // ==================== SCHEDULE MANAGEMENT ====================
+    
+    // Edit schedule
+    async function editSchedule(id: number) {
+      try {
+        const response = await fetch(`/api/curve-schedule/${id}`);
+        const result = await response.json();
+        
+        if (!result.success) {
+          showToast('Failed to load schedule', 'error');
+          return;
+        }
+        
+        const schedule = result.data;
+        const isQuickRequest = schedule.scheduleType === 'AD_HOC';
+        
+        // Populate modal
+        (document.getElementById('editScheduleId') as HTMLInputElement).value = schedule.id;
+        (document.getElementById('editScheduleType') as HTMLInputElement).value = schedule.scheduleType;
+        (document.getElementById('editCurveName') as HTMLElement).textContent = schedule.curveDefinition.curveName;
+        (document.getElementById('editIsActive') as HTMLInputElement).checked = schedule.isActive;
+        
+        // Show appropriate title
+        (document.getElementById('editScheduleTitle') as HTMLElement).textContent = 
+          isQuickRequest ? 'Edit Request' : 'Edit Schedule';
+        
+        if (isQuickRequest) {
+          // Show quick request fields
+          document.getElementById('editQuickFields')!.classList.remove('hidden');
+          document.getElementById('editRecurringFields')!.classList.add('hidden');
+          
+          const metadata = schedule.metadata || {};
+          (document.getElementById('editDueDate') as HTMLInputElement).value = metadata.dueDate || '';
+          (document.getElementById('editRequestedBy') as HTMLInputElement).value = schedule.responsibleTeam || '';
+          (document.getElementById('editPriority') as HTMLSelectElement).value = schedule.importance.toString();
+          (document.getElementById('editNotes') as HTMLTextAreaElement).value = metadata.notes || '';
+          
+          // Get status from first schedule run if exists
+          if (schedule.scheduleRuns && schedule.scheduleRuns.length > 0) {
+            (document.getElementById('editStatus') as HTMLSelectElement).value = schedule.scheduleRuns[0].status || 'PENDING';
+          }
+        } else {
+          // Show recurring schedule fields
+          document.getElementById('editQuickFields')!.classList.add('hidden');
+          document.getElementById('editRecurringFields')!.classList.remove('hidden');
+          
+          (document.getElementById('editFrequency') as HTMLSelectElement).value = schedule.frequency;
+          (document.getElementById('editDayOfWeek') as HTMLSelectElement).value = schedule.dayOfWeek?.toString() || '';
+          (document.getElementById('editDayOfMonth') as HTMLInputElement).value = schedule.dayOfMonth?.toString() || '';
+          (document.getElementById('editImportance') as HTMLSelectElement).value = schedule.importance.toString();
+          (document.getElementById('editTeam') as HTMLInputElement).value = schedule.responsibleTeam || '';
+          (document.getElementById('editEmails') as HTMLInputElement).value = schedule.notificationEmails?.join(', ') || '';
+        }
+        
+        // Load linked instances and available instances (only for quick requests)
+        if (isQuickRequest) {
+          await loadLinkedInstances(schedule.id);
+          await loadAvailableInstances(schedule.curveDefinitionId, schedule.id);
+          document.getElementById('linkInstancesSection')!.classList.remove('hidden');
+        } else {
+          document.getElementById('linkInstancesSection')!.classList.add('hidden');
+        }
+        
+        // Show modal
+        document.getElementById('editScheduleModal')!.classList.remove('hidden');
+        
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+        showToast('Error loading schedule details', 'error');
+      }
+    }
+    
+    // Load instances that are linked to this schedule
+    async function loadLinkedInstances(scheduleId: number) {
+      try {
+        const response = await fetch(`/api/curves/instances-by-schedule?scheduleId=${scheduleId}`);
+        const result = await response.json();
+        
+        const section = document.getElementById('linkedInstancesSection');
+        const list = document.getElementById('linkedInstancesList');
+        
+        if (!section || !list) return;
+        
+        if (result.instances && result.instances.length > 0) {
+          section.classList.remove('hidden');
+          list.innerHTML = result.instances.map((inst: any) => `
+            <div class="flex items-center justify-between py-1 px-2 hover:bg-green-100 rounded">
+              <span class="text-xs">${inst.instanceVersion} - ${inst.status}</span>
+              <div class="flex items-center gap-2">
+                <a href="/admin/inventory?instanceId=${inst.id}" class="text-blue-600 hover:text-blue-800 text-xs">View →</a>
+                <button 
+                  onclick="unlinkInstance(${inst.id}, ${scheduleId})" 
+                  class="text-red-600 hover:text-red-800 text-xs font-medium"
+                  title="Unlink this instance"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          section.classList.add('hidden');
+        }
+      } catch (error) {
+        console.error('Error loading linked instances:', error);
+      }
+    }
+
+    // Load available instances for the curve definition
+    let currentScheduleId: number | null = null;
+    async function loadAvailableInstances(definitionId: number, scheduleId: number) {
+      currentScheduleId = scheduleId;
+      try {
+        const response = await fetch(`/api/curves/instances?definitionId=${definitionId}`);
+        const result = await response.json();
+        
+        const list = document.getElementById('availableInstancesList');
+        if (!list) return;
+        
+        // Get linked instance IDs
+        const linkedResponse = await fetch(`/api/curves/instances-by-schedule?scheduleId=${scheduleId}`);
+        const linkedResult = await linkedResponse.json();
+        const linkedIds = (linkedResult.instances || []).map((i: any) => i.id);
+        
+        // Filter out already linked instances
+        const availableInstances = (result.instances || []).filter((inst: any) => !linkedIds.includes(inst.id));
+        
+        if (availableInstances.length === 0) {
+          list.innerHTML = '<div class="text-xs text-blue-700 text-center py-2">No unlinked instances available</div>';
+        } else {
+          list.innerHTML = availableInstances.map((inst: any) => `
+            <div class="flex items-center justify-between py-1 px-2 bg-white rounded border border-blue-200 hover:bg-blue-50">
+              <div class="flex-1">
+                <div class="text-xs font-medium text-blue-900">${inst.instanceVersion}</div>
+                <div class="text-xs text-blue-700">${inst.status} • ${new Date(inst.createdAt).toLocaleDateString()}</div>
+              </div>
+              <button 
+                onclick="linkInstance(${inst.id}, ${scheduleId})" 
+                class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
+                title="Link this instance to fulfill the request"
+              >
+                Link
+              </button>
+            </div>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading available instances:', error);
+        const list = document.getElementById('availableInstancesList');
+        if (list) {
+          list.innerHTML = '<div class="text-xs text-red-600 text-center py-2">Error loading instances</div>';
+        }
+      }
+    }
+
+    // Link an instance to a schedule
+    (window as any).linkInstance = async function(instanceId: number, scheduleId: number) {
+      try {
+        const response = await fetch('/api/curves/link-instance', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instanceId, scheduleId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Instance linked successfully', 'success');
+          // Reload both lists
+          await loadLinkedInstances(scheduleId);
+          const schedule = await fetch(`/api/curve-schedule/${scheduleId}`).then(r => r.json());
+          if (schedule.success) {
+            await loadAvailableInstances(schedule.data.curveDefinitionId, scheduleId);
+          }
+        } else {
+          showToast(result.message || 'Failed to link instance', 'error');
+        }
+      } catch (error) {
+        console.error('Error linking instance:', error);
+        showToast('Error linking instance', 'error');
+      }
+    };
+
+    // Unlink an instance from a schedule
+    (window as any).unlinkInstance = async function(instanceId: number, scheduleId: number) {
+      if (!confirm('Unlink this instance from the request?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/curves/link-instance', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ instanceId })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Instance unlinked successfully', 'success');
+          // Reload both lists
+          await loadLinkedInstances(scheduleId);
+          const schedule = await fetch(`/api/curve-schedule/${scheduleId}`).then(r => r.json());
+          if (schedule.success) {
+            await loadAvailableInstances(schedule.data.curveDefinitionId, scheduleId);
+          }
+        } else {
+          showToast(result.message || 'Failed to unlink instance', 'error');
+        }
+      } catch (error) {
+        console.error('Error unlinking instance:', error);
+        showToast('Error unlinking instance', 'error');
+      }
+    };
+    
+    // Delete schedule
+    async function deleteSchedule(id: number, name: string) {
+      if (!confirm(`Delete schedule/request for "${name}"?\n\nThis will remove it from the calendar.`)) {
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/curve-schedule/update', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          showToast('Schedule deleted successfully', 'success');
+          setTimeout(() => window.location.reload(), 1000);
+        } else {
+          showToast(result.message || 'Failed to delete schedule', 'error');
+        }
+      } catch (error) {
+        console.error('Error deleting schedule:', error);
+        showToast('Error deleting schedule', 'error');
+      }
+    }
+    
+    // Show all curves for a specific date
+    (window as any).showAllForDate = function(dateKey: string) {
+      const calendarGrid = document.getElementById('calendarGrid');
+      const schedulesData = calendarGrid ? JSON.parse(calendarGrid.getAttribute('data-schedules') || '{}') : {};
+      const items = schedulesData[dateKey] || [];
+      const dateObj = new Date(dateKey + 'T00:00:00');
+      const dateDisplay = dateObj.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+      
+      const dateDisplayEl = document.getElementById('allCurvesDate');
+      const listEl = document.getElementById('allCurvesList');
+      
+      if (dateDisplayEl && listEl) {
+        dateDisplayEl.textContent = dateDisplay;
+        
+        listEl.innerHTML = items.map((schedule: any) => `
+          <div class="mb-2 p-3 rounded-lg border ${
+            schedule.type === 'uploaded' 
+              ? 'bg-blue-50 border-blue-200' 
+              : schedule.importance === 1 ? 'bg-red-50 border-red-200' :
+                schedule.importance === 2 ? 'bg-orange-50 border-orange-200' :
+                'bg-yellow-50 border-yellow-200'
+          }">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-base">${schedule.type === 'uploaded' ? '⬆️' : '📅'}</span>
+              <div class="font-semibold text-sm text-gray-900">${schedule.name}</div>
+            </div>
+            <div class="text-xs text-gray-600 ml-6">
+              <div>📍 ${schedule.location} • ${schedule.market || 'N/A'}</div>
+              ${schedule.type === 'uploaded' ? `<div>Version: ${schedule.instanceVersion}</div>` : ''}
+              <div class="mt-1">
+                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                  schedule.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                  schedule.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                  schedule.status === 'FAILED' ? 'bg-red-100 text-red-800' :
+                  'bg-gray-100 text-gray-800'
+                }">
+                  ${schedule.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      document.getElementById('showAllCurvesModal')!.classList.remove('hidden');
+    };
+    
+    // Expose functions to window immediately for onclick handlers (backwards compatibility)
+    (window as any).editSchedule = editSchedule;
+    (window as any).deleteSchedule = deleteSchedule;
+    
+    // Set up event listeners after DOM is ready
+    function setupEventListeners() {
+      // Use event delegation on document so it works even if buttons are added dynamically
+      document.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        
+        // Check if clicked element is an edit or delete button
+        const editBtn = target.closest('.edit-schedule-btn');
+        const deleteBtn = target.closest('.delete-schedule-btn');
+        
+        if (editBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const scheduleId = parseInt(editBtn.getAttribute('data-schedule-id') || '0');
+          if (scheduleId) {
+            editSchedule(scheduleId);
+          }
+        } else if (deleteBtn) {
+          e.preventDefault();
+          e.stopPropagation();
+          const scheduleId = parseInt(deleteBtn.getAttribute('data-schedule-id') || '0');
+          const scheduleName = deleteBtn.getAttribute('data-schedule-name') || 'this schedule';
+          if (scheduleId) {
+            deleteSchedule(scheduleId, scheduleName);
+          }
+        }
+      });
+      
+      // Toggle instance list visibility
+      document.getElementById('toggleInstanceList')?.addEventListener('click', () => {
+        const list = document.getElementById('availableInstancesList');
+        const button = document.getElementById('toggleInstanceList');
+        if (list && button) {
+          if (list.classList.contains('hidden')) {
+            list.classList.remove('hidden');
+            button.textContent = 'Hide Available Instances';
+          } else {
+            list.classList.add('hidden');
+            button.textContent = 'Show Available Instances';
+          }
+        }
+      });
+
+      // Modal handlers
+      document.getElementById('closeEditSchedule')?.addEventListener('click', () => {
+        const modal = document.getElementById('editScheduleModal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.style.cssText = ''; // Clear inline styles
+        }
+        // Hide instance list when closing modal
+        const list = document.getElementById('availableInstancesList');
+        const button = document.getElementById('toggleInstanceList');
+        if (list && button) {
+          list.classList.add('hidden');
+          button.textContent = 'Show Available Instances';
+        }
+      });
+      
+      document.getElementById('cancelEditSchedule')?.addEventListener('click', () => {
+        const modal = document.getElementById('editScheduleModal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.style.cssText = ''; // Clear inline styles
+        }
+        // Hide instance list when closing modal
+        const list = document.getElementById('availableInstancesList');
+        const button = document.getElementById('toggleInstanceList');
+        if (list && button) {
+          list.classList.add('hidden');
+          button.textContent = 'Show Available Instances';
+        }
+      });
+      
+      document.getElementById('saveEditSchedule')?.addEventListener('click', async () => {
+        const id = (document.getElementById('editScheduleId') as HTMLInputElement).value;
+        const scheduleType = (document.getElementById('editScheduleType') as HTMLInputElement).value;
+        const isActive = (document.getElementById('editIsActive') as HTMLInputElement).checked;
+        
+        const isQuickRequest = scheduleType === 'AD_HOC';
+        
+        const updateData: any = {
+          id: parseInt(id),
+          isActive
+        };
+        
+        if (isQuickRequest) {
+          // Quick request fields
+          updateData.dueDate = (document.getElementById('editDueDate') as HTMLInputElement).value;
+          updateData.responsibleTeam = (document.getElementById('editRequestedBy') as HTMLInputElement).value;
+          updateData.importance = parseInt((document.getElementById('editPriority') as HTMLSelectElement).value);
+          updateData.notes = (document.getElementById('editNotes') as HTMLTextAreaElement).value;
+          updateData.status = (document.getElementById('editStatus') as HTMLSelectElement).value;
+        } else {
+          // Recurring schedule fields
+          updateData.frequency = (document.getElementById('editFrequency') as HTMLSelectElement).value;
+          updateData.dayOfWeek = (document.getElementById('editDayOfWeek') as HTMLSelectElement).value;
+          updateData.dayOfMonth = (document.getElementById('editDayOfMonth') as HTMLInputElement).value;
+          updateData.importance = parseInt((document.getElementById('editImportance') as HTMLSelectElement).value);
+          updateData.responsibleTeam = (document.getElementById('editTeam') as HTMLInputElement).value;
+          const emails = (document.getElementById('editEmails') as HTMLInputElement).value;
+          updateData.notificationEmails = emails ? emails.split(',').map(e => e.trim()) : [];
+        }
+        
+        try {
+          const response = await fetch('/api/curve-schedule/update', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            showToast('Schedule updated successfully', 'success');
+            document.getElementById('editScheduleModal')!.classList.add('hidden');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showToast(result.message || 'Failed to update schedule', 'error');
+          }
+        } catch (error) {
+          console.error('Error updating schedule:', error);
+          showToast('Error updating schedule', 'error');
+        }
+      });
+      
+      // Close modal when clicking backdrop
+      document.getElementById('editScheduleModal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('editScheduleModal')!.classList.add('hidden');
+        }
+      });
+      
+      // Close "Show All Curves" modal
+      document.getElementById('closeAllCurves')?.addEventListener('click', () => {
+        document.getElementById('showAllCurvesModal')!.classList.add('hidden');
+      });
+      
+      document.getElementById('showAllCurvesModal')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) {
+          document.getElementById('showAllCurvesModal')!.classList.add('hidden');
+        }
+      });
+    }
+    
+    // Call immediately if DOM is already loaded, otherwise wait
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupEventListeners);
+    } else {
+      setupEventListeners();
+    }
+
+    // ==================== MONTH NAVIGATION ====================
+    // Get current year and month from URL or use today
+    const urlParams = new URLSearchParams(window.location.search);
+    const yearParam = urlParams.get('year');
+    const monthParam = urlParams.get('month');
+    
+    const today = new Date();
+    let currentYear = yearParam ? parseInt(yearParam) : today.getFullYear();
+    let currentMonth = monthParam ? parseInt(monthParam) - 1 : today.getMonth();
+    
+    let currentDate = new Date(currentYear, currentMonth, 1);
+
+    function updateCalendar(year: number, month: number) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('year', year.toString());
+      url.searchParams.set('month', (month + 1).toString());
+      window.location.href = url.toString();
+    }
+
+    document.getElementById('prevMonth')?.addEventListener('click', () => {
+      currentDate.setMonth(currentDate.getMonth() - 1);
+      updateCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    });
+
+    document.getElementById('nextMonth')?.addEventListener('click', () => {
+      currentDate.setMonth(currentDate.getMonth() + 1);
+      updateCalendar(currentDate.getFullYear(), currentDate.getMonth());
+    });
+
+    // ==================== NOTES FUNCTIONALITY ====================
+    interface CalendarNote {
+      date: string;
+      text: string;
+      timestamp: number;
+    }
+
+    let currentNoteDate: string = '';
+    const NOTES_STORAGE_KEY = 'calendar_notes';
+
+    function loadNotes(): Record<string, CalendarNote[]> {
+      const stored = localStorage.getItem(NOTES_STORAGE_KEY);
+      return stored ? JSON.parse(stored) : {};
+    }
+
+    function saveNotesToStorage(notes: Record<string, CalendarNote[]>) {
+      localStorage.setItem(NOTES_STORAGE_KEY, JSON.stringify(notes));
+    }
+
+    // Note modal functions
+    function openNoteModal(date: string) {
+      currentNoteDate = date;
+      const modal = document.getElementById('noteModal');
+      const dateDisplay = document.getElementById('noteModalDate');
+      const textarea = document.getElementById('noteTextarea') as HTMLTextAreaElement;
+      
+      if (modal && dateDisplay && textarea) {
+        const dateObj = new Date(date + 'T00:00:00');
+        dateDisplay.textContent = dateObj.toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        textarea.value = '';
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function closeNoteModal() {
+      const modal = document.getElementById('noteModal');
+      const textarea = document.getElementById('noteTextarea') as HTMLTextAreaElement;
+      
+      if (modal && textarea) {
+        modal.classList.add('hidden');
+        textarea.value = '';
+        currentNoteDate = '';
+      }
+    }
+
+    function saveNote() {
+      const textarea = document.getElementById('noteTextarea') as HTMLTextAreaElement;
+      
+      if (!textarea || !currentNoteDate || !textarea.value.trim()) {
+        return;
+      }
+
+      const notes = loadNotes();
+      
+      if (!notes[currentNoteDate]) {
+        notes[currentNoteDate] = [];
+      }
+
+      const newNote: CalendarNote = {
+        date: currentNoteDate,
+        text: textarea.value.trim(),
+        timestamp: Date.now()
+      };
+
+      notes[currentNoteDate].push(newNote);
+      saveNotesToStorage(notes);
+      
+      displayNoteInCalendar(currentNoteDate, newNote);
+      closeNoteModal();
+    }
+    
+    // Expose to global scope for onclick handlers
+    (window as any).openNoteModal = openNoteModal;
+    (window as any).closeNoteModal = closeNoteModal;
+    (window as any).saveNote = saveNote;
+
+    function displayNoteInCalendar(date: string, note: CalendarNote) {
+      const container = document.querySelector(`.notes-container[data-date="${date}"]`);
+      
+      if (container) {
+        const noteEl = document.createElement('div');
+        noteEl.className = 'bg-[#FEF3C7] border border-[#F59E0B] rounded p-1.5 text-xs group relative';
+        noteEl.innerHTML = `
+          <div class="flex items-start justify-between gap-1">
+            <div class="flex-1 min-w-0">
+              <div class="text-[#92400E] break-words">${escapeHtml(note.text)}</div>
+            </div>
+            <button 
+              class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-[#92400E] hover:text-[#78350F]"
+              onclick="deleteNote('${date}', ${note.timestamp})"
+              type="button"
+              title="Delete note"
+            >
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        `;
+        container.appendChild(noteEl);
+      }
+    }
+
+    function deleteNote(date: string, timestamp: number) {
+      const notes = loadNotes();
+      
+      if (notes[date]) {
+        notes[date] = notes[date].filter(note => note.timestamp !== timestamp);
+        
+        if (notes[date].length === 0) {
+          delete notes[date];
+        }
+        
+        saveNotesToStorage(notes);
+        
+        const container = document.querySelector(`.notes-container[data-date="${date}"]`);
+        if (container) {
+          container.innerHTML = '';
+          if (notes[date]) {
+            notes[date].forEach(note => displayNoteInCalendar(date, note));
+          }
+        }
+      }
+    }
+    
+    (window as any).deleteNote = deleteNote;
+
+    function escapeHtml(text: string): string {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Load all notes on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      const notes = loadNotes();
+      
+      Object.entries(notes).forEach(([date, dateNotes]) => {
+        dateNotes.forEach(note => {
+          displayNoteInCalendar(date, note);
+        });
+      });
+    });
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeNoteModal();
+      }
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('noteModal')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        closeNoteModal();
+      }
+    });
+  </script>
+</Layout>

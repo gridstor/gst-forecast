@@ -11,50 +11,106 @@ const currentPath = Astro.url.pathname;
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>{title} | GridStor Analytics</title>
+		
+		<!-- Required Font Imports -->
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+		
+		<!-- GST Logo Favicon -->
+		<link rel="icon" type="image/svg+xml" href="/GST_logo.svg" />
 	</head>
-	<body>
-		<header class="bg-white border-b border-gray-200">
-			<nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div class="flex justify-between h-16">
-					<div class="flex">
-						<div class="flex-shrink-0 flex items-center">
-							<img src="/logo.svg" alt="GridStor" class="h-8 w-auto">
-						</div>
-						<div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-							<a 
-								href="/curve-viewer" 
-								class={`border-b-2 ${currentPath === '/curve-viewer' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
+	<body class="bg-background">
+		<!-- Navigation Bar - GridStor Design System (Visual Styling from Figma) -->
+		<header class="bg-[#2A2A2A] text-white shadow-sm">
+			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+				<div class="flex justify-between items-center py-4">
+					<!-- Left: Logo + Navigation -->
+					<div class="flex items-center gap-8">
+						<!-- Logo: Lightning Bolt + Site Title (Figma styling) -->
+						<a href="/" class="flex items-center gap-3 text-xl font-bold hover:text-gray-300 transition-colors" aria-label="Home">
+							<!-- Lightning Bolt Icon (32x32px, cyan #06B6D4) -->
+							<svg
+								width="32"
+								height="32"
+								viewBox="0 0 100 100"
+								fill="none"
+								xmlns="http://www.w3.org/2000/svg"
+								class="w-8 h-8"
+								role="presentation"
 							>
-								Curve Viewer
-							</a>
-							<a 
-								href="/curve-schedule/manage" 
-								class={`border-b-2 ${currentPath.startsWith('/curve-schedule') ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
-							>
-								Schedule Management
-							</a>
-							<a 
-								href="/curve-tracker/inventory" 
-								class={`border-b-2 ${currentPath === '/curve-tracker/inventory' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
-							>
-								Curve Inventory
-							</a>
-							<a 
-								href="/admin/upload" 
-								class={`border-b-2 ${currentPath === '/admin/upload' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700'} inline-flex items-center px-1 pt-1 text-sm font-medium`}
-							>
-								Upload Curves
-							</a>
+								<path
+									d="M55 10L30 55H50L45 90L70 45H50L55 10Z"
+									fill="#06B6D4"
+									stroke="#06B6D4"
+									stroke-width="2"
+									stroke-linejoin="round"
+								/>
+							</svg>
+							<span>Long Term Outlook</span>
+						</a>
+
+						<!-- Navigation Links (Figma styling: 16px Inter Medium, 32px gaps) -->
+						<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">
+							<!-- Revenue Forecasts Dropdown -->
+							<div class="relative group">
+								<button 
+									class={`${currentPath.startsWith('/revenue-forecasts') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium flex items-center gap-1 py-2`}
+									aria-label="Revenue Forecasts Menu"
+								>
+									Revenue Forecasts
+									<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+									</svg>
+								</button>
+								<div class="absolute left-0 mt-1 pt-1 w-56 group-hover:block z-50">
+									<div class="bg-white rounded-lg shadow-xl border border-gray-200">
+										<a href="/revenue-forecasts" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg">
+											<div class="font-medium">Revenue Forecast Grapher</div>
+											<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>
+										</a>
+										<a href="/revenue-forecasts/curves" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100">
+											<div class="font-medium">Curve Browser</div>
+											<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>
+										</a>
+										<a href="/revenue-forecasts/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100">
+											<div class="font-medium">Forecast Admin</div>
+											<div class="text-xs text-gray-500 mt-0.5">Manage curves and schedules</div>
+										</a>
+										<a href="/revenue-forecasts/documentation" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100 rounded-b-lg">
+											<div class="font-medium">Documentation</div>
+											<div class="text-xs text-gray-500 mt-0.5">Schema and model docs</div>
+										</a>
+									</div>
+								</div>
+							</div>
+						</nav>
+					</div>
+					
+					<!-- Right: Settings (Figma styling: 40x40px button) -->
+					<div class="flex items-center gap-2 ml-4">
+						<div class="relative group">
+							<button class="p-2 hover:bg-gray-700 rounded-md transition-colors" aria-label="Settings" title="Settings">
+								<!-- Settings Icon (20x20px) -->
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+								</svg>
+							</button>
+							<div class="absolute right-0 mt-1 pt-1 w-56 group-hover:block z-50">
+								<div class="bg-white rounded-lg shadow-xl border border-gray-200">
+									<a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-lg">
+										<div class="font-medium">Development Operations</div>
+										<div class="text-xs text-gray-500 mt-0.5">Database & API health checks</div>
+									</a>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
-			</nav>
+			</div>
 		</header>
 
 		<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -64,17 +120,177 @@ const currentPath = Astro.url.pathname;
 </html>
 
 <style is:global>
+	/* GridStor Design System - Design Tokens */
 	:root {
-		--gs-blue: #4F46E5;
+		/* Background (Updated to light gray per Figma spec v1.2) */
+		--background: #F9FAFB;
+		
+		/* Typography */
+		--font-primary: 'Inter', system-ui, sans-serif;
+		--font-mono: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
+		
+		/* Spacing (8px base unit) */
+		--space-1: 4px;
+		--space-2: 8px;
+		--space-3: 12px;
+		--space-4: 16px;
+		--space-6: 24px;
+		--space-8: 32px;
+		--space-12: 48px;
+		
+		/* Text Sizes */
+		--text-xs: 0.75rem;    /* 12px */
+		--text-sm: 0.875rem;   /* 14px */
+		--text-base: 1rem;     /* 16px */
+		--text-lg: 1.125rem;   /* 18px */
+		--text-xl: 1.25rem;    /* 20px */
+		--text-2xl: 1.5rem;    /* 24px */
+		
+		/* GridStor Colors */
+		--gs-white: #FFFFFF;
+		--gs-off-white: #F9FAFB;
+		--gs-near-black: #2A2A2A;
+		
+		/* Gray Scale */
+		--gs-gray-50: #F9FAFB;
+		--gs-gray-100: #F3F4F6;
+		--gs-gray-200: #E5E7EB;
+		--gs-gray-400: #9CA3AF;
+		--gs-gray-500: #6B7280;
+		--gs-gray-600: #4B5563;
+		--gs-gray-700: #374151;
+		--gs-gray-800: #1F2937;
+		--gs-gray-900: #111827;
+		
+		/* Accent Colors */
+		--gs-blue-50: #EFF6FF;
+		--gs-blue-500: #3B82F6;
+		--gs-red-500: #EF4444;
+		--gs-red-600: #DC2626;
+		--gs-green-50: #ECFDF5;
+		--gs-green-500: #10B981;
+		--gs-green-600: #059669;
+		--gs-purple-500: #8B5CF6;
+		--gs-purple-600: #8B5CF6;
+		--gs-yellow-50: #FEF3C7;
+		--gs-amber-500: #F59E0B;
+		--gs-cyan-500: #06B6D4;
+		
+		/* Shadows */
+		--shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+		--shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+		--shadow-lg: 0 12px 30px rgba(0,0,0,0.1);
+		
+		/* Border Radius */
+		--radius-sm: 4px;
+		--radius-md: 6px;
+		--radius-lg: 8px;
+		
+		/* Transitions */
+		--transition-fast: 150ms ease-in-out;
+		--transition-base: 200ms ease-in-out;
+		--transition-slow: 300ms ease-in-out;
 	}
 	
 	html {
-		font-family: 'Inter', system-ui, sans-serif;
-		background: #f9fafb;
+		font-family: var(--font-primary);
+		background: var(--background);
 	}
 
-	/* Add dropdown menu hover styles */
+	body {
+		font-family: var(--font-primary);
+		background: var(--background);
+	}
+
+	/* Monospace font for numbers and code */
+	code, pre, .font-mono {
+		font-family: var(--font-mono);
+	}
+
+	/* Design System Card Styles */
+	.gs-card {
+		background: white;
+		border-radius: var(--radius-lg);
+		box-shadow: var(--shadow-sm);
+		transition: box-shadow var(--transition-base);
+	}
+
+	.gs-card:hover {
+		box-shadow: var(--shadow-lg);
+		transform: translateY(-2px);
+		transition: all var(--transition-base);
+	}
+
+	/* Accent Border Styles */
+	.accent-border-blue {
+		border-left: 4px solid var(--gs-blue-500);
+	}
+
+	.accent-border-red {
+		border-left: 4px solid var(--gs-red-500);
+	}
+
+	.accent-border-green {
+		border-left: 4px solid var(--gs-green-500);
+	}
+
+	.accent-border-purple {
+		border-left: 4px solid var(--gs-purple-500);
+	}
+
+	.accent-border-gray {
+		border-left: 4px solid var(--gs-gray-500);
+	}
+
+	/* Metric Box Variants */
+	.metric-box {
+		border-radius: var(--radius-md);
+		padding: 12px;
+	}
+
+	.metric-box-neutral {
+		background-color: var(--gs-gray-50);
+	}
+
+	.metric-box-success {
+		background-color: var(--gs-green-50);
+	}
+
+	.metric-box-warning {
+		background-color: var(--gs-yellow-50);
+	}
+
+	.metric-box-info {
+		background-color: var(--gs-blue-50);
+	}
+
+	/* Improved dropdown menu hover styles with smooth transitions */
+	.group .group-hover\:block {
+		display: none;
+	}
+	
 	.group:hover .group-hover\:block {
 		display: block;
+	}
+	
+	/* Smooth fade-in effect for dropdowns */
+	.group .group-hover\:block > div {
+		animation: fadeIn 0.15s ease-in-out;
+	}
+	
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(-5px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+	
+	/* Keep dropdown visible with a bridge between button and menu */
+	.group .group-hover\:block {
+		/* The pt-1 class creates a bridge area that keeps hover active */
 	}
 </style>

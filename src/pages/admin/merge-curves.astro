@@ -1,0 +1,377 @@
+---
+/**
+ * Merge/Consolidate Curve Definitions
+ * Use this when you've created a temp definition and want to merge it into an existing one
+ */
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Merge Curve Definitions</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #333;
+      margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 2rem;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #333;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+    
+    button {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background: #3B82F6;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6B7280;
+      color: white;
+      margin-left: 0.5rem;
+    }
+    
+    .preview {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .preview h3 {
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+    
+    .warning {
+      background: #FEF3C7;
+      border-left: 4px solid #F59E0B;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+    
+    .success {
+      background: #D1FAE5;
+      border-left: 4px solid #10B981;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+    
+    .error {
+      background: #FEE2E2;
+      border-left: 4px solid #EF4444;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 4px;
+    }
+    
+    .def-card {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .def-card.selected {
+      border-color: #3B82F6;
+      background: #EFF6FF;
+    }
+    
+    .def-card h4 {
+      color: #1F2937;
+      margin-bottom: 0.5rem;
+    }
+    
+    .def-card .meta {
+      font-size: 0.875rem;
+      color: #6B7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Merge Curve Definitions</h1>
+    <p class="subtitle">
+      Consolidate a temporary or duplicate definition into an existing one
+    </p>
+
+    <div class="warning">
+      <strong>⚠️ Important:</strong> This will move all instances, schedules, and data from the temporary definition to the target definition, then delete the temporary one. This cannot be undone!
+    </div>
+
+    <div class="card">
+      <h2>Step 1: Enter Temp Definition ID</h2>
+      <div class="form-group">
+        <label for="tempId">Temporary Definition ID</label>
+        <input 
+          type="number" 
+          id="tempId" 
+          placeholder="Enter the ID of the definition you want to remove"
+        />
+      </div>
+      <button class="btn-primary" onclick="previewMerge()">
+        Preview Merge
+      </button>
+    </div>
+
+    <div id="previewSection" style="display: none;">
+      <div class="card">
+        <h2>Step 2: Review Temp Definition</h2>
+        <div id="tempDefPreview"></div>
+      </div>
+
+      <div class="card">
+        <h2>Step 3: Select Target Definition</h2>
+        <p style="margin-bottom: 1rem; color: #666;">
+          Choose the existing definition to merge into, or keep as separate with a unique name.
+        </p>
+        <div id="targetsList"></div>
+        <div style="margin-top: 1rem;">
+          <button class="btn-primary" onclick="executeMerge()" id="mergeBtn" disabled>
+            Merge Definitions
+          </button>
+          <button class="btn-secondary" onclick="reset()">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="resultSection" style="display: none;">
+      <!-- Results will appear here -->
+    </div>
+  </div>
+
+  <script>
+    let tempDefData: any = null;
+    let selectedTargetId: number | null = null;
+
+    async function previewMerge() {
+      const tempId = (document.getElementById('tempId') as HTMLInputElement).value;
+      
+      if (!tempId) {
+        alert('Please enter a temp definition ID');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/admin/merge-curve-definitions?tempId=${tempId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to preview');
+        }
+
+        tempDefData = data;
+        renderPreview(data);
+        document.getElementById('previewSection')!.style.display = 'block';
+      } catch (error) {
+        alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    function renderPreview(data: any) {
+      const preview = document.getElementById('tempDefPreview')!;
+      preview.innerHTML = `
+        <div class="def-card">
+          <h4>${data.tempDefinition.curveName}</h4>
+          <div class="meta">
+            <div>ID: ${data.tempDefinition.id}</div>
+            <div>Market: ${data.tempDefinition.market} | Location: ${data.tempDefinition.location}</div>
+            <div>Battery: ${data.tempDefinition.batteryDuration}</div>
+            <div><strong>${data.tempDefinition.instanceCount} instances</strong> will be moved</div>
+            ${data.tempDefinition.scheduleCount > 0 ? `<div>${data.tempDefinition.scheduleCount} schedules will be moved</div>` : ''}
+          </div>
+        </div>
+      `;
+
+      const targetsList = document.getElementById('targetsList')!;
+      if (data.potentialTargets.length === 0) {
+        targetsList.innerHTML = `
+          <div class="warning">
+            <strong>No matching definitions found</strong><br/>
+            Consider keeping this as a separate definition with a unique name instead of merging.
+          </div>
+        `;
+      } else {
+        targetsList.innerHTML = `
+          <div style="margin-bottom: 1rem; font-size: 0.875rem; color: #666;">
+            ${data.recommendation}
+          </div>
+          ${data.potentialTargets.map((target: any) => `
+            <div class="def-card" onclick="selectTarget(${target.id})" style="cursor: pointer;" data-target-id="${target.id}">
+              <h4>${target.curveName}</h4>
+              <div class="meta">
+                <div>ID: ${target.id}</div>
+                <div>Market: ${target.market} | Location: ${target.location}</div>
+                <div>Battery: ${target.batteryDuration}</div>
+                <div>${target._count.instances} existing instances</div>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+    }
+
+    function selectTarget(targetId: number) {
+      selectedTargetId = targetId;
+      
+      // Update UI
+      document.querySelectorAll('.def-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      document.querySelector(`[data-target-id="${targetId}"]`)?.classList.add('selected');
+      
+      // Enable merge button
+      (document.getElementById('mergeBtn') as HTMLButtonElement).disabled = false;
+    }
+
+    async function executeMerge() {
+      if (!tempDefData || !selectedTargetId) {
+        alert('Please select a target definition');
+        return;
+      }
+
+      if (!confirm(
+        `Are you sure you want to merge "${tempDefData.tempDefinition.curveName}" ` +
+        `into the selected definition?\n\n` +
+        `This will move ${tempDefData.tempDefinition.instanceCount} instances and then delete the temp definition.\n\n` +
+        `This CANNOT be undone!`
+      )) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/admin/merge-curve-definitions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tempDefinitionId: tempDefData.tempDefinition.id,
+            targetDefinitionId: selectedTargetId
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to merge');
+        }
+
+        showResult(result);
+      } catch (error) {
+        document.getElementById('resultSection')!.innerHTML = `
+          <div class="card">
+            <div class="error">
+              <strong>Error:</strong> ${error instanceof Error ? error.message : 'Unknown error'}
+            </div>
+          </div>
+        `;
+        document.getElementById('resultSection')!.style.display = 'block';
+      }
+    }
+
+    function showResult(result: any) {
+      document.getElementById('previewSection')!.style.display = 'none';
+      document.getElementById('resultSection')!.innerHTML = `
+        <div class="card">
+          <div class="success">
+            <h3>✅ Merge Successful!</h3>
+            <p style="margin-top: 0.5rem;">
+              Merged "${result.tempDefinitionName}" into "${result.targetDefinitionName}"
+            </p>
+            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+              <li>${result.instancesMoved} instances moved</li>
+              ${result.schedulesMoved > 0 ? `<li>${result.schedulesMoved} schedules moved</li>` : ''}
+              ${result.inputsMoved > 0 ? `<li>${result.inputsMoved} default inputs moved</li>` : ''}
+            </ul>
+          </div>
+          <button class="btn-primary" onclick="location.reload()">
+            Merge Another
+          </button>
+          <a href="/revenue-forecasts/curves" class="btn-secondary" style="display: inline-block; text-decoration: none; text-align: center;">
+            View Curves
+          </a>
+        </div>
+      `;
+      document.getElementById('resultSection')!.style.display = 'block';
+    }
+
+    function reset() {
+      tempDefData = null;
+      selectedTargetId = null;
+      (document.getElementById('tempId') as HTMLInputElement).value = '';
+      document.getElementById('previewSection')!.style.display = 'none';
+      document.getElementById('resultSection')!.style.display = 'none';
+    }
+  </script>
+</body>
+</html>
+

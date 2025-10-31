@@ -29,17 +29,18 @@ interface CurveSelectionProps {
   availableCurves: CurveDefinition[];
 }
 
+// GridStor Design System Color Palette
 const COLORS = [
-  '#2AB3CB',  // Bright turquoise
-  '#1D7874',  // Teal green
-  '#679289',  // Sage green
-  '#F4C095',  // Peach
-  '#E2231A',  // Red
-  '#4F46E5',  // Indigo
-  '#10B981',  // Emerald
-  '#F59E0B',  // Amber
-  '#EC4899',  // Pink
-  '#8B5CF6'   // Purple
+  '#3B82F6',  // Blue - Primary
+  '#10B981',  // Green - Success
+  '#EF4444',  // Red - Critical
+  '#8B5CF6',  // Purple - Special
+  '#F59E0B',  // Amber - Warning
+  '#06B6D4',  // Cyan - Alternate
+  '#EC4899',  // Pink - Accent
+  '#6366F1',  // Indigo - Alternate
+  '#14B8A6',  // Teal - Alternate
+  '#F97316'   // Orange - Alternate
 ];
 
 const LINE_STYLES = [
@@ -144,40 +145,40 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
 
   return (
     <div className="mt-6">
-      {/* Current Curves */}
+      {/* Current Curves - Design System Table */}
       <div className="mb-4">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-[#E5E7EB]">
+            <thead className="bg-[#F9FAFB]">
               <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('curve_id')}>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider cursor-pointer" onClick={() => requestSort('curve_id')}>
                   ID {getSortIndicator('curve_id')}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('mark_case')}>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider cursor-pointer" onClick={() => requestSort('mark_case')}>
                   Case {getSortIndicator('mark_case')}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('mark_date')}>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider cursor-pointer" onClick={() => requestSort('mark_date')}>
                   Date {getSortIndicator('mark_date')}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer" onClick={() => requestSort('curve_creator')}>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider cursor-pointer" onClick={() => requestSort('curve_creator')}>
                   Creator {getSortIndicator('curve_creator')}
                 </th>
-                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase w-16"></th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#6B7280] uppercase tracking-wider w-16"></th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-[#E5E7EB]">
               {filteredCurves
                 .filter(curve => selectedCurves.includes(curve.curve_id))
                 .map(curve => (
-                  <tr key={curve.curve_id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 text-sm">{curve.curve_id}</td>
-                    <td className="px-3 py-2 text-sm">{curve.mark_case}</td>
-                    <td className="px-3 py-2 text-sm">{formatDate(curve.mark_date.toString())}</td>
-                    <td className="px-3 py-2 text-sm">{curve.curve_creator}</td>
+                  <tr key={curve.curve_id} className="hover:bg-[#F9FAFB] transition-colors">
+                    <td className="px-3 py-2 text-sm text-[#111827] font-mono">{curve.curve_id}</td>
+                    <td className="px-3 py-2 text-sm text-[#111827]">{curve.mark_case}</td>
+                    <td className="px-3 py-2 text-sm text-[#6B7280] font-mono">{formatDate(curve.mark_date.toString())}</td>
+                    <td className="px-3 py-2 text-sm text-[#111827]">{curve.curve_creator}</td>
                     <td className="px-3 py-2 text-sm">
                       <button
                         onClick={() => onCurveToggle(curve.curve_id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-[#EF4444] hover:text-[#DC2626] font-bold transition-colors"
                       >
                         ×
                       </button>
@@ -189,14 +190,14 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
         </div>
       </div>
 
-      {/* Add New Curve */}
-      <div className="grid grid-cols-6 gap-4 bg-gray-50 p-4 rounded-lg">
+      {/* Add New Curve - Design System Styling */}
+      <div className="grid grid-cols-6 gap-4 bg-[#F9FAFB] p-4 rounded-lg border border-[#E5E7EB]">
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Case</label>
+          <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Case</label>
           <select
             value={filters.mark_case}
             onChange={(e) => setFilters(prev => ({ ...prev, mark_case: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="block w-full text-sm border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"
           >
             <option value="">Select Case</option>
             {uniqueValues.mark_cases.map(value => (
@@ -205,11 +206,11 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Date</label>
+          <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Date</label>
           <select
             value={filters.mark_date}
             onChange={(e) => setFilters(prev => ({ ...prev, mark_date: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="block w-full text-sm border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"
           >
             <option value="">Select Date</option>
             {uniqueValues.mark_dates
@@ -223,11 +224,11 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Creator</label>
+          <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Creator</label>
           <select
             value={filters.curve_creator}
             onChange={(e) => setFilters(prev => ({ ...prev, curve_creator: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="block w-full text-sm border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"
           >
             <option value="">Select Creator</option>
             {uniqueValues.curve_creators.map(value => (
@@ -236,11 +237,11 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Color</label>
+          <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Color</label>
           <select
             value={filters.color}
             onChange={(e) => setFilters(prev => ({ ...prev, color: e.target.value }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="block w-full text-sm border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"
           >
             {COLORS.map(color => (
               <option key={color} value={color} style={{ backgroundColor: color, color: '#FFF' }}>
@@ -250,11 +251,11 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">Line Style</label>
+          <label className="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Line Style</label>
           <select
             value={filters.lineStyle}
             onChange={(e) => setFilters(prev => ({ ...prev, lineStyle: e.target.value as 'solid' | 'dashed' | 'dotted' }))}
-            className="block w-full text-sm border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            className="block w-full text-sm border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all"
           >
             {LINE_STYLES.map(style => (
               <option key={style.value} value={style.value}>
@@ -267,7 +268,7 @@ const CurveSelection: React.FC<CurveSelectionProps> = ({
           <button
             onClick={handleAddCurve}
             disabled={filteredCurves.length === 0}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#3B82F6] text-white text-sm font-medium rounded-md hover:bg-[#2563EB] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#3B82F6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Add Curve
           </button>
@@ -314,24 +315,27 @@ const CurveStatCard: React.FC<CurveStatCardProps> = ({ data, granularity }) => {
   };
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 mb-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 mb-4">
       {Object.values(groupedStats).map(stat => (
         <div 
           key={stat.curveId}
-          className="bg-white rounded-lg shadow p-2 border-l-4 flex items-center"
-          style={{ borderLeftColor: stat.style?.color || '#2AB3CB' }}
+          className="bg-white rounded-lg p-3 border-l-4 transition-all duration-200 hover:-translate-y-1"
+          style={{ 
+            borderLeftColor: stat.style?.color || '#3B82F6',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}
         >
           <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-baseline">
-              <h3 className="text-sm font-semibold text-gray-900 truncate">{stat.mark_case}</h3>
-              <span className="text-xs text-gray-400 ml-1 shrink-0">{formatDate(stat.mark_date)}</span>
+            <div className="flex justify-between items-baseline mb-1">
+              <h3 className="text-sm font-semibold text-[#1F2937] truncate">{stat.mark_case}</h3>
+              <span className="text-xs text-[#6B7280] ml-1 shrink-0 font-mono">{formatDate(stat.mark_date)}</span>
             </div>
-            <p className="text-xs text-gray-500 truncate">{stat.curve_creator}</p>
-            <p className="text-xl font-bold text-gray-900 mt-0.5">
+            <p className="text-xs text-[#6B7280] truncate mb-2">{stat.curve_creator}</p>
+            <p className="text-xl font-bold text-[#111827] font-mono">
               ${calculateAverage(stat.values).toFixed(2)}
-              <span className="text-xs font-normal text-gray-500 ml-1">
-                {granularity === 'monthly' ? '$/kw-mn' : '$/kw-yr'}
-              </span>
+            </p>
+            <p className="text-xs text-[#6B7280] mt-0.5">
+              {granularity === 'monthly' ? '$/kw-mn' : '$/kw-yr'}
             </p>
           </div>
         </div>
@@ -494,8 +498,8 @@ export default function CurveViewer() {
 
   if (error) {
     return (
-      <div className="text-red-500 p-4 bg-red-50 rounded-lg border border-red-200">
-        Error: {error}
+      <div className="text-[#DC2626] p-4 bg-[#FEF2F2] rounded-lg border border-[#EF4444]">
+        <span className="font-semibold">Error:</span> {error}
       </div>
     );
   }
@@ -511,9 +515,10 @@ export default function CurveViewer() {
 
   return (
     <div className="max-w-[1920px] mx-auto space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
+      {/* Location Selector Card - Design System */}
+      <div className="bg-white rounded-lg p-6 accent-border-blue" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         <div className="flex items-center space-x-4">
-          <h1 className="text-2xl font-bold whitespace-nowrap">Select a Location</h1>
+          <h1 className="text-2xl font-bold text-[#2A2A2A] whitespace-nowrap" style={{ letterSpacing: '-0.01em' }}>Select a Location</h1>
           <LocationSelector 
             value={location} 
             onChange={setLocation}
@@ -523,28 +528,33 @@ export default function CurveViewer() {
       </div>
       
       {loading ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
+        <div className="text-center py-12 bg-white rounded-lg" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+            <div className="h-4 bg-[#E5E7EB] rounded w-3/4 mx-auto"></div>
             <div className="space-y-3 mt-4">
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-              <div className="h-4 bg-gray-200 rounded w-5/6 mx-auto"></div>
+              <div className="h-4 bg-[#E5E7EB] rounded w-1/2 mx-auto"></div>
+              <div className="h-4 bg-[#E5E7EB] rounded w-5/6 mx-auto"></div>
             </div>
           </div>
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Monthly Revenue ($/kw-month) - Front 24 Months</h2>
-              <button
-                onClick={() => handleDownloadGraphData(monthlyDataWithStyles, 'monthly')}
-                disabled={monthlyDataWithStyles.length === 0}
-                className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Download Graph Data
-              </button>
+          {/* Monthly Revenue Chart - Design System ChartCard */}
+          <div className="bg-white rounded-lg overflow-hidden accent-border-blue" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div className="p-6 pb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xl font-semibold text-[#1F2937]">Monthly Revenue ($/kw-month) - Front 24 Months</h2>
+                <button
+                  onClick={() => handleDownloadGraphData(monthlyDataWithStyles, 'monthly')}
+                  disabled={monthlyDataWithStyles.length === 0}
+                  className="px-3 py-1 text-sm text-[#3B82F6] hover:text-[#2563EB] font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Download Graph Data
+                </button>
+              </div>
+              <p className="text-sm text-[#6B7280]">Compare monthly revenue curves across different scenarios</p>
             </div>
+            <div className="px-6 pb-6">
             {monthlyDataWithStyles.length > 0 && (
               <CurveStatCard data={monthlyDataWithStyles} granularity="monthly" />
             )}
@@ -561,33 +571,40 @@ export default function CurveViewer() {
               availableCurves={monthlyDefinitions}
             />
           </div>
+          </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Annual Revenue ($/kw-year) - Front 10 Years</h2>
-              <button
-                onClick={() => handleDownloadGraphData(annualDataWithStyles, 'annual')}
-                disabled={annualDataWithStyles.length === 0}
-                className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-900 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Download Graph Data
-              </button>
+          {/* Annual Revenue Chart - Design System ChartCard */}
+          <div className="bg-white rounded-lg overflow-hidden accent-border-green" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div className="p-6 pb-4">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xl font-semibold text-[#1F2937]">Annual Revenue ($/kw-year) - Front 10 Years</h2>
+                <button
+                  onClick={() => handleDownloadGraphData(annualDataWithStyles, 'annual')}
+                  disabled={annualDataWithStyles.length === 0}
+                  className="px-3 py-1 text-sm text-[#10B981] hover:text-[#059669] font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Download Graph Data
+                </button>
+              </div>
+              <p className="text-sm text-[#6B7280]">Compare annual revenue curves across different scenarios</p>
             </div>
-            {annualDataWithStyles.length > 0 && (
-              <CurveStatCard data={annualDataWithStyles} granularity="annual" />
-            )}
-            <DualChartSystem 
-              data={annualDataWithStyles}
-              granularity="annual"
-              height={400}
-            />
-            <CurveSelection
-              location={location}
-              selectedCurves={annualCurves}
-              onCurveToggle={handleAnnualCurveToggle}
-              granularity="annual"
-              availableCurves={annualDefinitions}
-            />
+            <div className="px-6 pb-6">
+              {annualDataWithStyles.length > 0 && (
+                <CurveStatCard data={annualDataWithStyles} granularity="annual" />
+              )}
+              <DualChartSystem 
+                data={annualDataWithStyles}
+                granularity="annual"
+                height={400}
+              />
+              <CurveSelection
+                location={location}
+                selectedCurves={annualCurves}
+                onCurveToggle={handleAnnualCurveToggle}
+                granularity="annual"
+                availableCurves={annualDefinitions}
+              />
+            </div>
           </div>
         </div>
       )}

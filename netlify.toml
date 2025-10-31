@@ -13,7 +13,5 @@
   external_node_modules = ["@prisma/client", "@astrojs/react"]
   node_bundler = "esbuild"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Remove the catch-all redirect since this will be a sub-site
+# The main site will handle routing to this site

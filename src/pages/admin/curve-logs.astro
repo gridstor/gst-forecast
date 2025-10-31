@@ -1,0 +1,471 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Curve Activity Logs">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Notification Area -->
+    <div id="notification" class="fixed top-4 right-4 z-50 hidden p-4 rounded-lg shadow-lg text-white">
+      <span id="notification-text"></span>
+    </div>
+
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Curve Activity Logs</h1>
+      <p class="text-gray-600">Real-time activity monitoring and audit trail for all curve operations</p>
+    </div>
+
+    <!-- Activity Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-blue-500">
+        <div class="flex items-center">
+          <div class="p-3 bg-blue-100 rounded-full">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Today's Creates</h3>
+            <p class="text-2xl font-bold text-gray-900" id="todayCreates">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-green-500">
+        <div class="flex items-center">
+          <div class="p-3 bg-green-100 rounded-full">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Today's Updates</h3>
+            <p class="text-2xl font-bold text-gray-900" id="todayUpdates">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-red-500">
+        <div class="flex items-center">
+          <div class="p-3 bg-red-100 rounded-full">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Today's Deletions</h3>
+            <p class="text-2xl font-bold text-gray-900" id="todayDeletes">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-md p-6 border-l-4 border-purple-500">
+        <div class="flex items-center">
+          <div class="p-3 bg-purple-100 rounded-full">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Total Activities</h3>
+            <p class="text-2xl font-bold text-gray-900" id="totalActivities">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Activity Feed -->
+    <div class="bg-white rounded-lg shadow-md">
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-semibold text-gray-900">Live Activity Feed</h2>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+              <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+              <span class="text-sm text-gray-600">Live</span>
+            </div>
+            <button
+              id="refreshLogs"
+              class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+            >
+              Refresh
+            </button>
+            <button
+              id="clearLogs"
+              class="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="p-4 bg-gray-50 border-b border-gray-200">
+        <div class="flex flex-wrap gap-4 items-center">
+          <div>
+            <select id="actionFilter" class="px-3 py-1 border border-gray-300 rounded text-sm">
+              <option value="">All Actions</option>
+              <option value="CREATE">Create</option>
+              <option value="UPDATE">Update</option>
+              <option value="DELETE">Delete</option>
+              <option value="UPLOAD">Upload</option>
+            </select>
+          </div>
+          <div>
+            <select id="timeFilter" class="px-3 py-1 border border-gray-300 rounded text-sm">
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+            </select>
+          </div>
+          <div>
+            <input
+              type="text"
+              id="userFilter"
+              placeholder="Filter by user..."
+              class="px-3 py-1 border border-gray-300 rounded text-sm"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity List -->
+      <div class="divide-y divide-gray-200 max-h-96 overflow-y-auto" id="activityList">
+        <div class="p-6 text-center text-gray-500">
+          <div class="text-4xl mb-2">📋</div>
+          <p>Loading activity logs...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  interface ActivityLog {
+    id: string;
+    timestamp: string;
+    action: string;
+    curveDefinitionId?: number;
+    curveInstanceId?: number;
+    details: any;
+    performedBy: string;
+  }
+
+  let activityLogs: ActivityLog[] = [];
+  let autoRefreshInterval: NodeJS.Timeout | null = null;
+
+  // Show notification
+  function showNotification(message: string, isError = false) {
+    const notification = document.getElementById('notification')!;
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white ${
+      isError ? 'bg-red-600' : 'bg-green-600'
+    }`;
+    notification.textContent = message;
+    notification.classList.remove('hidden');
+    
+    setTimeout(() => {
+      notification.classList.add('hidden');
+    }, 5000);
+  }
+
+  // Generate mock activity logs (since we don't have a database table yet)
+  function generateMockLogs(): ActivityLog[] {
+    const actions = ['CREATE_DEFINITION', 'UPDATE_DEFINITION', 'DELETE_DEFINITION', 'CREATE_INSTANCE', 'DELETE_INSTANCE', 'UPLOAD_DATA'];
+    const users = ['Admin System', 'John Doe', 'Jane Smith', 'Brett Richards', 'Upload System'];
+    const markets = ['ERCOT', 'CAISO', 'PJM', 'NYISO'];
+    const locations = ['Channel View', 'Houston', 'NP15', 'SP15', 'Goleta'];
+    
+    const logs: ActivityLog[] = [];
+    const now = new Date();
+    
+    // Generate last 50 activities over the past week
+    for (let i = 0; i < 50; i++) {
+      const timestamp = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000);
+      const action = actions[Math.floor(Math.random() * actions.length)];
+      const user = users[Math.floor(Math.random() * users.length)];
+      const market = markets[Math.floor(Math.random() * markets.length)];
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      
+      let details: any = {};
+      
+      switch (action) {
+        case 'CREATE_DEFINITION':
+          details = {
+            curveName: `${market} ${location} Revenue Curve`,
+            market,
+            location,
+            curveType: 'ENERGY'
+          };
+          break;
+        case 'UPDATE_DEFINITION':
+          details = {
+            changes: ['market', 'location'],
+            oldValues: { market: 'CAISO', location: 'NP15' },
+            newValues: { market, location }
+          };
+          break;
+        case 'DELETE_DEFINITION':
+          details = {
+            deletedDefinition: {
+              curveName: `${market} ${location} Deleted Curve`,
+              instanceCount: Math.floor(Math.random() * 5),
+              totalDataPoints: Math.floor(Math.random() * 1000)
+            }
+          };
+          break;
+        case 'CREATE_INSTANCE':
+          details = {
+            instanceVersion: '2024-Q4',
+            granularity: 'ANNUAL',
+            deliveryPeriod: '2028-2051'
+          };
+          break;
+        case 'DELETE_INSTANCE':
+          details = {
+            instanceVersion: '2024-Q4-test',
+            dataPointsDeleted: Math.floor(Math.random() * 500)
+          };
+          break;
+        case 'UPLOAD_DATA':
+          details = {
+            fileSize: `${Math.floor(Math.random() * 100)}KB`,
+            recordsUploaded: Math.floor(Math.random() * 200),
+            pValues: ['P5', 'P25', 'P50', 'P75', 'P95']
+          };
+          break;
+      }
+      
+      logs.push({
+        id: `${timestamp.getTime()}-${i}`,
+        timestamp: timestamp.toISOString(),
+        action,
+        curveDefinitionId: Math.floor(Math.random() * 10) + 1,
+        curveInstanceId: action.includes('INSTANCE') ? Math.floor(Math.random() * 20) + 1 : undefined,
+        details,
+        performedBy: user
+      });
+    }
+    
+    return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  // Load activity logs
+  function loadActivityLogs() {
+    // For now, use mock data. In the future, this would fetch from an API
+    activityLogs = generateMockLogs();
+    updateStats();
+    renderActivityList();
+  }
+
+  // Update activity stats
+  function updateStats() {
+    const today = new Date().toDateString();
+    const todayLogs = activityLogs.filter(log => new Date(log.timestamp).toDateString() === today);
+    
+    const todayCreates = todayLogs.filter(log => log.action.includes('CREATE')).length;
+    const todayUpdates = todayLogs.filter(log => log.action.includes('UPDATE')).length;
+    const todayDeletes = todayLogs.filter(log => log.action.includes('DELETE')).length;
+    
+    document.getElementById('todayCreates')!.textContent = todayCreates.toString();
+    document.getElementById('todayUpdates')!.textContent = todayUpdates.toString();
+    document.getElementById('todayDeletes')!.textContent = todayDeletes.toString();
+    document.getElementById('totalActivities')!.textContent = activityLogs.length.toString();
+  }
+
+  // Render activity list
+  function renderActivityList() {
+    const container = document.getElementById('activityList')!;
+    const actionFilter = (document.getElementById('actionFilter') as HTMLSelectElement).value;
+    const timeFilter = (document.getElementById('timeFilter') as HTMLSelectElement).value;
+    const userFilter = (document.getElementById('userFilter') as HTMLInputElement).value.toLowerCase();
+    
+    let filteredLogs = activityLogs;
+    
+    // Apply filters
+    if (actionFilter) {
+      filteredLogs = filteredLogs.filter(log => log.action.includes(actionFilter));
+    }
+    
+    if (timeFilter !== 'all') {
+      const now = new Date();
+      const cutoff = new Date();
+      switch (timeFilter) {
+        case 'today':
+          cutoff.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          cutoff.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          cutoff.setMonth(now.getMonth() - 1);
+          break;
+      }
+      filteredLogs = filteredLogs.filter(log => new Date(log.timestamp) >= cutoff);
+    }
+    
+    if (userFilter) {
+      filteredLogs = filteredLogs.filter(log => log.performedBy.toLowerCase().includes(userFilter));
+    }
+    
+    if (filteredLogs.length === 0) {
+      container.innerHTML = `
+        <div class="p-6 text-center text-gray-500">
+          <div class="text-4xl mb-2">🔍</div>
+          <p>No activities found matching the current filters</p>
+        </div>
+      `;
+      return;
+    }
+    
+    container.innerHTML = filteredLogs.map(log => {
+      const timestamp = new Date(log.timestamp);
+      const timeAgo = getTimeAgo(timestamp);
+      
+      return `
+        <div class="p-4 hover:bg-gray-50 transition-colors">
+          <div class="flex items-start justify-between">
+            <div class="flex-1">
+              <div class="flex items-center gap-2 mb-1">
+                ${getActionIcon(log.action)}
+                <span class="font-medium text-gray-900">${formatAction(log.action)}</span>
+                <span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">${log.performedBy}</span>
+              </div>
+              <p class="text-sm text-gray-600 mb-2">${formatLogDetails(log)}</p>
+              <div class="text-xs text-gray-500">
+                ${timestamp.toLocaleString()} • ${timeAgo}
+              </div>
+            </div>
+            <div class="ml-4 text-right text-xs text-gray-500">
+              ${log.curveDefinitionId ? `Def ID: ${log.curveDefinitionId}` : ''}
+              ${log.curveInstanceId ? `<br>Inst ID: ${log.curveInstanceId}` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Get action icon
+  function getActionIcon(action: string): string {
+    const iconClass = "w-4 h-4";
+    if (action.includes('CREATE')) {
+      return `<div class="p-1 bg-green-100 rounded-full"><svg class="${iconClass} text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg></div>`;
+    } else if (action.includes('UPDATE')) {
+      return `<div class="p-1 bg-blue-100 rounded-full"><svg class="${iconClass} text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></div>`;
+    } else if (action.includes('DELETE')) {
+      return `<div class="p-1 bg-red-100 rounded-full"><svg class="${iconClass} text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></div>`;
+    } else {
+      return `<div class="p-1 bg-purple-100 rounded-full"><svg class="${iconClass} text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 12l2 2 4-4"/></svg></div>`;
+    }
+  }
+
+  // Format action name
+  function formatAction(action: string): string {
+    return action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  }
+
+  // Format log details
+  function formatLogDetails(log: ActivityLog): string {
+    const { action, details } = log;
+    
+    switch (action) {
+      case 'CREATE_DEFINITION':
+        return `Created curve "${details.curveName}" in ${details.market} market at ${details.location}`;
+      case 'UPDATE_DEFINITION':
+        return `Updated curve properties: ${details.changes?.join(', ')}`;
+      case 'DELETE_DEFINITION':
+        return `Deleted "${details.deletedDefinition?.curveName}" with ${details.deletedDefinition?.instanceCount} instances`;
+      case 'CREATE_INSTANCE':
+        return `Created instance version "${details.instanceVersion}" with ${details.granularity} granularity`;
+      case 'DELETE_INSTANCE':
+        return `Deleted instance "${details.instanceVersion}" and ${details.dataPointsDeleted} data points`;
+      case 'UPLOAD_DATA':
+        return `Uploaded ${details.recordsUploaded} records (${details.fileSize}) with p-values: ${details.pValues?.join(', ')}`;
+      default:
+        return JSON.stringify(details);
+    }
+  }
+
+  // Get time ago string
+  function getTimeAgo(date: Date): string {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  }
+
+  // Clear logs
+  function clearLogs() {
+    if (confirm('Are you sure you want to clear all activity logs?')) {
+      activityLogs = [];
+      updateStats();
+      renderActivityList();
+      showNotification('Activity logs cleared');
+    }
+  }
+
+  // Start auto refresh
+  function startAutoRefresh() {
+    autoRefreshInterval = setInterval(() => {
+      // In a real implementation, this would fetch new logs from the server
+      const newLog: ActivityLog = {
+        id: `${Date.now()}-auto`,
+        timestamp: new Date().toISOString(),
+        action: 'AUTO_REFRESH',
+        details: { message: 'Auto refresh check' },
+        performedBy: 'System'
+      };
+      
+      // Don't actually add the auto refresh log, just simulate checking for new data
+      console.log('Auto refresh check performed');
+    }, 30000); // Every 30 seconds
+  }
+
+  // Event listeners
+  document.addEventListener('DOMContentLoaded', function() {
+    loadActivityLogs();
+    startAutoRefresh();
+    
+    document.getElementById('refreshLogs')?.addEventListener('click', loadActivityLogs);
+    document.getElementById('clearLogs')?.addEventListener('click', clearLogs);
+    
+    // Filter events
+    document.getElementById('actionFilter')?.addEventListener('change', renderActivityList);
+    document.getElementById('timeFilter')?.addEventListener('change', renderActivityList);
+    document.getElementById('userFilter')?.addEventListener('input', renderActivityList);
+  });
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+    }
+  });
+</script>
+
+<style>
+  /* Custom scrollbar for activity list */
+  #activityList::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  #activityList::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  
+  #activityList::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+  }
+  
+  #activityList::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+</style>

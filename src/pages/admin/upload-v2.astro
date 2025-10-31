@@ -1,0 +1,785 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Curve Management & Upload">
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="container mx-auto px-4 max-w-[1800px]">
+      <!-- Header -->
+      <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Curve Management & Upload</h1>
+        <p class="text-gray-600 mt-2">Select a definition and instance, then upload or manage data</p>
+      </div>
+
+      <!-- Three Column Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- COLUMN 1: CURVE DEFINITIONS -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-[800px]">
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
+            <h2 class="text-lg font-semibold text-gray-900">1. Curve Definitions</h2>
+            <p class="text-sm text-gray-600 mt-1">Select or create a definition</p>
+          </div>
+
+          <!-- Search & Sort -->
+          <div class="px-6 py-3 border-b border-gray-200 space-y-3">
+            <input 
+              type="text" 
+              id="defSearch" 
+              placeholder="Search definitions..." 
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <select id="defSort" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option value="recent">Recent First</option>
+              <option value="name">Name (A-Z)</option>
+              <option value="market">Market</option>
+              <option value="location">Location</option>
+            </select>
+          </div>
+
+          <!-- List -->
+          <div id="defList" class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="text-center text-gray-500 text-sm py-8">Loading definitions...</div>
+          </div>
+
+          <!-- Add New Button -->
+          <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <button id="addDefBtn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+              + Add New Definition
+            </button>
+          </div>
+        </div>
+
+        <!-- COLUMN 2: CURVE INSTANCES -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-[800px]">
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100">
+            <h2 class="text-lg font-semibold text-gray-900">2. Curve Instances</h2>
+            <p class="text-sm text-gray-600 mt-1">Select or create an instance</p>
+          </div>
+
+          <!-- Search & Sort -->
+          <div class="px-6 py-3 border-b border-gray-200 space-y-3">
+            <input 
+              type="text" 
+              id="instSearch" 
+              placeholder="Search instances..." 
+              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              disabled
+            />
+            <select id="instSort" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent" disabled>
+              <option value="recent">Recent First</option>
+              <option value="version">Version</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+
+          <!-- List -->
+          <div id="instList" class="flex-1 overflow-y-auto px-4 py-3">
+            <div class="text-center text-gray-500 text-sm py-8">Select a definition first</div>
+          </div>
+
+          <!-- Add New Button -->
+          <div class="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <button id="addInstBtn" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium" disabled>
+              + Add New Instance
+            </button>
+          </div>
+        </div>
+
+        <!-- COLUMN 3: CURVE DATA -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-[800px]">
+          <!-- Header -->
+          <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-purple-100">
+            <h2 class="text-lg font-semibold text-gray-900">3. Curve Data</h2>
+            <p class="text-sm text-gray-600 mt-1">Upload or manage data</p>
+          </div>
+
+          <!-- Data Info -->
+          <div id="dataInfo" class="px-6 py-3 border-b border-gray-200">
+            <div class="text-center text-gray-500 text-sm py-8">Select an instance first</div>
+          </div>
+
+          <!-- Data Preview / Upload Area -->
+          <div id="dataContent" class="flex-1 overflow-y-auto px-6 py-4">
+            <!-- Will be populated dynamically -->
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 space-y-2">
+            <button id="downloadTemplateBtn" class="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors text-sm font-medium" disabled>
+              📥 Download Template
+            </button>
+            <button id="uploadDataBtn" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors text-sm font-medium" disabled>
+              📤 Upload New Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="hidden fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white max-w-md"></div>
+
+    <!-- Add/Edit Definition Modal -->
+    <div id="defModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold" id="defModalTitle">Add Curve Definition</h3>
+          <button id="closeDefModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Curve Name *</label>
+              <input type="text" id="defCurveName" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Market *</label>
+              <select id="defMarket" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="">Select</option>
+                <option value="CAISO">CAISO</option>
+                <option value="ERCOT">ERCOT</option>
+                <option value="PJM">PJM</option>
+                <option value="NYISO">NYISO</option>
+                <option value="ISO-NE">ISO-NE</option>
+                <option value="MISO">MISO</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Location *</label>
+              <input type="text" id="defLocation" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Product *</label>
+              <input type="text" id="defProduct" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Curve Type *</label>
+              <select id="defCurveType" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="">Select</option>
+                <option value="REVENUE">Revenue</option>
+                <option value="ENERGY">Energy</option>
+                <option value="AS">Ancillary Services</option>
+                <option value="RA">Resource Adequacy</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Battery Duration</label>
+              <select id="defBatteryDuration" class="w-full px-3 py-2 border rounded-md">
+                <option value="UNKNOWN">Unknown</option>
+                <option value="TWO_H">2 Hours</option>
+                <option value="FOUR_H">4 Hours</option>
+                <option value="EIGHT_H">8 Hours</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Granularity *</label>
+              <select id="defGranularity" class="w-full px-3 py-2 border rounded-md" required>
+                <option value="HOURLY">Hourly</option>
+                <option value="DAILY">Daily</option>
+                <option value="MONTHLY">Monthly</option>
+                <option value="QUARTERLY">Quarterly</option>
+                <option value="ANNUAL">Annual</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Units *</label>
+              <input type="text" id="defUnits" value="$/MWh" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelDefModal" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+          <button id="saveDefModal" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Definition</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Instance Modal -->
+    <div id="instModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold" id="instModalTitle">Add Curve Instance</h3>
+          <button id="closeInstModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Instance Version *</label>
+              <input type="text" id="instVersion" placeholder="e.g., v1.0, 2024-Q1" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Period Start *</label>
+              <input type="date" id="instStartDate" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Delivery Period End *</label>
+              <input type="date" id="instEndDate" class="w-full px-3 py-2 border rounded-md" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Model Type</label>
+              <input type="text" id="instModelType" placeholder="e.g., Aurora, Manual" class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Created By</label>
+              <input type="text" id="instCreatedBy" value="Upload System" class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+              <textarea id="instNotes" rows="3" class="w-full px-3 py-2 border rounded-md"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelInstModal" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+          <button id="saveInstModal" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save Instance</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Data Modal -->
+    <div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Upload Curve Data</h3>
+          <button id="closeUploadModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="mb-4 p-4 bg-blue-50 rounded-lg text-sm">
+            <p class="font-medium mb-1">CSV Format:</p>
+            <code class="text-xs">timestamp,value,pvalue,units</code>
+            <p class="mt-2 text-gray-600">Example: 2024-01-01T00:00:00Z,45.50,50,$/MWh</p>
+          </div>
+          <input type="file" id="csvFileInput" accept=".csv" class="w-full mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+          <div id="csvPreview" class="hidden">
+            <h4 class="font-medium mb-2">Preview</h4>
+            <div id="csvPreviewContent" class="bg-gray-50 rounded-md p-3 max-h-64 overflow-auto text-sm"></div>
+            <p id="csvStats" class="text-sm text-gray-600 mt-2"></p>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelUploadModal" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+          <button id="confirmUploadModal" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700" disabled>Upload Data</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Generator Modal -->
+    <div id="templateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-xl w-full">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Generate CSV Template</h3>
+          <button id="closeTemplateModal" class="text-gray-400 hover:text-gray-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="px-6 py-4">
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Start Date</label>
+              <input type="date" id="templateStart" class="w-full px-3 py-2 border rounded-md" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">End Date</label>
+              <input type="date" id="templateEnd" class="w-full px-3 py-2 border rounded-md" />
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-1">P-Values</label>
+            <div class="flex gap-4 flex-wrap">
+              <label class="inline-flex items-center"><input type="checkbox" id="p5" checked class="mr-1" /> P5</label>
+              <label class="inline-flex items-center"><input type="checkbox" id="p25" checked class="mr-1" /> P25</label>
+              <label class="inline-flex items-center"><input type="checkbox" id="p50" checked class="mr-1" /> P50</label>
+              <label class="inline-flex items-center"><input type="checkbox" id="p75" checked class="mr-1" /> P75</label>
+              <label class="inline-flex items-center"><input type="checkbox" id="p95" checked class="mr-1" /> P95</label>
+            </div>
+          </div>
+        </div>
+        <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+          <button id="cancelTemplateModal" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50">Cancel</button>
+          <button id="generateTemplateBtn" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">Generate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  // State
+  let allDefs: any[] = [];
+  let allInsts: any[] = [];
+  let selectedDef: any = null;
+  let selectedInst: any = null;
+  let csvData: any[] = [];
+
+  // Toast notification
+  function toast(msg: string, type: 'success' | 'error' = 'success') {
+    const el = document.getElementById('toast')!;
+    el.textContent = msg;
+    el.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white max-w-md ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    el.classList.remove('hidden');
+    setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+
+  // Load definitions
+  async function loadDefinitions() {
+    try {
+      const res = await fetch('/api/curves/definitions');
+      allDefs = await res.json();
+      renderDefinitions();
+    } catch (e) {
+      toast('Failed to load definitions', 'error');
+      console.error(e);
+    }
+  }
+
+  // Render definitions list
+  function renderDefinitions() {
+    const container = document.getElementById('defList')!;
+    const search = (document.getElementById('defSearch') as HTMLInputElement).value.toLowerCase();
+    const sort = (document.getElementById('defSort') as HTMLSelectElement).value;
+
+    let filtered = allDefs.filter(d => 
+      d.curveName.toLowerCase().includes(search) ||
+      d.market.toLowerCase().includes(search) ||
+      d.location.toLowerCase().includes(search) ||
+      d.product?.toLowerCase().includes(search)
+    );
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sort === 'name') return a.curveName.localeCompare(b.curveName);
+      if (sort === 'market') return a.market.localeCompare(b.market);
+      if (sort === 'location') return a.location.localeCompare(b.location);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No definitions found</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(d => `
+      <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedDef?.id === d.id ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-gray-200 hover:border-blue-300'}" data-def-id="${d.id}">
+        <div class="font-medium text-gray-900 text-sm">${d.curveName}</div>
+        <div class="text-xs text-gray-600 mt-1">${d.market} • ${d.location}</div>
+        <div class="text-xs text-gray-500 mt-1">${d.product || 'N/A'} • ${d.batteryDuration} • ${d.granularity}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-def-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-def-id');
+        selectDefinition(allDefs.find(d => d.id == id));
+      });
+    });
+  }
+
+  // Select definition
+  function selectDefinition(def: any) {
+    selectedDef = def;
+    selectedInst = null;
+    renderDefinitions();
+    loadInstances(def.id);
+    
+    // Enable instance controls
+    (document.getElementById('instSearch') as HTMLInputElement).disabled = false;
+    (document.getElementById('instSort') as HTMLSelectElement).disabled = false;
+    (document.getElementById('addInstBtn') as HTMLButtonElement).disabled = false;
+    
+    // Clear data panel
+    updateDataPanel();
+  }
+
+  // Load instances for selected definition
+  async function loadInstances(defId: number) {
+    try {
+      const res = await fetch(`/api/curves/instances?definitionId=${defId}`);
+      const data = await res.json();
+      allInsts = data.instances || [];
+      renderInstances();
+    } catch (e) {
+      toast('Failed to load instances', 'error');
+      console.error(e);
+    }
+  }
+
+  // Render instances list
+  function renderInstances() {
+    const container = document.getElementById('instList')!;
+    const search = (document.getElementById('instSearch') as HTMLInputElement).value.toLowerCase();
+    const sort = (document.getElementById('instSort') as HTMLSelectElement).value;
+
+    let filtered = allInsts.filter(i =>
+      i.instanceVersion.toLowerCase().includes(search) ||
+      i.status?.toLowerCase().includes(search) ||
+      i.createdBy?.toLowerCase().includes(search)
+    );
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sort === 'version') return a.instanceVersion.localeCompare(b.instanceVersion);
+      if (sort === 'status') return a.status.localeCompare(b.status);
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No instances found</div>';
+      return;
+    }
+
+    container.innerHTML = filtered.map(i => `
+      <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedInst?.id === i.id ? 'bg-green-50 border-green-500 shadow-md' : 'bg-white border-gray-200 hover:border-green-300'}" data-inst-id="${i.id}">
+        <div class="font-medium text-gray-900 text-sm">${i.instanceVersion}</div>
+        <div class="text-xs text-gray-600 mt-1">${i.status} • ${new Date(i.createdAt).toLocaleDateString()}</div>
+        <div class="text-xs text-gray-500 mt-1">By: ${i.createdBy || 'N/A'}</div>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('[data-inst-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-inst-id');
+        selectInstance(allInsts.find(i => i.id == id));
+      });
+    });
+  }
+
+  // Select instance
+  function selectInstance(inst: any) {
+    selectedInst = inst;
+    renderInstances();
+    updateDataPanel();
+    loadExistingData(inst.id);
+  }
+
+  // Update data panel
+  function updateDataPanel() {
+    const info = document.getElementById('dataInfo')!;
+    const content = document.getElementById('dataContent')!;
+    const downloadBtn = document.getElementById('downloadTemplateBtn') as HTMLButtonElement;
+    const uploadBtn = document.getElementById('uploadDataBtn') as HTMLButtonElement;
+
+    if (!selectedInst) {
+      info.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">Select an instance first</div>';
+      content.innerHTML = '';
+      downloadBtn.disabled = true;
+      uploadBtn.disabled = true;
+      return;
+    }
+
+    info.innerHTML = `
+      <div class="text-sm">
+        <div class="font-medium text-gray-900">${selectedDef.curveName}</div>
+        <div class="text-gray-600 mt-1">${selectedInst.instanceVersion}</div>
+        <div class="text-gray-500 mt-1">Period: ${selectedInst.deliveryPeriodStart.split('T')[0]} to ${selectedInst.deliveryPeriodEnd.split('T')[0]}</div>
+      </div>
+    `;
+    
+    content.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">Loading data...</div>';
+    downloadBtn.disabled = false;
+    uploadBtn.disabled = false;
+  }
+
+  // Load existing data
+  async function loadExistingData(instId: number) {
+    const content = document.getElementById('dataContent')!;
+    try {
+      const res = await fetch(`/api/curves/${instId}/data`);
+      const data = await res.json();
+      
+      if (data.length > 0) {
+        content.innerHTML = `
+          <div class="space-y-3">
+            <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div class="font-medium text-green-900 mb-2">Existing Data</div>
+              <div class="text-sm text-green-800">
+                <div>${data.length} data points</div>
+                <div>From: ${data[0].flow_date_start.split('T')[0]}</div>
+                <div>To: ${data[data.length-1].flow_date_start.split('T')[0]}</div>
+              </div>
+            </div>
+            <div class="text-sm text-gray-600">
+              <p>Upload new data to replace existing data, or download a template to get started.</p>
+            </div>
+          </div>
+        `;
+      } else {
+        content.innerHTML = `
+          <div class="text-center py-8">
+            <div class="text-gray-500 mb-4">No data uploaded yet</div>
+            <p class="text-sm text-gray-600">Download a template or upload your CSV file to get started.</p>
+          </div>
+        `;
+      }
+    } catch (e) {
+      content.innerHTML = '<div class="text-center text-gray-500 text-sm py-8">No data available</div>';
+    }
+  }
+
+  // Modal handlers
+  document.getElementById('addDefBtn')?.addEventListener('click', () => {
+    document.getElementById('defModalTitle')!.textContent = 'Add Curve Definition';
+    clearDefForm();
+    document.getElementById('defModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeDefModal')?.addEventListener('click', () => {
+    document.getElementById('defModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelDefModal')?.addEventListener('click', () => {
+    document.getElementById('defModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('saveDefModal')?.addEventListener('click', async () => {
+    const data = {
+      curveName: (document.getElementById('defCurveName') as HTMLInputElement).value,
+      market: (document.getElementById('defMarket') as HTMLSelectElement).value,
+      location: (document.getElementById('defLocation') as HTMLInputElement).value,
+      product: (document.getElementById('defProduct') as HTMLInputElement).value,
+      curveType: (document.getElementById('defCurveType') as HTMLSelectElement).value,
+      batteryDuration: (document.getElementById('defBatteryDuration') as HTMLSelectElement).value,
+      granularity: (document.getElementById('defGranularity') as HTMLSelectElement).value,
+      units: (document.getElementById('defUnits') as HTMLInputElement).value
+    };
+
+    try {
+      const res = await fetch('/api/curve-upload/create-definition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      
+      toast('Definition created successfully');
+      document.getElementById('defModal')!.classList.add('hidden');
+      await loadDefinitions();
+      selectDefinition(result.curveDefinition);
+    } catch (e: any) {
+      toast(e.message || 'Failed to create definition', 'error');
+    }
+  });
+
+  document.getElementById('addInstBtn')?.addEventListener('click', () => {
+    document.getElementById('instModalTitle')!.textContent = 'Add Curve Instance';
+    clearInstForm();
+    document.getElementById('instModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeInstModal')?.addEventListener('click', () => {
+    document.getElementById('instModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelInstModal')?.addEventListener('click', () => {
+    document.getElementById('instModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('saveInstModal')?.addEventListener('click', async () => {
+    const data = {
+      curveDefinitionId: selectedDef.id,
+      instanceVersion: (document.getElementById('instVersion') as HTMLInputElement).value,
+      deliveryPeriodStart: (document.getElementById('instStartDate') as HTMLInputElement).value,
+      deliveryPeriodEnd: (document.getElementById('instEndDate') as HTMLInputElement).value,
+      modelType: (document.getElementById('instModelType') as HTMLInputElement).value,
+      createdBy: (document.getElementById('instCreatedBy') as HTMLInputElement).value,
+      notes: (document.getElementById('instNotes') as HTMLTextAreaElement).value
+    };
+
+    try {
+      const res = await fetch('/api/curve-upload/create-instance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      
+      toast('Instance created successfully');
+      document.getElementById('instModal')!.classList.add('hidden');
+      await loadInstances(selectedDef.id);
+      selectInstance(result.curveInstance);
+    } catch (e: any) {
+      toast(e.message || 'Failed to create instance', 'error');
+    }
+  });
+
+  // Upload data modal
+  document.getElementById('uploadDataBtn')?.addEventListener('click', () => {
+    document.getElementById('uploadModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeUploadModal')?.addEventListener('click', () => {
+    document.getElementById('uploadModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelUploadModal')?.addEventListener('click', () => {
+    document.getElementById('uploadModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('csvFileInput')?.addEventListener('change', (e: any) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      try {
+        csvData = parseCSV(e.target.result);
+        showCSVPreview(csvData);
+        (document.getElementById('confirmUploadModal') as HTMLButtonElement).disabled = false;
+      } catch (err: any) {
+        toast(err.message, 'error');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('confirmUploadModal')?.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/curve-upload/upload-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ curveInstanceId: selectedInst.id, priceData: csvData })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      
+      toast(`Successfully uploaded ${result.recordsCreated} data points`);
+      document.getElementById('uploadModal')!.classList.add('hidden');
+      loadExistingData(selectedInst.id);
+    } catch (e: any) {
+      toast(e.message || 'Upload failed', 'error');
+    }
+  });
+
+  // Template generator
+  document.getElementById('downloadTemplateBtn')?.addEventListener('click', () => {
+    const start = selectedInst.deliveryPeriodStart.split('T')[0];
+    const end = selectedInst.deliveryPeriodEnd.split('T')[0];
+    (document.getElementById('templateStart') as HTMLInputElement).value = start;
+    (document.getElementById('templateEnd') as HTMLInputElement).value = end;
+    document.getElementById('templateModal')!.classList.remove('hidden');
+  });
+
+  document.getElementById('closeTemplateModal')?.addEventListener('click', () => {
+    document.getElementById('templateModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('cancelTemplateModal')?.addEventListener('click', () => {
+    document.getElementById('templateModal')!.classList.add('hidden');
+  });
+
+  document.getElementById('generateTemplateBtn')?.addEventListener('click', () => {
+    const start = (document.getElementById('templateStart') as HTMLInputElement).value;
+    const end = (document.getElementById('templateEnd') as HTMLInputElement).value;
+    const gran = selectedDef.granularity;
+    const units = selectedDef.units || '$/MWh';
+    const pvals = [5, 25, 50, 75, 95].filter(p => (document.getElementById(`p${p}`) as HTMLInputElement).checked);
+
+    const timestamps = generateTimestamps(start, end, gran);
+    const rows = [];
+    for (const ts of timestamps) {
+      for (const pv of pvals) {
+        rows.push(`${ts},,${pv},${units}`);
+      }
+    }
+    const csv = ['timestamp,value,pvalue,units', ...rows].join('\n');
+    downloadCSV(csv, `template_${selectedDef.curveName}_${start}_to_${end}.csv`);
+    
+    document.getElementById('templateModal')!.classList.add('hidden');
+    toast('Template downloaded');
+  });
+
+  // Search & sort handlers
+  document.getElementById('defSearch')?.addEventListener('input', renderDefinitions);
+  document.getElementById('defSort')?.addEventListener('change', renderDefinitions);
+  document.getElementById('instSearch')?.addEventListener('input', renderInstances);
+  document.getElementById('instSort')?.addEventListener('change', renderInstances);
+
+  // Helper functions
+  function clearDefForm() {
+    ['defCurveName', 'defMarket', 'defLocation', 'defProduct', 'defCurveType', 'defBatteryDuration', 'defGranularity', 'defUnits'].forEach(id => {
+      const el = document.getElementById(id) as any;
+      if (el) el.value = id === 'defUnits' ? '$/MWh' : (id === 'defBatteryDuration' ? 'UNKNOWN' : '');
+    });
+  }
+
+  function clearInstForm() {
+    ['instVersion', 'instStartDate', 'instEndDate', 'instModelType', 'instCreatedBy', 'instNotes'].forEach(id => {
+      const el = document.getElementById(id) as any;
+      if (el) el.value = id === 'instCreatedBy' ? 'Upload System' : '';
+    });
+  }
+
+  function parseCSV(text: string): any[] {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    const data = [];
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const row: any = {};
+      headers.forEach((h, idx) => row[h] = values[idx]);
+      data.push(row);
+    }
+    return data;
+  }
+
+  function showCSVPreview(data: any[]) {
+    const preview = document.getElementById('csvPreview')!;
+    const content = document.getElementById('csvPreviewContent')!;
+    const stats = document.getElementById('csvStats')!;
+    
+    const sample = data.slice(0, 5);
+    content.innerHTML = `<table class="min-w-full text-xs"><thead><tr>${Object.keys(sample[0]).map(k => `<th class="px-2 py-1 text-left">${k}</th>`).join('')}</tr></thead><tbody>${sample.map(row => `<tr>${Object.values(row).map((v: any) => `<td class="px-2 py-1">${v}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    stats.textContent = `${data.length} rows loaded (showing first 5)`;
+    preview.classList.remove('hidden');
+  }
+
+  function generateTimestamps(start: string, end: string, gran: string): string[] {
+    const result: string[] = [];
+    let curr = new Date(start + 'T00:00:00Z');
+    const endDate = new Date(end + 'T00:00:00Z');
+    
+    while (curr <= endDate) {
+      result.push(curr.toISOString());
+      if (gran === 'HOURLY') curr = new Date(curr.getTime() + 3600000);
+      else if (gran === 'DAILY') curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth(), curr.getUTCDate() + 1));
+      else if (gran === 'MONTHLY') curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth() + 1, 1));
+      else if (gran === 'QUARTERLY') curr = new Date(Date.UTC(curr.getUTCFullYear(), curr.getUTCMonth() + 3, 1));
+      else if (gran === 'ANNUAL') curr = new Date(Date.UTC(curr.getUTCFullYear() + 1, 0, 1));
+      else break;
+    }
+    return result;
+  }
+
+  function downloadCSV(content: string, filename: string) {
+    const blob = new Blob([content], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Initialize
+  loadDefinitions();
+</script>
+</Layout>
+

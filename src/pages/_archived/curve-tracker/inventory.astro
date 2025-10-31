@@ -1,0 +1,375 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Curve Inventory">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Curve Inventory</h1>
+        <p class="text-gray-600 mt-1">View and manage your uploaded curve data</p>
+      </div>
+      <div class="space-x-4">
+        <a href="/curve-tracker/upload" 
+           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          Upload Curves
+        </a>
+        <a href="/curve-tracker/viewer" 
+           class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+          View Curves
+        </a>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label for="marketFilter" class="block text-sm font-medium text-gray-700 mb-1">Market</label>
+          <select id="marketFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Markets</option>
+          </select>
+        </div>
+        <div>
+          <label for="locationFilter" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+          <select id="locationFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Locations</option>
+          </select>
+        </div>
+        <div>
+          <label for="curveTypeFilter" class="block text-sm font-medium text-gray-700 mb-1">Curve Type</label>
+          <select id="curveTypeFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Types</option>
+          </select>
+        </div>
+        <div>
+          <label for="commodityFilter" class="block text-sm font-medium text-gray-700 mb-1">Commodity</label>
+          <select id="commodityFilter" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+            <option value="">All Commodities</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Total Curves</h3>
+            <p id="totalCurves" class="text-2xl font-bold text-gray-900">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <svg class="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Markets</h3>
+            <p id="totalMarkets" class="text-2xl font-bold text-gray-900">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <svg class="w-6 h-6 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
+              <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Total Instances</h3>
+            <p id="totalPricePoints" class="text-2xl font-bold text-gray-900">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-yellow-100 rounded-lg">
+            <svg class="w-6 h-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div class="ml-4">
+            <h3 class="text-sm font-medium text-gray-500">Last Updated</h3>
+            <p id="lastUpdated" class="text-2xl font-bold text-gray-900">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingState" class="bg-white rounded-lg shadow-md p-8 text-center">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p class="text-gray-600">Loading curve inventory...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden bg-red-50 border border-red-200 rounded-lg p-6">
+      <div class="flex">
+        <svg class="w-5 h-5 text-red-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <h3 class="text-sm font-medium text-red-800">Error Loading Curves</h3>
+          <p id="errorMessage" class="text-sm text-red-700 mt-1"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Curves Table -->
+    <div id="curvesTable" class="hidden bg-white rounded-lg shadow-md overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Curves</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curve Name</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Market</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instance Details</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="curvesTableBody" class="bg-white divide-y divide-gray-200">
+            <!-- Table rows will be populated by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden bg-white rounded-lg shadow-md p-8 text-center">
+      <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <h3 class="text-lg font-medium text-gray-900 mb-2">No curves found</h3>
+      <p class="text-gray-600 mb-4">Get started by uploading your first curve data file.</p>
+      <a href="/curve-tracker/upload" 
+         class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Upload Curves
+      </a>
+    </div>
+  </div>
+
+  <script>
+    let allCurves = [];
+    let filteredCurves = [];
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      await loadCurves();
+      setupFilters();
+    });
+
+    async function loadCurves() {
+      try {
+        // Load curve definitions with their instances
+        const response = await fetch('/api/curves/definitions');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const definitions = await response.json();
+        
+        // Fetch instances for each definition
+        const curvesWithInstances = await Promise.all(
+          definitions.map(async (def) => {
+            try {
+              const instancesResp = await fetch(`/api/curves/instances?definitionId=${def.id}`);
+              const instances = instancesResp.ok ? await instancesResp.json() : [];
+              
+              // Extract unique curve types and commodities from instances
+              const types = [...new Set(instances.map(i => i.curveType).filter(Boolean))];
+              const commodities = [...new Set(instances.map(i => i.commodity).filter(Boolean))];
+              
+              return {
+                ...def,
+                instances,
+                instanceCount: instances.length,
+                curveTypes: types,
+                commodities: commodities
+              };
+            } catch (err) {
+              console.error(`Error loading instances for definition ${def.id}:`, err);
+              return { ...def, instances: [], instanceCount: 0, curveTypes: [], commodities: [] };
+            }
+          })
+        );
+        
+        allCurves = curvesWithInstances;
+        filteredCurves = [...allCurves];
+        
+        updateStats();
+        populateFilters();
+        renderTable();
+        
+        // Hide loading state
+        document.getElementById('loadingState').classList.add('hidden');
+        
+        if (allCurves.length === 0) {
+          document.getElementById('emptyState').classList.remove('hidden');
+        } else {
+          document.getElementById('curvesTable').classList.remove('hidden');
+        }
+        
+      } catch (error) {
+        console.error('Error loading curves:', error);
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('errorState').classList.remove('hidden');
+        document.getElementById('errorMessage').textContent = error.message;
+      }
+    }
+
+    function updateStats() {
+      const totalCurves = allCurves.length;
+      const totalMarkets = new Set(allCurves.map(c => c.market)).size;
+      const totalInstances = allCurves.reduce((sum, c) => sum + (c.instanceCount || 0), 0);
+      const lastUpdated = allCurves.length > 0 ? 
+        new Date(Math.max(...allCurves.map(c => new Date(c.createdAt)))).toLocaleDateString() : 'N/A';
+
+      document.getElementById('totalCurves').textContent = totalCurves;
+      document.getElementById('totalMarkets').textContent = totalMarkets;
+      document.getElementById('totalPricePoints').textContent = totalInstances;
+      document.getElementById('lastUpdated').textContent = lastUpdated;
+    }
+
+    function populateFilters() {
+      const markets = [...new Set(allCurves.map(c => c.market).filter(Boolean))].sort();
+      const locations = [...new Set(allCurves.map(c => c.location).filter(Boolean))].sort();
+      
+      // Collect all curve types and commodities from all instances
+      const allCurveTypes = allCurves.flatMap(c => c.curveTypes || []);
+      const allCommodities = allCurves.flatMap(c => c.commodities || []);
+      const curveTypes = [...new Set(allCurveTypes)].sort();
+      const commodities = [...new Set(allCommodities)].sort();
+
+      populateSelectOptions('marketFilter', markets);
+      populateSelectOptions('locationFilter', locations);
+      populateSelectOptions('curveTypeFilter', curveTypes);
+      populateSelectOptions('commodityFilter', commodities);
+    }
+
+    function populateSelectOptions(selectId, options) {
+      const select = document.getElementById(selectId);
+      const currentValue = select.value;
+      
+      // Clear existing options except the first one
+      while (select.children.length > 1) {
+        select.removeChild(select.lastChild);
+      }
+      
+      options.forEach(option => {
+        const optionElement = document.createElement('option');
+        optionElement.value = option;
+        optionElement.textContent = option;
+        select.appendChild(optionElement);
+      });
+      
+      // Restore previous selection if still valid
+      if (options.includes(currentValue)) {
+        select.value = currentValue;
+      }
+    }
+
+    function setupFilters() {
+      const filters = ['marketFilter', 'locationFilter', 'curveTypeFilter', 'commodityFilter'];
+      filters.forEach(filterId => {
+        document.getElementById(filterId).addEventListener('change', applyFilters);
+      });
+    }
+
+    function applyFilters() {
+      const marketFilter = document.getElementById('marketFilter').value;
+      const locationFilter = document.getElementById('locationFilter').value;
+      const curveTypeFilter = document.getElementById('curveTypeFilter').value;
+      const commodityFilter = document.getElementById('commodityFilter').value;
+
+      filteredCurves = allCurves.filter(curve => {
+        return (!marketFilter || curve.market === marketFilter) &&
+               (!locationFilter || curve.location === locationFilter) &&
+               (!curveTypeFilter || (curve.curveTypes && curve.curveTypes.includes(curveTypeFilter))) &&
+               (!commodityFilter || (curve.commodities && curve.commodities.includes(commodityFilter)));
+      });
+
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('curvesTableBody');
+      tbody.innerHTML = '';
+
+      filteredCurves.forEach(curve => {
+        const row = document.createElement('tr');
+        
+        // Format instance types as badges
+        const typeBadges = (curve.curveTypes || []).map(type => 
+          `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1">${type}</span>`
+        ).join('');
+        
+        const commodityBadges = (curve.commodities || []).map(commodity => 
+          `<span class="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded mr-1">${commodity}</span>`
+        ).join('');
+        
+        const instanceDetails = typeBadges || commodityBadges || 
+          '<span class="text-gray-400 text-xs italic">No instances</span>';
+        
+        row.innerHTML = `
+          <td class="px-6 py-4 text-sm font-medium text-gray-900">
+            <div class="font-semibold">${curve.curveName}</div>
+            <div class="text-xs text-gray-500">${curve.description || curve.batteryDuration || ''}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.market || 'N/A'}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${curve.location || 'N/A'}</td>
+          <td class="px-6 py-4 text-sm">
+            ${instanceDetails}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            <span class="font-medium">${curve.instanceCount || 0}</span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatDate(curve.createdAt)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <a href="/curve-tracker/viewer?definitionId=${curve.id}" class="text-blue-600 hover:text-blue-900 mr-4">View</a>
+            <button onclick="exportCurve(${curve.id})" class="text-green-600 hover:text-green-900">Export</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      try {
+        return new Date(dateString).toLocaleDateString();
+      } catch {
+        return 'Invalid Date';
+      }
+    }
+
+    function exportCurve(curveId) {
+      // TODO: Implement curve export functionality
+      alert(`Export functionality for curve ${curveId} will be implemented soon.`);
+    }
+  </script>
+</Layout>

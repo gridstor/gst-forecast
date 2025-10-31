@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { CurveData, Granularity } from '../../lib/types';
 
-// Define brand colors
+// GridStor Design System Colors
 const COLORS = {
-  primary: '#2AB3CB',    // Bright turquoise
-  secondary: '#1D7874',  // Teal green
-  tertiary: '#679289',   // Sage green
-  accent: '#F4C095',     // Peach
-  dark: '#E2231A',       // Red
+  primary: '#3B82F6',    // Blue - Primary data
+  secondary: '#10B981',  // Green - Success metrics
+  tertiary: '#EF4444',   // Red - Critical metrics
+  accent: '#8B5CF6',     // Purple - Special categories
+  dark: '#F59E0B',       // Amber - Warnings
   gray: '#E5E7EB'        // Light gray for grid lines
 };
 
@@ -105,12 +105,17 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 shadow-lg rounded-lg">
-          <p className="text-sm font-medium text-gray-900">{label ? formatDate(label) : ''}</p>
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+          <p className="text-gray-900 font-semibold mb-2 m-0">{label ? formatDate(label) : ''}</p>
           {payload.map((entry, index) => (
-            <p key={`${entry.name}-${index}`} className="text-sm" style={{ color: entry.color }}>
-              {`${entry.name}: $${entry.value.toFixed(2)}/kw-mn`}
-            </p>
+            <div key={`${entry.name}-${index}`} className="flex items-center justify-between gap-4 mt-1">
+              <span className="text-gray-600 text-sm uppercase tracking-wide">
+                {entry.name}
+              </span>
+              <span className="font-mono font-bold" style={{ color: entry.color }}>
+                ${entry.value.toFixed(2)}
+              </span>
+            </div>
           ))}
         </div>
       );
@@ -132,7 +137,11 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
             type="number"
             domain={['dataMin', 'dataMax']}
             tickFormatter={formatDate}
-            tick={{ fontSize: 12 }}
+            stroke="#6B7280"
+            style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '12px'
+            }}
           />
           <YAxis 
             label={{ 
@@ -140,10 +149,17 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
               angle: -90, 
               position: 'insideLeft',
               offset: 0,
-              fontSize: 14,
-              fontWeight: 500
+              style: {
+                fontFamily: 'Inter, sans-serif',
+                fontSize: '12px',
+                fill: '#6B7280'
+              }
             }}
-            tick={{ fontSize: 12 }}
+            stroke="#6B7280"
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: '12px'
+            }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend 
@@ -151,7 +167,8 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
             height={36}
             wrapperStyle={{
               paddingTop: '20px',
-              fontSize: '12px'
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px'
             }}
           />
           {Object.entries(groupedData).map(([curveId, curveData], index) => {
@@ -167,14 +184,14 @@ export const DualChartSystem: React.FC<DualChartSystemProps> = ({
             return (
               <Line 
                 key={curveId}
-                type="linear" 
+                type="monotone" 
                 data={curveData}
                 dataKey="value" 
                 name={label}
                 stroke={style.color}
                 strokeWidth={2}
                 strokeDasharray={getStrokeDasharray(style.lineStyle)}
-                dot={false}
+                dot={{ fill: style.color, r: 4 }}
                 activeDot={{ r: 6 }}
               />
             );

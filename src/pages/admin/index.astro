@@ -1,0 +1,63 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Development Operations">
+  <!-- Page Header -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">Development Operations</h1>
+    <p class="text-base text-[#6B7280]">System health monitoring, diagnostics, and operational tools</p>
+  </div>
+
+  <!-- SECTION: DEVELOPMENT OPS -->
+  <section class="mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <a href="/admin/db-health" class="bg-white rounded-lg p-6 accent-border-green transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="flex items-center gap-3 mb-4">
+          <svg class="w-6 h-6 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <h3 class="text-lg font-semibold text-[#1F2937]">Database Health</h3>
+        </div>
+        <p class="text-[#6B7280] text-sm">Run comprehensive health checks on database connections and tables</p>
+      </a>
+
+      <a href="/admin/api-health" class="bg-white rounded-lg p-6 accent-border-red transition-all duration-200 hover:-translate-y-1" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div class="flex items-center gap-3 mb-4">
+          <svg class="w-6 h-6 text-[#EF4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+          </svg>
+          <h3 class="text-lg font-semibold text-[#1F2937]">API Health Check</h3>
+        </div>
+        <p class="text-[#6B7280] text-sm">Monitor API endpoints, response times, and system status</p>
+      </a>
+    </div>
+  </section>
+
+  <!-- System Information -->
+  <section class="mb-12">
+    <div class="mb-6">
+      <h2 class="text-2xl font-bold text-[#2A2A2A] mb-2" style="letter-spacing: -0.01em;">System Information</h2>
+      <p class="text-base text-[#6B7280]">Environment and operational status overview</p>
+    </div>
+
+    <div class="bg-white rounded-lg p-6 accent-border-blue" style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <h3 class="text-sm font-medium text-[#6B7280] mb-2">Environment</h3>
+          <p class="text-lg font-semibold text-[#111827]">Production</p>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-[#6B7280] mb-2">Deployment Status</h3>
+          <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#ECFDF5] text-[#059669]">
+            Active
+          </span>
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-[#6B7280] mb-2">Last Check</h3>
+          <p class="text-lg font-semibold text-[#111827]">Just now</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>

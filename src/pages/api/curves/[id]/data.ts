@@ -14,23 +14,37 @@ export const GET: APIRoute = async ({ params }) => {
       });
     }
 
-    // Fetch price forecast data for the curve
-    const priceData = await prisma.price_forecasts.findMany({
+    // Fetch curve data for the instance (new schema)
+    const priceData = await prisma.curveData.findMany({
       where: {
-        curve_id: curveId
+        curveInstanceId: curveId
       },
       orderBy: {
-        flow_date_start: 'asc'
+        timestamp: 'asc'
       },
       select: {
-        flow_date_start: true,
+        id: true,
+        timestamp: true,
         value: true,
-        units: true,
-        mark_date: true
+        curveType: true,
+        commodity: true,
+        scenario: true,
+        units: true
       }
     });
 
-    return new Response(JSON.stringify(priceData), {
+    // Transform to match expected format
+    const formattedData = priceData.map(d => ({
+      id: d.id,
+      flow_date_start: d.timestamp,
+      value: d.value,
+      curveType: d.curveType,
+      commodity: d.commodity,
+      scenario: d.scenario,
+      units: d.units
+    }));
+
+    return new Response(JSON.stringify(formattedData), {
       status: 200,
       headers: { 
         'Content-Type': 'application/json',

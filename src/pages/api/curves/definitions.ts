@@ -15,13 +15,10 @@ export const GET: APIRoute = async ({ url }) => {
         curveName: true,
         market: true,
         location: true,
-        product: true,
-        curveType: true,
+        // product, curveType, commodity, granularity, scenario, degradationType all moved to instance level
         batteryDuration: true,
-        scenario: true,
-        degradationType: true,
-        commodity: true,
         units: true,
+        timezone: true,
         description: true,
         createdAt: true,
         // Include count of existing instances
@@ -34,7 +31,6 @@ export const GET: APIRoute = async ({ url }) => {
       orderBy: [
         { market: 'asc' },
         { location: 'asc' },
-        { product: 'asc' },
         { createdAt: 'desc' }
       ]
     });
@@ -45,16 +41,13 @@ export const GET: APIRoute = async ({ url }) => {
       curveName: def.curveName,
       market: def.market,
       location: def.location,
-      product: def.product,
-      curveType: def.curveType,
+      // product, curveType, commodity, granularity, scenario, degradationType are now on instances
       batteryDuration: def.batteryDuration,
-      scenario: def.scenario,
-      degradationType: def.degradationType,
-      commodity: def.commodity,
       units: def.units,
+      timezone: def.timezone,
       description: def.description,
       instanceCount: def._count.instances,
-      displayName: `${def.market} ${def.location} ${def.product} ${def.curveType} (${def.batteryDuration}, ${def.scenario})`,
+      displayName: `${def.market} ${def.location} - ${def.curveName}`,
       createdAt: def.createdAt
     }));
 

@@ -36,7 +36,7 @@ export const GET: APIRoute = async ({ url }) => {
             WHEN ci."createdBy" ILIKE '%gridstor%' 
               AND (ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[])
             THEN 4  -- GridStor + P-values (BEST)
-            WHEN ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[]
+            WHEN (ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[])
             THEN 3  -- P-values (any source)
             WHEN ci."createdBy" ILIKE '%gridstor%'
             THEN 2  -- GridStor (no P-values)
@@ -49,7 +49,7 @@ export const GET: APIRoute = async ({ url }) => {
                 WHEN ci."createdBy" ILIKE '%gridstor%' 
                   AND (ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[])
                 THEN 4
-                WHEN ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[]
+                WHEN (ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[])
                 THEN 3
                 WHEN ci."createdBy" ILIKE '%gridstor%'
                 THEN 2

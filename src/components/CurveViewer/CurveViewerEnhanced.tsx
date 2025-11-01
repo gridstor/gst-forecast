@@ -290,7 +290,7 @@ export default function CurveViewerEnhanced() {
     const instanceIds = curves
       .filter(c => c.latestInstance)
       .map(c => c.latestInstance!.instanceId);
-    setSelectedCurves(prev => prev.filter(id => !instanceIds.includes(id)));
+    setSelectedCurves(prev => prev.filter(c => !instanceIds.includes(c.instanceId)));
   };
 
   const isCurveFresh = (createdAt: string) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import DualRangeChart from './DualRangeChart';
+import MultiCurveChart from './MultiCurveChart';
 
 interface Location {
   id: string;
@@ -45,6 +45,14 @@ interface TimeFilter {
   preset: string;
 }
 
+interface SelectedCurveInfo {
+  instanceId: number;
+  curveName: string;
+  instanceVersion: string;
+  color: string;
+  isPrimary: boolean; // True for GridStor P-value curves
+}
+
 export default function CurveViewerEnhanced() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [markets, setMarkets] = useState<string[]>([]);
@@ -52,11 +60,16 @@ export default function CurveViewerEnhanced() {
   const [availableLocations, setAvailableLocations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
   const [curveDefinitions, setCurveDefinitions] = useState<CurveDefinition[]>([]);
-  const [selectedCurves, setSelectedCurves] = useState<number[]>([]);
+  const [allInstances, setAllInstances] = useState<any[]>([]); // ALL instances for location
+  const [selectedCurves, setSelectedCurves] = useState<SelectedCurveInfo[]>([]);
   const [curveData, setCurveData] = useState<CurveDataPoint[]>([]);
   const [timeFilter, setTimeFilter] = useState<TimeFilter>({ startDate: null, endDate: null, preset: 'all' });
+  const [summaryPeriod, setSummaryPeriod] = useState<string>('5y'); // New: Flexible summary periods
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Color palette for overlay curves
+  const overlayColors = ['#FF6B35', '#F77F00', '#FCBF49', '#06B6D4', '#8B5CF6', '#EC4899'];
 
   // Fetch locations on mount
   useEffect(() => {
@@ -84,17 +97,19 @@ export default function CurveViewerEnhanced() {
     }
   }, [selectedMarket, locations]);
 
-  // Fetch curve definitions when location changes
+  // Fetch curve definitions and ALL instances when location changes
   useEffect(() => {
     if (selectedLocation) {
       fetchCurveDefinitions(selectedLocation.market, selectedLocation.location);
+      fetchAllInstancesForLocation(selectedLocation.market, selectedLocation.location);
     }
   }, [selectedLocation]);
 
   // Fetch curve data when selected curves change
   useEffect(() => {
     if (selectedCurves.length > 0) {
-      fetchCurveData(selectedCurves);
+      const instanceIds = selectedCurves.map(c => c.instanceId);
+      fetchCurveData(instanceIds);
     } else {
       setCurveData([]);
     }
@@ -132,24 +147,48 @@ export default function CurveViewerEnhanced() {
       console.log('Curve definitions loaded:', data.length);
       setCurveDefinitions(data);
       
-      // Auto-select Oct25 instance (or first with "Oct" in version)
-      const oct25 = data.find((d: CurveDefinition) => 
-        d.latestInstance && (
-          d.latestInstance.instanceVersion?.includes('Oct') || 
-          d.latestInstance.instanceVersion?.includes('25') ||
-          d.latestInstance.instanceVersion?.includes('OCT')
-        )
-      );
+      // Auto-select the best GridStor curve with P-values
+      // Priority: GridStor + P-values > Any + P-values > GridStor Base > Any Base
       
-      if (oct25 && oct25.latestInstance) {
-        console.log('Auto-selecting Oct25:', oct25.latestInstance.instanceVersion);
-        setSelectedCurves([oct25.latestInstance.instanceId]);
-      } else {
-        // Fallback to first curve with an instance
-        const firstCurveWithInstance = data.find((d: CurveDefinition) => d.latestInstance);
-        if (firstCurveWithInstance && firstCurveWithInstance.latestInstance) {
-          console.log('Auto-selecting first curve:', firstCurveWithInstance.latestInstance.instanceVersion);
-          setSelectedCurves([firstCurveWithInstance.latestInstance.instanceId]);
+      let bestCurve: CurveDefinition | null = null;
+      let bestScore = -1;
+      
+      for (const d of data) {
+        if (!d.latestInstance) continue;
+        
+        const isGridStor = d.latestInstance.createdBy?.toLowerCase().includes('gridstor');
+        const hasPValues = d.latestInstance.scenarios?.some(s => 
+          s.includes('P5') || s.includes('P05') || s.includes('P95')
+        );
+        
+        // Scoring: GridStor+Pvalues=4, Pvalues=3, GridStor=2, Other=1
+        let score = 1;
+        if (isGridStor && hasPValues) score = 4;
+        else if (hasPValues) score = 3;
+        else if (isGridStor) score = 2;
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestCurve = d;
+        }
+      }
+      
+      if (bestCurve && bestCurve.latestInstance) {
+        const hasPValues = bestCurve.latestInstance.scenarios?.some(s => 
+          s.includes('P5') || s.includes('P05') || s.includes('P95')
+        );
+        
+        console.log('Auto-selecting best curve:', bestCurve.latestInstance.instanceVersion, 'Score:', bestScore);
+        setSelectedCurves([{
+          instanceId: bestCurve.latestInstance.instanceId,
+          curveName: bestCurve.curveName,
+          instanceVersion: bestCurve.latestInstance.instanceVersion,
+          color: '#3B82F6', // Blue for primary
+          isPrimary: true
+        }]);
+        
+        if (!hasPValues) {
+          console.warn('⚠️ Selected curve does not have P-values (P5-P95). Graph may show limited data.');
         }
       }
     } catch (err) {
@@ -157,6 +196,21 @@ export default function CurveViewerEnhanced() {
       setError(err instanceof Error ? err.message : 'Failed to fetch curves');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllInstancesForLocation = async (market: string, location: string) => {
+    try {
+      const response = await fetch(
+        `/api/curves/all-instances-for-location?market=${encodeURIComponent(market)}&location=${encodeURIComponent(location)}`
+      );
+      if (!response.ok) throw new Error('Failed to fetch all instances');
+      const data = await response.json();
+      console.log('All instances for location:', data.instances.length);
+      setAllInstances(data.instances || []);
+    } catch (err) {
+      console.error('Error fetching all instances:', err);
+      // Don't set error - this is optional functionality
     }
   };
 
@@ -182,20 +236,53 @@ export default function CurveViewerEnhanced() {
     }
   };
 
-  const toggleCurve = (instanceId: number) => {
-    setSelectedCurves(prev => 
-      prev.includes(instanceId)
-        ? prev.filter(id => id !== instanceId)
-        : [...prev, instanceId]
-    );
+  const addInstanceAsOverlay = (instance: any) => {
+    // Check if already selected
+    const alreadySelected = selectedCurves.some(c => c.instanceId === instance.instanceId);
+    if (alreadySelected) {
+      // Remove it
+      setSelectedCurves(prev => prev.filter(c => c.instanceId !== instance.instanceId));
+      return;
+    }
+    
+    // Assign color from overlay palette (skip colors already in use)
+    const usedColors = selectedCurves.map(c => c.color);
+    const availableColor = overlayColors.find(c => !usedColors.includes(c)) || overlayColors[0];
+    
+    // Determine if this should be primary (GridStor with P-values)
+    const isGridStor = instance.createdBy?.toLowerCase().includes('gridstor');
+    const isPrimary = isGridStor && instance.hasPValues && selectedCurves.length === 0;
+    
+    // Add as overlay
+    setSelectedCurves(prev => [...prev, {
+      instanceId: instance.instanceId,
+      curveName: instance.curveName,
+      instanceVersion: instance.instanceVersion,
+      color: isPrimary ? '#3B82F6' : availableColor,
+      isPrimary
+    }]);
+  };
+  
+  const addCurveOverlay = (curve: CurveDefinition, instance: any) => {
+    addInstanceAsOverlay({ ...instance, curveName: curve.curveName });
+  };
+  
+  const removeCurve = (instanceId: number) => {
+    setSelectedCurves(prev => prev.filter(c => c.instanceId !== instanceId));
   };
 
   const selectAllCurves = (granularity: string) => {
     const curves = curvesByGranularity[granularity] || [];
-    const instanceIds = curves
+    const newCurves = curves
       .filter(c => c.latestInstance)
-      .map(c => c.latestInstance!.instanceId);
-    setSelectedCurves(prev => [...new Set([...prev, ...instanceIds])]);
+      .map((c, idx) => ({
+        instanceId: c.latestInstance!.instanceId,
+        curveName: c.curveName,
+        instanceVersion: c.latestInstance!.instanceVersion,
+        color: overlayColors[idx % overlayColors.length],
+        isPrimary: false
+      }));
+    setSelectedCurves(prev => [...prev, ...newCurves]);
   };
 
   const clearAllCurves = (granularity: string) => {
@@ -214,10 +301,7 @@ export default function CurveViewerEnhanced() {
   };
 
   const getSelectedCurveInfo = () => {
-    const selected = curveDefinitions.filter(curve => 
-      curve.latestInstance && selectedCurves.includes(curve.latestInstance.instanceId)
-    );
-    return selected;
+    return selectedCurves;
   };
 
   const handleMarketChange = (market: string) => {
@@ -412,35 +496,37 @@ export default function CurveViewerEnhanced() {
             </div>
           </div>
 
-          {/* Selected Curves Display */}
+          {/* Selected Curves Display - MOVED TO TOP */}
           {selectedCurves.length > 0 && (
             <div className="bg-[#F0F9FF] border border-[#BAE6FD] rounded-lg p-4">
               <h3 className="text-sm font-semibold text-[#0369A1] mb-3">
                 Currently Graphing ({selectedCurves.length})
               </h3>
               <div className="flex flex-wrap gap-2">
-                {getSelectedCurveInfo().map((curve) => (
+                {selectedCurves.map((curve) => (
                   <div
-                    key={curve.definitionId}
-                    className="inline-flex items-center gap-2 bg-white border border-[#BAE6FD] rounded-lg px-3 py-2 shadow-sm"
+                    key={curve.instanceId}
+                    className="inline-flex items-center gap-2 bg-white border-2 rounded-lg px-3 py-2 shadow-sm"
+                    style={{ borderColor: curve.color }}
                   >
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: curve.color }}></div>
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-[#111827]">
                           {curve.curveName}
                         </span>
-                        {curve.latestInstance && isCurveFresh(curve.latestInstance.createdAt) && (
+                        {curve.isPrimary && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-[#10B981] text-white">
-                            FRESH
+                            PRIMARY
                           </span>
                         )}
                       </div>
                       <div className="text-xs text-[#6B7280] mt-0.5">
-                        {curve.latestInstance?.instanceVersion} • {curve.batteryDuration}
+                        {curve.instanceVersion}
                       </div>
                     </div>
                     <button
-                      onClick={() => toggleCurve(curve.latestInstance!.instanceId)}
+                      onClick={() => removeCurve(curve.instanceId)}
                       className="text-[#DC2626] hover:text-[#991B1B] hover:bg-[#FEE2E2] rounded p-1 transition-colors"
                       title="Remove from graph"
                     >
@@ -469,35 +555,185 @@ export default function CurveViewerEnhanced() {
       )}
 
       {!loading && curveData.length > 0 && (
-        <div className="bg-white rounded-lg overflow-hidden accent-border-blue" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div className="p-6">
-            <h2 className="text-xl font-semibold text-[#1F2937] mb-2">
-              GridStor Revenue Forecast
-            </h2>
-            <p className="text-sm text-[#6B7280] mb-4">
-              P25-P75 interquartile range (gray) • P5-P95 confidence interval (cyan) • P50 median forecast (blue line)
-            </p>
-            <DualRangeChart 
-              data={curveData} 
-              color="#34D5ED" 
-              startDate={timeFilter.startDate}
-              endDate={timeFilter.endDate}
-            />
+        <>
+          {/* Total Revenue Graph */}
+          <div className="bg-white rounded-lg overflow-hidden accent-border-blue" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-semibold text-[#1F2937]">
+                  Total Revenue Forecast
+                </h2>
+                <button className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors">
+                  Download Data
+                </button>
+              </div>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Primary curve shows P5-P95 bands • Overlays show as colored lines for comparison
+              </p>
+              <MultiCurveChart 
+                data={curveData} 
+                selectedCurves={selectedCurves}
+                startDate={timeFilter.startDate}
+                endDate={timeFilter.endDate}
+                commodity="Total Revenue"
+              />
+            </div>
           </div>
-        </div>
+
+          {/* EA Revenue Graph */}
+          <div className="bg-white rounded-lg overflow-hidden accent-border-green" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-semibold text-[#1F2937]">
+                  Energy Arbitrage (EA) Revenue
+                </h2>
+                <button className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors">
+                  Download Data
+                </button>
+              </div>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Energy arbitrage revenue breakdown from selected curves
+              </p>
+              <MultiCurveChart 
+                data={curveData} 
+                selectedCurves={selectedCurves}
+                startDate={timeFilter.startDate}
+                endDate={timeFilter.endDate}
+                commodity="EA Revenue"
+              />
+            </div>
+          </div>
+
+          {/* AS Revenue Graph */}
+          <div className="bg-white rounded-lg overflow-hidden accent-border-purple" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xl font-semibold text-[#1F2937]">
+                  Ancillary Services (AS) Revenue
+                </h2>
+                <button className="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors">
+                  Download Data
+                </button>
+              </div>
+              <p className="text-sm text-[#6B7280] mb-4">
+                Ancillary services revenue breakdown from selected curves
+              </p>
+              <MultiCurveChart 
+                data={curveData} 
+                selectedCurves={selectedCurves}
+                startDate={timeFilter.startDate}
+                endDate={timeFilter.endDate}
+                commodity="AS Revenue"
+              />
+            </div>
+          </div>
+        </>
       )}
       
       {!loading && curveData.length === 0 && selectedCurves.length > 0 && (
-        <div className="bg-white rounded-lg p-12 text-center" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <p className="text-[#6B7280]">No data available for selected curves. Upload data for these instances.</p>
+        <div className="bg-white rounded-lg p-12 text-center border-l-4 border-orange-500" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <svg className="mx-auto h-12 w-12 text-orange-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <h3 className="text-lg font-semibold text-[#2A2A2A] mb-2">No Graph Data Available</h3>
+          <p className="text-[#6B7280] mb-4">
+            The selected curve has no data in the database, or it doesn't have P-values (P5-P95) needed for confidence bands.
+          </p>
+          <div className="text-sm text-[#6B7280] bg-gray-50 rounded-lg p-4 max-w-md mx-auto">
+            <strong>Selected:</strong> {selectedCurves.map(c => c.instanceVersion).join(', ')}
+            <div className="mt-2 text-xs">Try selecting a different curve with P-values, or upload data for this instance.</div>
+          </div>
         </div>
       )}
 
-      {/* Curve Selection by Granularity */}
+      {/* Add Curve Overlays - ALL instances for comparison */}
+      {!loading && allInstances.length > 0 && (
+        <div className="bg-white rounded-lg overflow-hidden accent-border-blue" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <div className="p-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-[#1F2937] mb-1">
+                Add Curve Overlays for Comparison
+              </h2>
+              <p className="text-sm text-[#6B7280]">
+                Click any curve to overlay it on the graph • Primary curve shows P-value bands • Overlays show as lines
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              {allInstances.map((inst, idx) => {
+                const isSelected = selectedCurves.some(sc => sc.instanceId === inst.instanceId);
+                const selectedInfo = selectedCurves.find(sc => sc.instanceId === inst.instanceId);
+                
+                return (
+                  <div
+                    key={inst.instanceId}
+                    onClick={() => addInstanceAsOverlay(inst)}
+                    className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'bg-blue-50 border-blue-300 shadow-sm' 
+                        : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      {isSelected && (
+                        <div className="w-4 h-4 rounded-full border-2" style={{ backgroundColor: selectedInfo?.color, borderColor: selectedInfo?.color }}></div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-gray-900">{inst.instanceVersion}</span>
+                          {inst.createdBy?.toLowerCase().includes('gridstor') && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800">
+                              GridStor
+                            </span>
+                          )}
+                          {inst.hasPValues && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800">
+                              📊 P-values
+                            </span>
+                          )}
+                          {selectedInfo?.isPrimary && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-600 text-white">
+                              PRIMARY
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                          <span className="font-medium">{inst.curveName}</span>
+                          <span>•</span>
+                          <span>by {inst.createdBy}</span>
+                          <span>•</span>
+                          <span className="font-mono">{new Date(inst.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {(inst.commodities || []).slice(0, 3).map((c: string, i: number) => (
+                            <span key={i} className="inline-block px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs">{c}</span>
+                          ))}
+                          {inst.commodities?.length > 3 && (
+                            <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+{inst.commodities.length - 3} more</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isSelected ? (
+                        <span className="text-blue-600 font-semibold text-sm">✓ Added</span>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Click to add</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Curve Selection by Granularity - KEEP for other markets/locations */}
       {Object.entries(curvesByGranularity).map(([granularity, curves]) => {
         const curvesWithInstances = curves.filter(c => c.latestInstance);
         const selectedInGranularity = curvesWithInstances.filter(c => 
-          selectedCurves.includes(c.latestInstance!.instanceId)
+          selectedCurves.some(sc => sc.instanceId === c.latestInstance!.instanceId)
         ).length;
         
         return (
@@ -563,13 +799,13 @@ export default function CurveViewerEnhanced() {
                 <tbody className="bg-white divide-y divide-[#E5E7EB]">
                   {curves.map(curve => {
                     const instanceId = curve.latestInstance?.instanceId;
-                    const isSelected = instanceId && selectedCurves.includes(instanceId);
+                    const isSelected = instanceId && selectedCurves.some(sc => sc.instanceId === instanceId);
                     const isFresh = curve.latestInstance && isCurveFresh(curve.latestInstance.createdAt);
                     
                     return (
                       <tr 
                         key={curve.definitionId}
-                        onClick={() => curve.latestInstance && toggleCurve(curve.latestInstance.instanceId)}
+                        onClick={() => curve.latestInstance && addCurveOverlay(curve, curve.latestInstance)}
                         className={`transition-colors cursor-pointer ${
                           !curve.latestInstance ? 'opacity-50 cursor-not-allowed' : 
                           isSelected ? 'bg-[#EFF6FF] hover:bg-[#DBEAFE]' : 'hover:bg-[#F9FAFB]'
@@ -580,7 +816,7 @@ export default function CurveViewerEnhanced() {
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              onChange={() => toggleCurve(curve.latestInstance!.instanceId)}
+                              onChange={() => addCurveOverlay(curve, curve.latestInstance)}
                               className="w-5 h-5 text-[#3B82F6] border-[#D1D5DB] rounded focus:ring-[#3B82F6] focus:ring-2 cursor-pointer"
                             />
                           )}

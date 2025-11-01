@@ -15,10 +15,11 @@ export const GET: APIRoute = async ({ url }) => {
       });
     }
 
-    // Get curve definitions with their latest instances
+    // Get curve definitions with their BEST instances
+    // Priority: GridStor + P-values > Any + P-values > GridStor > Most Recent
     const result = await query(`
-      WITH LatestInstances AS (
-        SELECT DISTINCT ON (ci."curveDefinitionId")
+      WITH RankedInstances AS (
+        SELECT 
           ci.id as "instanceId",
           ci."curveDefinitionId",
           ci."instanceVersion",
@@ -29,10 +30,38 @@ export const GET: APIRoute = async ({ url }) => {
           ci.commodities,
           ci.granularity,
           ci.scenarios,
-          ci."degradationType"
+          ci."degradationType",
+          -- Scoring for best instance
+          CASE
+            WHEN ci."createdBy" ILIKE '%gridstor%' 
+              AND (ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[])
+            THEN 4  -- GridStor + P-values (BEST)
+            WHEN ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[]
+            THEN 3  -- P-values (any source)
+            WHEN ci."createdBy" ILIKE '%gridstor%'
+            THEN 2  -- GridStor (no P-values)
+            ELSE 1  -- Other
+          END as priority_score,
+          ROW_NUMBER() OVER (
+            PARTITION BY ci."curveDefinitionId" 
+            ORDER BY 
+              CASE
+                WHEN ci."createdBy" ILIKE '%gridstor%' 
+                  AND (ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[])
+                THEN 4
+                WHEN ci.scenarios && ARRAY['P5', 'P50', 'P95']::text[] OR ci.scenarios && ARRAY['P05', 'P50', 'P95']::text[]
+                THEN 3
+                WHEN ci."createdBy" ILIKE '%gridstor%'
+                THEN 2
+                ELSE 1
+              END DESC,
+              ci."createdAt" DESC
+          ) as rn
         FROM "Forecasts"."CurveInstance" ci
         WHERE ci.status = 'ACTIVE'
-        ORDER BY ci."curveDefinitionId", ci."createdAt" DESC
+      ),
+      LatestInstances AS (
+        SELECT * FROM RankedInstances WHERE rn = 1
       )
       SELECT 
         cd.id as "definitionId",

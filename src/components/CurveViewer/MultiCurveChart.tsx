@@ -263,3 +263,4 @@ const MultiCurveChart: React.FC<MultiCurveChartProps> = ({
 
 export default MultiCurveChart;
 
+

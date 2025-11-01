@@ -273,15 +273,44 @@ export default function CurveViewerEnhanced() {
 
   const selectAllCurves = (granularity: string) => {
     const curves = curvesByGranularity[granularity] || [];
-    const newCurves = curves
-      .filter(c => c.latestInstance)
-      .map((c, idx) => ({
+    const curvesWithInstances = curves.filter(c => c.latestInstance);
+    
+    // Score each curve to find the best primary
+    let bestCurve: CurveDefinition | null = null;
+    let bestScore = -1;
+    
+    curvesWithInstances.forEach(c => {
+      const isGridStor = c.latestInstance!.createdBy?.toLowerCase().includes('gridstor');
+      const hasPValues = c.latestInstance!.scenarios?.some(s => 
+        s.includes('P5') || s.includes('P05') || s.includes('P95')
+      );
+      
+      let score = 1;
+      if (isGridStor && hasPValues) score = 4;
+      else if (hasPValues) score = 3;
+      else if (isGridStor) score = 2;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestCurve = c;
+      }
+    });
+    
+    // Map curves with primary/overlay designation
+    let overlayColorIndex = 0;
+    const newCurves = curvesWithInstances.map((c) => {
+      const isPrimary = bestCurve && c.definitionId === bestCurve.definitionId;
+      const color = isPrimary ? '#3B82F6' : overlayColors[overlayColorIndex++ % overlayColors.length];
+      
+      return {
         instanceId: c.latestInstance!.instanceId,
         curveName: c.curveName,
         instanceVersion: c.latestInstance!.instanceVersion,
-        color: overlayColors[idx % overlayColors.length],
-        isPrimary: false
-      }));
+        color,
+        isPrimary: isPrimary || false
+      };
+    });
+    
     setSelectedCurves(prev => [...prev, ...newCurves]);
   };
 

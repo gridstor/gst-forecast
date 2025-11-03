@@ -86,6 +86,15 @@ const currentPath = Astro.url.pathname;
 									</div>
 								</div>
 							</div>
+
+							<!-- Futures Markets Link -->
+							<a 
+								href="/futures-markets"
+								class={`${currentPath.startsWith('/futures-markets') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium`}
+								aria-current={currentPath.startsWith('/futures-markets') ? 'page' : undefined}
+							>
+								Futures Markets
+							</a>
 						</nav>
 					</div>
 					

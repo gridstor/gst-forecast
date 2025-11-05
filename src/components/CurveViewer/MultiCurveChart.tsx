@@ -26,6 +26,8 @@ interface MultiCurveChartProps {
   startDate?: string | null;
   endDate?: string | null;
   commodity?: string; // Filter by commodity (e.g., "Total Revenue", "EA Revenue")
+  height?: number; // Chart height in pixels
+  viewMode?: 'monthly' | 'annual'; // Toggle between monthly and annual aggregation
 }
 
 interface ChartData {
@@ -39,7 +41,9 @@ const MultiCurveChart: React.FC<MultiCurveChartProps> = ({
   selectedCurves,
   startDate = null, 
   endDate = null,
-  commodity = 'Total Revenue'
+  commodity = 'Total Revenue',
+  height = 400,
+  viewMode = 'annual'
 }) => {
   // Process data for multiple curves
   const chartData = useMemo(() => {
@@ -99,6 +103,11 @@ const MultiCurveChart: React.FC<MultiCurveChartProps> = ({
       };
     }).sort((a, b) => (a.timestamp as Date).getTime() - (b.timestamp as Date).getTime());
 
+    // Return monthly data if viewMode is 'monthly'
+    if (viewMode === 'monthly') {
+      return allData;
+    }
+
     // Group by year for annual aggregation
     const yearGroups: { [key: number]: typeof allData } = {};
     allData.forEach(point => {
@@ -133,7 +142,7 @@ const MultiCurveChart: React.FC<MultiCurveChartProps> = ({
     }).sort((a, b) => a.year - b.year);
 
     return annual;
-  }, [data, selectedCurves, startDate, endDate, commodity]);
+  }, [data, selectedCurves, startDate, endDate, commodity, viewMode]);
 
   if (chartData.length === 0) {
     return (
@@ -146,32 +155,58 @@ const MultiCurveChart: React.FC<MultiCurveChartProps> = ({
   const primaryCurve = selectedCurves.find(c => c.isPrimary);
   const overlayCurves = selectedCurves.filter(c => !c.isPrimary);
 
+  // Custom tooltip matching Figma design system
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+          <p className="text-gray-900 font-semibold mb-2 m-0">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4 mt-1">
+              <span className="text-gray-600 text-sm uppercase tracking-wide">
+                {entry.name}
+              </span>
+              <span
+                className="font-bold"
+                style={{ 
+                  color: entry.color || entry.stroke,
+                  fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace'
+                }}
+              >
+                ${typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-4">
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
           <XAxis 
             dataKey="date" 
             stroke="#6B7280"
             tick={{ fill: '#6B7280', fontSize: 12 }}
+            style={{ fontFamily: 'Inter, sans-serif' }}
           />
           <YAxis 
             stroke="#6B7280"
             tick={{ fill: '#6B7280', fontSize: 12 }}
             tickFormatter={(value) => `$${value.toFixed(0)}`}
+            style={{ fontFamily: 'JetBrains Mono, Consolas, Monaco, monospace' }}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E5E7EB',
-              borderRadius: '8px',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-            }}
-            formatter={(value: any) => [`$${value.toFixed(2)}`, '']}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend 
-            wrapperStyle={{ paddingTop: '20px' }}
+            wrapperStyle={{ 
+              paddingTop: '20px',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px'
+            }}
             iconType="line"
           />
           

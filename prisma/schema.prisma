@@ -264,6 +264,13 @@ enum DegradationType {
   @@schema("Forecasts")
 }
 
+enum LocationType {
+  HUB
+  NODE
+
+  @@schema("Forecasts")
+}
+
 enum ScheduleType {
   REGULAR
   AD_HOC
@@ -314,6 +321,7 @@ model CurveDefinition {
   curveName       String          @db.VarChar(255)
   market          String          @db.VarChar(50)
   location        String          @db.VarChar(100)
+  locationType    LocationType?   // HUB or NODE - distinguishes hub-level vs nodal pricing
   product         String?         @db.VarChar(100) // Optional - legacy field, use commodity on instance instead
   // curveType MOVED TO CurveInstance - allows multiple types per definition
   // commodity MOVED TO CurveInstance - allows multiple commodities per definition
@@ -341,6 +349,7 @@ model CurveDefinition {
   @@index([batteryDuration])
   @@index([isActive])
   @@index([createdAt])
+  @@index([locationType])
   @@schema("Forecasts")
 }
 

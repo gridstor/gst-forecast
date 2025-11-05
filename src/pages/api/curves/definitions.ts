@@ -15,6 +15,7 @@ export const GET: APIRoute = async ({ url }) => {
         curveName: true,
         market: true,
         location: true,
+        locationType: true,
         // product, curveType, commodity, granularity, scenario, degradationType all moved to instance level
         batteryDuration: true,
         units: true,
@@ -41,6 +42,7 @@ export const GET: APIRoute = async ({ url }) => {
       curveName: def.curveName,
       market: def.market,
       location: def.location,
+      locationType: def.locationType,
       // product, curveType, commodity, granularity, scenario, degradationType are now on instances
       batteryDuration: def.batteryDuration,
       units: def.units,

@@ -25,7 +25,7 @@ export const createDatabase = async () => {
     
     // Fallback: Try to read from different possible env var names
     if (!connectionString) {
-      connectionString = process.env.POSTGRES_URL || process.env.DB_URL;
+      connectionString = process.env.DATABASE_URL_THIRD || process.env.POSTGRES_URL || process.env.DB_URL;
       console.log('Trying fallback env vars:', !!connectionString);
     }
     

@@ -19,7 +19,7 @@ import Layout from '../../layouts/Layout.astro';
         </svg>
         <h2 class="text-lg font-semibold text-[#1F2937]">Global Filters</h2>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
         <div>
           <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Market</label>
           <select id="globalMarket" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
@@ -32,6 +32,14 @@ import Layout from '../../layouts/Layout.astro';
         <div>
           <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location</label>
           <input type="text" id="globalLocation" placeholder="Any location" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] placeholder-[#9CA3AF] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location Type</label>
+          <select id="globalLocationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+            <option value="">All Types</option>
+            <option value="HUB">Hub</option>
+            <option value="NODE">Node</option>
+          </select>
         </div>
         <div>
           <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Product</label>
@@ -147,6 +155,14 @@ import Layout from '../../layouts/Layout.astro';
             <div>
               <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location *</label>
               <input type="text" id="editDefLocation" required class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Location Type</label>
+              <select id="editDefLocationType" class="w-full px-3 py-2 text-sm border border-[#E5E7EB] rounded-md bg-white focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all">
+                <option value="">Not Specified</option>
+                <option value="HUB">Hub</option>
+                <option value="NODE">Node</option>
+              </select>
             </div>
             <div>
               <label class="block text-xs font-medium text-[#6B7280] uppercase tracking-wider mb-1">Battery Duration</label>
@@ -430,12 +446,23 @@ import Layout from '../../layouts/Layout.astro';
     const container = document.getElementById('defList')!;
     const search = (document.getElementById('defSearch') as HTMLInputElement).value.toLowerCase();
     const sort = (document.getElementById('defSort') as HTMLSelectElement).value;
+    const globalMarket = (document.getElementById('globalMarket') as HTMLSelectElement).value;
+    const globalLocation = (document.getElementById('globalLocation') as HTMLInputElement).value.toLowerCase();
+    const globalLocationType = (document.getElementById('globalLocationType') as HTMLSelectElement).value;
 
-    let filtered = allDefs.filter(d => 
-      d.curveName.toLowerCase().includes(search) ||
-      d.market.toLowerCase().includes(search) ||
-      d.location.toLowerCase().includes(search)
-    );
+    let filtered = allDefs.filter(d => {
+      // Text search
+      const matchesSearch = d.curveName.toLowerCase().includes(search) ||
+        d.market.toLowerCase().includes(search) ||
+        d.location.toLowerCase().includes(search);
+      
+      // Global filters
+      const matchesMarket = !globalMarket || d.market === globalMarket;
+      const matchesLocation = !globalLocation || d.location.toLowerCase().includes(globalLocation);
+      const matchesLocationType = !globalLocationType || d.locationType === globalLocationType;
+      
+      return matchesSearch && matchesMarket && matchesLocation && matchesLocationType;
+    });
 
     filtered.sort((a, b) => {
       if (sort === 'name') return a.curveName.localeCompare(b.curveName);
@@ -446,7 +473,7 @@ import Layout from '../../layouts/Layout.astro';
     container.innerHTML = filtered.map(d => `
       <div class="mb-2 p-3 border rounded-lg cursor-pointer transition-all hover:shadow-md ${selectedDef?.id === d.id ? 'bg-[#EFF6FF] border-[#3B82F6]' : 'bg-white border-[#E5E7EB]'}" data-def-id="${d.id}">
         <div class="font-semibold text-sm text-[#111827]">${d.curveName}</div>
-        <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.market} • ${d.location}</div>
+        <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.market} • ${d.location} ${d.locationType ? `<span class="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold ${d.locationType === 'HUB' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">${d.locationType}</span>` : ''}</div>
         <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.batteryDuration} • ${d.units || '$/MWh'}</div>
         <div class="text-xs text-[#6B7280] mt-1 font-mono">${d.instanceCount || 0} instances</div>
       </div>
@@ -512,6 +539,10 @@ import Layout from '../../layouts/Layout.astro';
 
   function showDefActions(def: any) {
     const panel = document.getElementById('actionPanel')!;
+    const locationTypeBadge = def.locationType 
+      ? `<span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${def.locationType === 'HUB' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">${def.locationType}</span>`
+      : 'N/A';
+    
     panel.innerHTML = `
       <div class="space-y-4">
         <div class="p-4 bg-[#EFF6FF] rounded-lg border border-[#3B82F6]">
@@ -520,6 +551,7 @@ import Layout from '../../layouts/Layout.astro';
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">ID:</span><span>${def.id}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Market:</span><span>${def.market}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Location:</span><span>${def.location}</span></div>
+            <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Type:</span><span>${locationTypeBadge}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Battery:</span><span>${def.batteryDuration || 'N/A'}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Units:</span><span>${def.units || 'N/A'}</span></div>
             <div class="flex justify-between"><span class="font-medium uppercase tracking-wider">Instances:</span><span>${def.instanceCount || 0}</span></div>
@@ -690,6 +722,7 @@ import Layout from '../../layouts/Layout.astro';
       (document.getElementById('editDefName') as HTMLInputElement).value = def.curveName || '';
       (document.getElementById('editDefMarket') as HTMLSelectElement).value = def.market || 'CAISO';
       (document.getElementById('editDefLocation') as HTMLInputElement).value = def.location || '';
+      (document.getElementById('editDefLocationType') as HTMLSelectElement).value = def.locationType || '';
       (document.getElementById('editDefBatteryDuration') as HTMLSelectElement).value = def.batteryDuration || 'UNKNOWN';
       (document.getElementById('editDefUnits') as HTMLSelectElement).value = def.units || '$/MWh';
       (document.getElementById('editDefTimezone') as HTMLInputElement).value = def.timezone || 'UTC';
@@ -790,9 +823,18 @@ import Layout from '../../layouts/Layout.astro';
   document.getElementById('instSearch')?.addEventListener('input', renderInstances);
   document.getElementById('instSort')?.addEventListener('change', renderInstances);
 
+  // Global filter event listeners
+  document.getElementById('globalMarket')?.addEventListener('change', renderDefinitions);
+  document.getElementById('globalLocation')?.addEventListener('input', renderDefinitions);
+  document.getElementById('globalLocationType')?.addEventListener('change', renderDefinitions);
+  document.getElementById('globalProduct')?.addEventListener('input', renderDefinitions);
+  document.getElementById('globalCurveType')?.addEventListener('change', renderDefinitions);
+  document.getElementById('globalStatus')?.addEventListener('change', renderDefinitions);
+
   document.getElementById('clearFilters')?.addEventListener('click', () => {
     (document.getElementById('globalMarket') as HTMLSelectElement).value = '';
     (document.getElementById('globalLocation') as HTMLInputElement).value = '';
+    (document.getElementById('globalLocationType') as HTMLSelectElement).value = '';
     (document.getElementById('globalProduct') as HTMLInputElement).value = '';
     (document.getElementById('globalCurveType') as HTMLSelectElement).value = '';
     (document.getElementById('globalStatus') as HTMLSelectElement).value = '';
@@ -810,11 +852,13 @@ import Layout from '../../layouts/Layout.astro';
   
   document.getElementById('saveEditDef')?.addEventListener('click', async () => {
     const id = (document.getElementById('editDefId') as HTMLInputElement).value;
+    const locationTypeValue = (document.getElementById('editDefLocationType') as HTMLSelectElement).value;
     const data = {
       id: parseInt(id),
       curveName: (document.getElementById('editDefName') as HTMLInputElement).value,
       market: (document.getElementById('editDefMarket') as HTMLSelectElement).value,
       location: (document.getElementById('editDefLocation') as HTMLInputElement).value,
+      locationType: locationTypeValue || null,
       batteryDuration: (document.getElementById('editDefBatteryDuration') as HTMLSelectElement).value,
       units: (document.getElementById('editDefUnits') as HTMLSelectElement).value,
       timezone: (document.getElementById('editDefTimezone') as HTMLInputElement).value,

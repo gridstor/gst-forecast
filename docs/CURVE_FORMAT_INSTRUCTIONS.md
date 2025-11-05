@@ -34,6 +34,7 @@ CurveDefinition (1) ──→ (many) CurveInstance (1) ──→ (many) CurveDat
 | `curveName` | String (unique) | ✅ **YES** | Unique name for the curve | "CAISO_NP15_4H_Q1_2025", "ERCOT_Houston_2H_Revenue" |
 | `market` | String (50 chars) | ✅ **YES** | Market identifier | "CAISO", "ERCOT", "PJM", "NYISO" |
 | `location` | String (100 chars) | ✅ **YES** | Location/node identifier | "NP15", "SP15", "Channel View", "Houston" |
+| `locationType` | Enum (HUB or NODE) | No | Type of location - HUB for hub-level pricing, NODE for nodal pricing | "HUB", "NODE" |
 | `batteryDuration` | String (50 chars) | ✅ **YES** | Battery duration | "TWO_H", "FOUR_H", "EIGHT_H", "UNKNOWN" |
 | `units` | String (50 chars) | No (default: "$/MWh") | Units for the curve | "$/MWh", "$/kW-month" |
 | `timezone` | String (50 chars) | No (default: "UTC") | Timezone for timestamps | "UTC", "America/Los_Angeles" |
@@ -44,6 +45,7 @@ CurveDefinition (1) ──→ (many) CurveInstance (1) ──→ (many) CurveDat
 
 - **`curveName` must be UNIQUE** - if a definition with the same name exists, it will be reused (not duplicated)
 - **`product` field is legacy/optional** - kept for DB compatibility but not required
+- **`locationType`** - Distinguishes hub-level pricing (HUB) from nodal pricing (NODE). Common nodes include: Goleta, Santa Fe Springs, Hidden Lakes, Gunnar, Odessa. Common hubs include: SP15, NP15, Houston, North Hub, South Hub. Used in graphing and analysis.
 - Fields like `curveType`, `commodity`, `granularity`, `scenario`, `degradationType` are **NOT** on CurveDefinition - they're on CurveInstance
 
 ---

@@ -59,6 +59,7 @@ export const PUT: APIRoute = async ({ request }) => {
       curveName,
       market,
       location,
+      locationType,
       // Fields that belong on Definition (instance-specific fields removed)
       batteryDuration,
       units,
@@ -127,6 +128,7 @@ export const PUT: APIRoute = async ({ request }) => {
     if (curveName !== undefined) updateData.curveName = curveName;
     if (market !== undefined) updateData.market = market;
     if (location !== undefined) updateData.location = location;
+    if (locationType !== undefined) updateData.locationType = locationType;
     if (batteryDuration !== undefined) updateData.batteryDuration = batteryDuration;
     if (units !== undefined) updateData.units = units;
     if (timezone !== undefined) updateData.timezone = timezone;

@@ -49,6 +49,8 @@
     "dotenv": "^16.5.0",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.552.0",
     "pg": "^8.15.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -53,6 +53,7 @@
     "lucide-react": "^0.552.0",
     "pg": "^8.15.5",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
     "react-hot-toast": "^2.4.1",

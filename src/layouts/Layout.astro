@@ -156,19 +156,14 @@ const getPageTitle = (path: string): string => {
 									</div>
 								</div>
 							</div>
-							<a
-								href="/short-term-outlook"
-								class={getLinkClass(isShortTerm)}
-								aria-current={isShortTerm ? 'page' : undefined}
+
+							<!-- Futures Markets Link -->
+							<a 
+								href="/futures-markets"
+								class={`${currentPath.startsWith('/futures-markets') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium`}
+								aria-current={currentPath.startsWith('/futures-markets') ? 'page' : undefined}
 							>
-								Short Term Outlook
-							</a>
-							<a
-								href="/risk-structuring"
-								class={getLinkClass(isRisk)}
-								aria-current={isRisk ? 'page' : undefined}
-							>
-								Risk/Structuring
+								Futures Markets
 							</a>
 						</nav>
 					</div>

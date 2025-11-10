@@ -1,0 +1,26 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import FuturesTablesContainer from '../../components/futures/FuturesTablesContainer';
+---
+
+<Layout title="Futures Markets">
+	<!-- Page uses light gray background per design system -->
+	<div class="bg-[#F9FAFB] min-h-screen">
+		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+			
+			<!-- Header -->
+			<div class="mb-8">
+				<h1 class="text-3xl font-bold text-[#2A2A2A] mb-2 tracking-tight">
+					Futures Markets
+				</h1>
+				<p class="text-base text-[#6B7280] max-w-3xl">
+					Natural Gas, Power, and Heat Rate futures curves
+				</p>
+			</div>
+
+			<!-- Main Content -->
+			<FuturesTablesContainer client:only="react" />
+		</div>
+	</div>
+</Layout>
+

@@ -93,35 +93,25 @@ const getPageTitle = (path: string): string => {
 
 						<!-- Navigation Links (Figma styling: 16px Inter Medium, 32px gaps) -->
 						<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">
-							<!-- Revenue Forecast Dropdown -->
+							<!-- Long-term outlook Dropdown -->
 							<div class="relative group">
-								<a
-									href="/revenue-forecasts"
+								<button
 									class={`${getLinkClass(isLongTerm)} flex items-center gap-1`}
-									aria-current={isLongTerm ? 'page' : undefined}
 								>
-									Revenue Forecast
+									Long-term outlook
 									<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
 									</svg>
-								</a>
+								</button>
 								<div class="absolute left-0 mt-1 pt-1 w-64 group-hover:block z-50">
 									<div class="bg-white rounded-lg shadow-xl border border-gray-200">
-										<a href="/revenue-forecasts" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath === '/revenue-forecasts' || currentPath === '/revenue-forecasts/' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
-											<div class="font-medium">Revenue Forecast Grapher</div>
-											<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>
-										</a>
-										<a href="/revenue-forecasts/curves" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/curves') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
-											<div class="font-medium">Curve Browser</div>
-											<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>
-										</a>
-										<!-- Curve Admin Nested Dropdown -->
-										<div class="relative submenu-group border-t border-gray-100">
-											<div class={`block px-4 py-3 text-sm transition-colors ${currentPath.startsWith('/admin/upload') || currentPath.startsWith('/admin/inventory') || currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+										<!-- Revenue Forecast nested submenu -->
+										<div class="relative submenu-group">
+											<div class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath.startsWith('/revenue-forecasts') || currentPath.startsWith('/admin/upload') || currentPath.startsWith('/admin/inventory') || currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
 												<div class="flex items-center justify-between">
 													<div>
-														<div class="font-medium">Curve Admin</div>
-														<div class="text-xs text-gray-500 mt-0.5">Manage curves and data</div>
+														<div class="font-medium">Revenue Forecast</div>
+														<div class="text-xs text-gray-500 mt-0.5">Forecasting and analytics</div>
 													</div>
 													<svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -130,7 +120,15 @@ const getPageTitle = (path: string): string => {
 											</div>
 											<div class="absolute left-full top-0 ml-1 pt-1 w-64 submenu-hover:block z-50">
 												<div class="bg-white rounded-lg shadow-xl border border-gray-200">
-													<a href="/admin/upload" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath.startsWith('/admin/upload') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+													<a href="/revenue-forecasts" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath === '/revenue-forecasts' || currentPath === '/revenue-forecasts/' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Revenue Forecast Grapher</div>
+														<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>
+													</a>
+													<a href="/revenue-forecasts/curves" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/curves') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Curve Browser</div>
+														<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>
+													</a>
+													<a href="/admin/upload" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/upload') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 														<div class="font-medium">Curve Uploader</div>
 														<div class="text-xs text-gray-500 mt-0.5">Upload new curve data</div>
 													</a>
@@ -145,25 +143,31 @@ const getPageTitle = (path: string): string => {
 												</div>
 											</div>
 										</div>
-										<a href="/revenue-forecasts/admin" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/admin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
-											<div class="font-medium">Forecast Admin</div>
-											<div class="text-xs text-gray-500 mt-0.5">Manage curves and schedules</div>
-										</a>
-										<a href="/revenue-forecasts/documentation" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/revenue-forecasts/documentation') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
-											<div class="font-medium">Documentation</div>
-											<div class="text-xs text-gray-500 mt-0.5">Schema and model docs</div>
+										<!-- Futures Markets -->
+										<a href="/futures-markets" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/futures-markets') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+											<div class="font-medium">Futures Markets</div>
+											<div class="text-xs text-gray-500 mt-0.5">Natural gas, power, heat rate futures</div>
 										</a>
 									</div>
 								</div>
 							</div>
 
-							<!-- Futures Markets Link -->
+							<!-- Short-term outlook Link -->
 							<a 
-								href="/futures-markets"
-								class={`${currentPath.startsWith('/futures-markets') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium`}
-								aria-current={currentPath.startsWith('/futures-markets') ? 'page' : undefined}
+								href="/short-term-outlook"
+								class={`${getLinkClass(isShortTerm)} `}
+								aria-current={isShortTerm ? 'page' : undefined}
 							>
-								Futures Markets
+								Short-term outlook
+							</a>
+
+							<!-- Risk and structuring Link -->
+							<a 
+								href="/risk-structuring"
+								class={`${getLinkClass(isRisk)}`}
+								aria-current={isRisk ? 'page' : undefined}
+							>
+								Risk and structuring
 							</a>
 						</nav>
 					</div>

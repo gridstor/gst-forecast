@@ -1,7 +1,5 @@
 import type { APIRoute } from 'astro';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../../lib/prisma';
 
 export const GET: APIRoute = async ({ url }) => {
   try {
@@ -17,9 +15,22 @@ export const GET: APIRoute = async ({ url }) => {
       );
     }
 
+    const definitionIdNum = parseInt(definitionId);
+    if (isNaN(definitionIdNum)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid definitionId: ${definitionId}` }),
+        { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    console.log(`Fetching instances for definitionId: ${definitionIdNum}`);
+
     const instances = await prisma.curveInstance.findMany({
       where: {
-        curveDefinitionId: parseInt(definitionId)
+        curveDefinitionId: definitionIdNum
       },
       select: {
         id: true,
@@ -52,6 +63,8 @@ export const GET: APIRoute = async ({ url }) => {
       }
     });
 
+    console.log(`Found ${instances.length} instances for definitionId ${definitionIdNum}`);
+
     return new Response(
       JSON.stringify({ instances }),
       { 
@@ -61,14 +74,20 @@ export const GET: APIRoute = async ({ url }) => {
     );
   } catch (error) {
     console.error('Error fetching curve instances:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    console.error('Error details:', { errorMessage, errorStack, definitionId: url.searchParams.get('definitionId') });
+    
     return new Response(
-      JSON.stringify({ error: 'Failed to fetch curve instances' }),
+      JSON.stringify({ 
+        error: 'Failed to fetch curve instances',
+        details: errorMessage,
+        definitionId: url.searchParams.get('definitionId')
+      }),
       { 
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 };

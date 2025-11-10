@@ -5,6 +5,45 @@ interface Props {
 
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
+
+// Determine active states for navigation links
+const isLongTerm = currentPath.startsWith('/revenue-forecasts') || currentPath.startsWith('/long-term-outlook') || currentPath.startsWith('/admin/upload') || currentPath.startsWith('/curve-schedule') || currentPath.startsWith('/admin/inventory');
+const isShortTerm = currentPath.startsWith('/short-term-outlook');
+const isRisk = currentPath.startsWith('/risk-structuring');
+
+// Link class generator
+const getLinkClass = (isActive: boolean) => {
+	return `text-white hover:text-gray-300 transition-colors font-medium ${
+		isActive ? 'text-gray-300' : ''
+	}`;
+};
+
+// Page title mapping based on current path
+const getPageTitle = (path: string): string => {
+	if (path === '/revenue-forecasts' || path === '/revenue-forecasts/') {
+		return 'Revenue Forecast Grapher';
+	}
+	if (path.startsWith('/revenue-forecasts/curves')) {
+		return 'Curve Browser';
+	}
+	if (path.startsWith('/revenue-forecasts/admin')) {
+		return 'Forecast Admin';
+	}
+	if (path.startsWith('/revenue-forecasts/documentation')) {
+		return 'Documentation';
+	}
+	if (path.startsWith('/admin/upload')) {
+		return 'Curve Uploader';
+	}
+	if (path.startsWith('/curve-schedule')) {
+		return 'Curve Schedule';
+	}
+	if (path.startsWith('/admin/inventory')) {
+		return 'Curve Inventory';
+	}
+	// Default to the title prop
+	return title;
+};
 ---
 
 <!DOCTYPE html>
@@ -26,19 +65,19 @@ const currentPath = Astro.url.pathname;
 		<!-- Navigation Bar - GridStor Design System (Visual Styling from Figma) -->
 		<header class="bg-[#2A2A2A] text-white shadow-sm">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div class="flex justify-between items-center py-2">
+				<div class="flex justify-between items-center py-4">
 					<!-- Left: Logo + Navigation -->
-					<div class="flex items-center gap-6">
+					<div class="flex items-center gap-8">
 						<!-- Logo: Lightning Bolt + Site Title (Figma styling) -->
-						<a href="/" class="flex items-center gap-2 text-lg font-bold hover:text-gray-300 transition-colors" aria-label="Home">
-							<!-- Lightning Bolt Icon (24x24px, cyan #06B6D4) -->
+						<a href="/" class="flex items-center gap-3 text-xl font-bold hover:text-gray-300 transition-colors" aria-label="GridStor Market Sight Home">
+							<!-- Lightning Bolt Icon (32x32px, cyan #06B6D4) -->
 							<svg
-								width="24"
-								height="24"
+								width="32"
+								height="32"
 								viewBox="0 0 100 100"
 								fill="none"
 								xmlns="http://www.w3.org/2000/svg"
-								class="w-6 h-6"
+								class="w-8 h-8"
 								role="presentation"
 							>
 								<path
@@ -49,43 +88,88 @@ const currentPath = Astro.url.pathname;
 									stroke-linejoin="round"
 								/>
 							</svg>
-							<span>Long Term Outlook</span>
+							<span>GridStor Market Sight</span>
 						</a>
 
 						<!-- Navigation Links (Figma styling: 16px Inter Medium, 32px gaps) -->
-						<nav class="hidden lg:flex items-center gap-6" role="navigation" aria-label="Primary">
-							<!-- Revenue Forecasts Dropdown -->
+						<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">
+							<!-- Long Term Outlook Dropdown -->
 							<div class="relative group">
-								<button 
-									class={`${currentPath.startsWith('/revenue-forecasts') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium flex items-center gap-1 py-1 text-sm`}
-									aria-label="Revenue Forecasts Menu"
+								<a
+									href="/revenue-forecasts"
+									class={`${getLinkClass(isLongTerm)} flex items-center gap-1`}
+									aria-current={isLongTerm ? 'page' : undefined}
 								>
-									Revenue Forecasts
+									Long Term Outlook
 									<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
 									</svg>
-								</button>
-								<div class="absolute left-0 mt-1 pt-1 w-56 group-hover:block z-50">
+								</a>
+								<div class="absolute left-0 mt-1 pt-1 w-64 group-hover:block z-50">
 									<div class="bg-white rounded-lg shadow-xl border border-gray-200">
-										<a href="/revenue-forecasts" class="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-t-lg">
+										<a href="/revenue-forecasts" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath === '/revenue-forecasts' || currentPath === '/revenue-forecasts/' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 											<div class="font-medium">Revenue Forecast Grapher</div>
 											<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>
 										</a>
-										<a href="/revenue-forecasts/curves" class="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100">
+										<a href="/revenue-forecasts/curves" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/curves') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 											<div class="font-medium">Curve Browser</div>
 											<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>
 										</a>
-										<a href="/revenue-forecasts/admin" class="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100">
+										<!-- Curve Admin Nested Dropdown -->
+										<div class="relative submenu-group border-t border-gray-100">
+											<div class={`block px-4 py-3 text-sm transition-colors ${currentPath.startsWith('/admin/upload') || currentPath.startsWith('/admin/inventory') || currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+												<div class="flex items-center justify-between">
+													<div>
+														<div class="font-medium">Curve Admin</div>
+														<div class="text-xs text-gray-500 mt-0.5">Manage curves and data</div>
+													</div>
+													<svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+													</svg>
+												</div>
+											</div>
+											<div class="absolute left-full top-0 ml-1 pt-1 w-64 submenu-hover:block z-50">
+												<div class="bg-white rounded-lg shadow-xl border border-gray-200">
+													<a href="/admin/upload" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath.startsWith('/admin/upload') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Curve Uploader</div>
+														<div class="text-xs text-gray-500 mt-0.5">Upload new curve data</div>
+													</a>
+													<a href="/admin/inventory" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/inventory') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Curve Inventory</div>
+														<div class="text-xs text-gray-500 mt-0.5">View all curve definitions</div>
+													</a>
+													<a href="/curve-schedule" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Curve Schedule</div>
+														<div class="text-xs text-gray-500 mt-0.5">Manage delivery schedules</div>
+													</a>
+												</div>
+											</div>
+										</div>
+										<a href="/revenue-forecasts/admin" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/admin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 											<div class="font-medium">Forecast Admin</div>
 											<div class="text-xs text-gray-500 mt-0.5">Manage curves and schedules</div>
 										</a>
-										<a href="/revenue-forecasts/documentation" class="block px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-t border-gray-100 rounded-b-lg">
+										<a href="/revenue-forecasts/documentation" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/revenue-forecasts/documentation') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 											<div class="font-medium">Documentation</div>
 											<div class="text-xs text-gray-500 mt-0.5">Schema and model docs</div>
 										</a>
 									</div>
 								</div>
 							</div>
+							<a
+								href="/short-term-outlook"
+								class={getLinkClass(isShortTerm)}
+								aria-current={isShortTerm ? 'page' : undefined}
+							>
+								Short Term Outlook
+							</a>
+							<a
+								href="/risk-structuring"
+								class={getLinkClass(isRisk)}
+								aria-current={isRisk ? 'page' : undefined}
+							>
+								Risk/Structuring
+							</a>
 						</nav>
 					</div>
 					
@@ -114,6 +198,12 @@ const currentPath = Astro.url.pathname;
 		</header>
 
 		<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+			<!-- Page Title -->
+			<div class="mb-6">
+				<h1 class="text-3xl font-bold text-gray-900 mb-2" style="letter-spacing: -0.01em;">
+					{getPageTitle(currentPath)}
+				</h1>
+			</div>
 			<slot />
 		</main>
 	</body>
@@ -292,5 +382,23 @@ const currentPath = Astro.url.pathname;
 	/* Keep dropdown visible with a bridge between button and menu */
 	.group .group-hover\:block {
 		/* The pt-1 class creates a bridge area that keeps hover active */
+	}
+	
+	/* Nested submenu styles */
+	.submenu-group {
+		position: relative;
+	}
+	
+	.submenu-group .submenu-hover\:block {
+		display: none;
+	}
+	
+	.submenu-group:hover .submenu-hover\:block {
+		display: block;
+	}
+	
+	/* Smooth fade-in for nested menus */
+	.submenu-group .submenu-hover\:block > div {
+		animation: fadeIn 0.15s ease-in-out;
 	}
 </style>

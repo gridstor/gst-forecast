@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Building2, MapPin, Circle } from 'lucide-react';
+import { Building2, MapPin, Circle, Grid3x3, Table, ArrowUpDown } from 'lucide-react';
 import { LocationCard } from './LocationCard';
 import { CompactLocationCard } from './CompactLocationCard';
 import { GraphViewTopBar } from './GraphViewTopBar';
@@ -55,11 +55,17 @@ interface CurveDataPoint {
 }
 
 export default function RevenueForecastMain() {
+  const [displayMode, setDisplayMode] = useState<'cards' | 'table'>('cards');
   const [viewMode, setViewMode] = useState<'cards' | 'graph'>('cards');
   const [chartViewMode, setChartViewMode] = useState<'monthly' | 'annual'>('annual');
   const [dateRange, setDateRange] = useState<string>('lifetime');
   const [fromMonth, setFromMonth] = useState<string>('');
   const [toMonth, setToMonth] = useState<string>('');
+  
+  // Filters
+  const [selectedMarket, setSelectedMarket] = useState<string>('all');
+  const [selectedLocationType, setSelectedLocationType] = useState<string>('all');
+  const [sortOrder, setSortOrder] = useState<'high' | 'low' | 'none'>('none');
   
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,78 +223,21 @@ export default function RevenueForecastMain() {
     SPP: locations.filter(loc => loc.market === 'SPP')
   };
 
-  // Group locations by type and create badge groups
-  const getHubsAndNodes = (market: Market) => {
-    const marketLocs = locationsByMarket[market];
-    const hubs = marketLocs.filter(loc => loc.locationType?.toUpperCase() === 'HUB');
-    const nodes = marketLocs.filter(loc => !loc.locationType || loc.locationType?.toUpperCase() === 'NODE');
-    
-    // Group hubs that should be on the same card (e.g., North Hub + South Hub)
-    const groupedHubs = groupLocationsByBaseType(hubs);
-    const groupedNodes = groupLocationsByBaseType(nodes);
-    
-    return {
-      hubs: groupedHubs,
-      nodes: groupedNodes
-    };
-  };
-  
-  // Group locations that share similar base names (e.g., "North Hub" and "South Hub" → "Hub")
-  const groupLocationsByBaseType = (locations: LocationData[]) => {
-    const groups: Array<{
-      baseLocation: string;
-      locations: LocationData[];
-      badges: string[];
-    }> = [];
-    
-    // Group by market - all locations in same market can be grouped
-    if (locations.length === 0) return groups;
-    
-    // Simple grouping: if multiple locations exist, group them together
-    if (locations.length === 1) {
-      groups.push({
-        baseLocation: locations[0].location,
-        locations: [locations[0]],
-        badges: [locations[0].location]
-      });
-    } else {
-      // Multiple locations - group them all together
-      groups.push({
-        baseLocation: locations[0].location, // Use first as base
-        locations: locations,
-        badges: locations.map(loc => loc.location)
-      });
-    }
-    
-    return groups;
-  };
-
   const handleLocationClick = (definitionId: number, name: string, market: Market) => {
-    const specificLocation = selectedBadgesMap[name] || name;
     setSelectedLocation({
       definitionId,
       name,
-      market,
-      specificLocation
+      market
     });
     setViewMode('graph');
   };
 
-  const handleBadgeToggle = (locationName: string, badge: string) => {
-    setSelectedBadgesMap(prev => ({
-      ...prev,
-      [locationName]: badge
-    }));
-  };
-
   const handleAddCurve = (definitionId: number, name: string, market: Market) => {
-    const specificLocation = selectedBadgesMap[name] || name;
     const newCurve = {
       id: `${definitionId}-${Date.now()}`,
       definitionId,
       name,
-      market,
-      specificLocation
+      market
     };
     
     if (!addedCurves.find(c => c.definitionId === definitionId)) {
@@ -300,10 +249,39 @@ export default function RevenueForecastMain() {
     setAddedCurves(addedCurves.filter((_, i) => i !== index));
   };
 
+  // Filter and sort locations
+  const filteredLocations = useMemo(() => {
+    let filtered = [...locations];
+
+    // Apply market filter
+    if (selectedMarket !== 'all') {
+      filtered = filtered.filter(loc => loc.market === selectedMarket);
+    }
+
+    // Apply location type filter
+    if (selectedLocationType !== 'all') {
+      filtered = filtered.filter(loc => {
+        const locType = loc.locationType?.toUpperCase() || 'NODE';
+        return locType === selectedLocationType.toUpperCase();
+      });
+    }
+
+    // Apply sorting
+    if (sortOrder !== 'none') {
+      filtered.sort((a, b) => {
+        const aTotal = parseFloat(a.metrics.total.replace('$', ''));
+        const bTotal = parseFloat(b.metrics.total.replace('$', ''));
+        return sortOrder === 'high' ? bTotal - aTotal : aTotal - bTotal;
+      });
+    }
+
+    return filtered;
+  }, [locations, selectedMarket, selectedLocationType, sortOrder]);
+
   const stats = {
     markets: Object.keys(locationsByMarket).filter(k => locationsByMarket[k as Market].length > 0).length,
-    hubs: locations.filter(loc => loc.locationType === 'Hub').length,
-    nodes: locations.filter(loc => loc.locationType === 'Node' || loc.locationType === null).length,
+    hubs: locations.filter(loc => loc.locationType?.toUpperCase() === 'HUB').length,
+    nodes: locations.filter(loc => !loc.locationType || loc.locationType?.toUpperCase() === 'NODE').length,
     lastUpdate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   };
 
@@ -334,213 +312,292 @@ export default function RevenueForecastMain() {
     );
   }
 
+  // Helper function to format location type for display
+  const formatLocationType = (type: string | null): string => {
+    if (!type) return 'Node';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+  };
+
+  // Helper function to get market colors
+  const getMarketColors = (market: Market) => {
+    const colors = {
+      CAISO: {
+        badge: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+        total: 'text-blue-600 dark:text-blue-400'
+      },
+      ERCOT: {
+        badge: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+        total: 'text-red-600 dark:text-red-400'
+      },
+      SPP: {
+        badge: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+        total: 'text-emerald-600 dark:text-emerald-400'
+      }
+    };
+    return colors[market];
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <AnimatePresence mode="wait">
         {viewMode === 'cards' ? (
-          /* CARD VIEW */
+          /* CARD/TABLE VIEW */
           <motion.div
             key="cards-view"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, x: -100 }}
             transition={{ duration: 0.3 }}
-            className="max-w-[1200px] mx-auto px-4 py-4"
+            className="max-w-[1400px] mx-auto px-4 py-6"
           >
+            {/* Filter & Control Bar */}
             <div className="bg-white dark:bg-[#2A2A2A] rounded-lg shadow-sm p-4 mb-6">
-              {/* Section Header */}
-              <div className="flex items-start justify-between mb-2">
+              {/* Top Row: Title + View Toggle */}
+              <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     All Markets & Locations
                   </h2>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    Click card to view detailed forecasts and graphs
+                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                    Showing {filteredLocations.length} of {locations.length} forecasts
                   </div>
                 </div>
 
-                {/* Stats + Time Controls */}
-                <div className="flex items-start gap-4">
-                  {/* Market Overview Stats */}
-                  <div className="flex flex-col gap-1 text-[10px] text-gray-500 dark:text-gray-500 pt-0.5">
-                    <div className="flex items-center gap-1.5">
-                      <Building2 className="w-3 h-3 text-amber-500" />
-                      <span className="font-mono">{stats.markets} Markets</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Circle className="w-3 h-3 text-cyan-500" />
-                      <span className="font-mono">{stats.hubs} Hubs</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3 h-3 text-orange-500" />
-                      <span className="font-mono">{stats.nodes} Nodes</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Circle className="w-2 h-2 text-green-500 fill-green-500" />
-                      <span className="font-mono">Updated: {stats.lastUpdate}</span>
-                    </div>
-                  </div>
-
-                  {/* Time Period Controls */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400">Next:</span>
-                      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-md p-0.5">
-                        {['1y', '5y', '10y', 'lifetime'].map((range) => (
-                          <button
-                            key={range}
-                            onClick={() => setDateRange(range)}
-                            className={`px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                              dateRange === range
-                                ? 'bg-blue-600 text-white shadow-sm'
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                            }`}
-                          >
-                            {range === 'lifetime' ? 'Lifetime' : range}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Month Range Dropdowns */}
-                    <div className="flex items-center gap-0.5">
-                      <select
-                        value={fromMonth}
-                        onChange={(e) => {
-                          setFromMonth(e.target.value);
-                          setDateRange('custom');
-                        }}
-                        className="w-[100px] h-6 text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1"
-                      >
-                        <option value="">Select start</option>
-                        <option value="2025-01">Jan 2025</option>
-                        <option value="2025-06">Jun 2025</option>
-                        <option value="2025-12">Dec 2025</option>
-                        <option value="2026-01">Jan 2026</option>
-                      </select>
-                      <span className="text-[10px] text-gray-400">→</span>
-                      <select
-                        value={toMonth}
-                        onChange={(e) => {
-                          setToMonth(e.target.value);
-                          setDateRange('custom');
-                        }}
-                        className="w-[100px] h-6 text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1"
-                      >
-                        <option value="">Select end</option>
-                        <option value="2026-12">Dec 2026</option>
-                        <option value="2027-12">Dec 2027</option>
-                        <option value="2030-12">Dec 2030</option>
-                      </select>
-                    </div>
+                {/* View Toggle */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">View:</span>
+                  <div className="flex rounded-md shadow-sm">
+                    <button
+                      onClick={() => setDisplayMode('cards')}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-l-md border transition-colors flex items-center gap-1.5 ${
+                        displayMode === 'cards'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Grid3x3 className="w-3.5 h-3.5" />
+                      Cards
+                    </button>
+                    <button
+                      onClick={() => setDisplayMode('table')}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1.5 ${
+                        displayMode === 'table'
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <Table className="w-3.5 h-3.5" />
+                      Table
+                    </button>
                   </div>
                 </div>
               </div>
 
-              {/* Divider */}
-              <div className="border-b border-gray-200 dark:border-gray-700 mb-4 mt-3"></div>
+              {/* Bottom Row: Filters + Date Range */}
+              <div className="flex items-center justify-between gap-4">
+                {/* Left: Filters */}
+                <div className="flex items-center gap-3">
+                  {/* Market Filter */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Market:</span>
+                    <select
+                      value={selectedMarket}
+                      onChange={(e) => setSelectedMarket(e.target.value)}
+                      className="w-[110px] h-7 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2"
+                    >
+                      <option value="all">All Markets</option>
+                      <option value="CAISO">CAISO</option>
+                      <option value="ERCOT">ERCOT</option>
+                      <option value="SPP">SPP</option>
+                    </select>
+                  </div>
 
-              {/* Market Headers */}
-              <div className="grid grid-cols-3 gap-4 mb-3">
-                <div className="text-center">
-                  <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                    CAISO
-                  </h3>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
-                    ERCOT
-                  </h3>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                    SPP
-                  </h3>
-                </div>
-              </div>
+                  {/* Location Type Filter */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Type:</span>
+                    <select
+                      value={selectedLocationType}
+                      onChange={(e) => setSelectedLocationType(e.target.value)}
+                      className="w-[100px] h-7 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="Hub">Hub</option>
+                      <option value="Node">Node</option>
+                    </select>
+                  </div>
 
-              {/* First Row - Hubs */}
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                {(['CAISO', 'ERCOT', 'SPP'] as Market[]).map(market => {
-                  const { hubs } = getHubsAndNodes(market);
-                  const hubGroup = hubs[0];
-                  
-                  if (!hubGroup) {
-                    return (
-                      <LocationCard
-                        key={`empty-hub-${market}`}
-                        name=""
-                        type="Hub"
-                        market={market}
-                        metrics={{ energyArb: '$0', as: '$0', cap: '$0', total: '$0', p95: '$0', p50: '$0', p05: '$0' }}
-                        isEmpty={true}
-                      />
-                    );
-                  }
-                  
-                  // Get the currently selected badge for this group
-                  const selectedBadge = selectedBadgesMap[hubGroup.baseLocation] || hubGroup.badges[0];
-                  const selectedLocation = hubGroup.locations.find(loc => loc.location === selectedBadge) || hubGroup.locations[0];
-                  
-                  return (
-                    <LocationCard
-                      key={`hub-${market}`}
-                      name={hubGroup.baseLocation}
-                      type={selectedLocation.locationType || 'Hub'}
-                      market={market}
-                      badges={hubGroup.badges.length > 1 ? hubGroup.badges : undefined}
-                      metrics={selectedLocation.metrics}
-                      curveCreator={selectedLocation.latestInstance?.createdBy}
-                      creationDate={selectedLocation.latestInstance?.createdAt ? new Date(selectedLocation.latestInstance.createdAt).toLocaleDateString() : undefined}
-                      selectedBadge={selectedBadge}
-                      onBadgeToggle={(badge) => handleBadgeToggle(hubGroup.baseLocation, badge)}
-                      onClick={() => handleLocationClick(selectedLocation.definitionId, selectedLocation.location, market)}
-                    />
-                  );
-                })}
-              </div>
+                  {/* Sort Order */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Sort:</span>
+                    <button
+                      onClick={() => setSortOrder(sortOrder === 'none' ? 'high' : sortOrder === 'high' ? 'low' : 'none')}
+                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <ArrowUpDown className="w-3 h-3" />
+                      {sortOrder === 'none' ? 'None' : sortOrder === 'high' ? 'High → Low' : 'Low → High'}
+                    </button>
+                  </div>
+                </div>
 
-              {/* Second Row - Nodes */}
-              <div className="grid grid-cols-3 gap-4">
-                {(['CAISO', 'ERCOT', 'SPP'] as Market[]).map(market => {
-                  const { nodes } = getHubsAndNodes(market);
-                  const nodeGroup = nodes[0];
-                  
-                  if (!nodeGroup) {
-                    return (
-                      <LocationCard
-                        key={`empty-node-${market}`}
-                        name=""
-                        type="Node"
-                        market={market}
-                        metrics={{ energyArb: '$0', as: '$0', cap: '$0', total: '$0', p95: '$0', p50: '$0', p05: '$0' }}
-                        isEmpty={true}
-                      />
-                    );
-                  }
-                  
-                  // Get the currently selected badge for this group
-                  const selectedBadge = selectedBadgesMap[nodeGroup.baseLocation] || nodeGroup.badges[0];
-                  const selectedLocation = nodeGroup.locations.find(loc => loc.location === selectedBadge) || nodeGroup.locations[0];
-                  
-                  return (
-                    <LocationCard
-                      key={`node-${market}`}
-                      name={nodeGroup.baseLocation}
-                      type={selectedLocation.locationType || 'Node'}
-                      market={market}
-                      badges={nodeGroup.badges.length > 1 ? nodeGroup.badges : undefined}
-                      metrics={selectedLocation.metrics}
-                      curveCreator={selectedLocation.latestInstance?.createdBy}
-                      creationDate={selectedLocation.latestInstance?.createdAt ? new Date(selectedLocation.latestInstance.createdAt).toLocaleDateString() : undefined}
-                      selectedBadge={selectedBadge}
-                      onBadgeToggle={(badge) => handleBadgeToggle(nodeGroup.baseLocation, badge)}
-                      onClick={() => handleLocationClick(selectedLocation.definitionId, selectedLocation.location, market)}
-                    />
-                  );
-                })}
+                {/* Right: Date Range Controls */}
+                <div className="flex items-center gap-3">
+                  {/* Quick Date Range Buttons */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Next:</span>
+                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-md p-0.5">
+                      {['1y', '5y', '10y', 'lifetime'].map((range) => (
+                        <button
+                          key={range}
+                          onClick={() => setDateRange(range)}
+                          className={`px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                            dateRange === range
+                              ? 'bg-blue-600 text-white shadow-sm'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          {range === 'lifetime' ? 'Lifetime' : range}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Month Range Dropdowns */}
+                  <div className="flex items-center gap-0.5">
+                    <select
+                      value={fromMonth}
+                      onChange={(e) => {
+                        setFromMonth(e.target.value);
+                        setDateRange('custom');
+                      }}
+                      className="w-[90px] h-6 text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1"
+                    >
+                      <option value="">Start</option>
+                      <option value="2025-01">Jan 2025</option>
+                      <option value="2025-06">Jun 2025</option>
+                      <option value="2025-12">Dec 2025</option>
+                      <option value="2026-01">Jan 2026</option>
+                      <option value="2026-06">Jun 2026</option>
+                      <option value="2026-12">Dec 2026</option>
+                    </select>
+                    <span className="text-[10px] text-gray-400">→</span>
+                    <select
+                      value={toMonth}
+                      onChange={(e) => {
+                        setToMonth(e.target.value);
+                        setDateRange('custom');
+                      }}
+                      className="w-[90px] h-6 text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1"
+                    >
+                      <option value="">End</option>
+                      <option value="2026-12">Dec 2026</option>
+                      <option value="2027-12">Dec 2027</option>
+                      <option value="2030-12">Dec 2030</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Card View */}
+            {displayMode === 'cards' && (
+              <div className="grid grid-cols-3 gap-4">
+                {filteredLocations.map(location => (
+                  <LocationCard
+                    key={location.definitionId}
+                    name={location.location}
+                    type={formatLocationType(location.locationType)}
+                    market={location.market}
+                    metrics={location.metrics}
+                    curveCreator={location.latestInstance?.createdBy}
+                    creationDate={location.latestInstance?.createdAt ? new Date(location.latestInstance.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
+                    onClick={() => handleLocationClick(location.definitionId, location.location, location.market)}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Table View */}
+            {displayMode === 'table' && (
+              <div className="bg-white dark:bg-[#2A2A2A] rounded-lg shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Market</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Type</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Location</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">ARB</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">AS</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">CAP</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">P95</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">P50</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">P05</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Source</th>
+                        <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLocations.map(location => {
+                        const marketColors = getMarketColors(location.market);
+                        const creator = location.latestInstance?.createdBy || 'Unknown';
+                        const creationDate = location.latestInstance?.createdAt 
+                          ? new Date(location.latestInstance.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : 'Unknown';
+                        
+                        return (
+                          <tr
+                            key={location.definitionId}
+                            onClick={() => handleLocationClick(location.definitionId, location.location, location.market)}
+                            className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer"
+                          >
+                            <td className="px-3 py-2">
+                              <div className={`${marketColors.badge} text-[9px] px-1.5 py-0.5 rounded font-bold inline-block`}>
+                                {location.market}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              {formatLocationType(location.locationType)}
+                            </td>
+                            <td className="px-3 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
+                              {location.location}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{location.metrics.energyArb}</td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{location.metrics.as}</td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{location.metrics.cap}</td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{location.metrics.p95}</td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{location.metrics.p50}</td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{location.metrics.p05}</td>
+                            <td className={`px-3 py-2 font-mono font-bold text-sm ${marketColors.total}`}>
+                              {location.metrics.total}
+                            </td>
+                            <td className="px-3 py-2 text-[9px] text-gray-500 dark:text-gray-400">
+                              {creator.replace('GridStor P50', 'GridStor').replace('ASCEND Forecast', 'ASCEND')}
+                            </td>
+                            <td className="px-3 py-2 text-[9px] text-gray-500 dark:text-gray-400">{creationDate}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {filteredLocations.length === 0 && (
+              <div className="bg-white dark:bg-[#2A2A2A] rounded-lg shadow-sm p-12 text-center">
+                <div className="text-gray-400 dark:text-gray-500 mb-2">
+                  <Grid3x3 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  No forecasts found
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Try adjusting your filters to see more results
+                </p>
+              </div>
+            )}
           </motion.div>
         ) : (
           /* GRAPH VIEW */

@@ -6,18 +6,6 @@ interface Props {
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
 
-// Determine active states for navigation links
-const isLongTerm = currentPath.startsWith('/revenue-forecasts') || currentPath.startsWith('/long-term-outlook') || currentPath.startsWith('/admin/upload') || currentPath.startsWith('/curve-schedule') || currentPath.startsWith('/admin/inventory');
-const isShortTerm = currentPath.startsWith('/short-term-outlook');
-const isRisk = currentPath.startsWith('/risk-structuring');
-
-// Link class generator
-const getLinkClass = (isActive: boolean) => {
-	return `text-white hover:text-gray-300 transition-colors font-medium ${
-		isActive ? 'text-gray-300' : ''
-	}`;
-};
-
 // Page title mapping based on current path
 const getPageTitle = (path: string): string => {
 	if (path === '/revenue-forecasts' || path === '/revenue-forecasts/') {

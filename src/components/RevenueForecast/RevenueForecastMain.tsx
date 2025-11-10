@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Building2, MapPin, Circle, Grid3x3, Table, ArrowUpDown } from 'lucide-react';
+import { Building2, MapPin, Circle, Grid3x3, Table, ArrowUpDown, Search, Filter, Calendar, Map } from 'lucide-react';
 import { LocationCard } from './LocationCard';
 import { CompactLocationCard } from './CompactLocationCard';
 import { GraphViewTopBar } from './GraphViewTopBar';
@@ -58,14 +58,20 @@ export default function RevenueForecastMain() {
   const [displayMode, setDisplayMode] = useState<'cards' | 'table'>('cards');
   const [viewMode, setViewMode] = useState<'cards' | 'graph'>('cards');
   const [chartViewMode, setChartViewMode] = useState<'monthly' | 'annual'>('annual');
-  const [dateRange, setDateRange] = useState<string>('lifetime');
+  const [dateRange, setDateRange] = useState<string>('10y');
   const [fromMonth, setFromMonth] = useState<string>('');
   const [toMonth, setToMonth] = useState<string>('');
   
   // Filters
   const [selectedMarket, setSelectedMarket] = useState<string>('all');
   const [selectedLocationType, setSelectedLocationType] = useState<string>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedVintage, setSelectedVintage] = useState<string>('current');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [quickFilter, setQuickFilter] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'high' | 'low' | 'none'>('none');
+  const [customStartYear, setCustomStartYear] = useState<string>('2025');
+  const [customEndYear, setCustomEndYear] = useState<string>('2034');
   
   const [locations, setLocations] = useState<LocationData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -253,30 +259,53 @@ export default function RevenueForecastMain() {
   const filteredLocations = useMemo(() => {
     let filtered = [...locations];
 
-    // Apply market filter
-    if (selectedMarket !== 'all') {
-      filtered = filtered.filter(loc => loc.market === selectedMarket);
+    // Apply quick filter
+    if (quickFilter) {
+      if (quickFilter === 'caiso') {
+        filtered = filtered.filter(loc => loc.market === 'CAISO');
+      } else if (quickFilter === 'ercot') {
+        filtered = filtered.filter(loc => loc.market === 'ERCOT');
+      } else if (quickFilter === 'spp') {
+        filtered = filtered.filter(loc => loc.market === 'SPP');
+      } else if (quickFilter === 'hubs') {
+        filtered = filtered.filter(loc => loc.locationType?.toUpperCase() === 'HUB');
+      }
+    } else {
+      // Apply market filter (if no quick filter)
+      if (selectedMarket !== 'all') {
+        filtered = filtered.filter(loc => loc.market === selectedMarket);
+      }
+
+      // Apply location type filter
+      if (selectedLocationType !== 'all') {
+        filtered = filtered.filter(loc => {
+          const locType = loc.locationType?.toUpperCase() || 'NODE';
+          return locType === selectedLocationType.toUpperCase();
+        });
+      }
     }
 
-    // Apply location type filter
-    if (selectedLocationType !== 'all') {
-      filtered = filtered.filter(loc => {
-        const locType = loc.locationType?.toUpperCase() || 'NODE';
-        return locType === selectedLocationType.toUpperCase();
-      });
+    // Apply search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(loc => 
+        loc.location.toLowerCase().includes(query) ||
+        loc.name.toLowerCase().includes(query) ||
+        loc.market.toLowerCase().includes(query)
+      );
     }
 
     // Apply sorting
     if (sortOrder !== 'none') {
       filtered.sort((a, b) => {
-        const aTotal = parseFloat(a.metrics.total.replace('$', ''));
-        const bTotal = parseFloat(b.metrics.total.replace('$', ''));
+        const aTotal = parseFloat(a.metrics.total.replace('$', '').replace(/,/g, ''));
+        const bTotal = parseFloat(b.metrics.total.replace('$', '').replace(/,/g, ''));
         return sortOrder === 'high' ? bTotal - aTotal : aTotal - bTotal;
       });
     }
 
     return filtered;
-  }, [locations, selectedMarket, selectedLocationType, sortOrder]);
+  }, [locations, selectedMarket, selectedLocationType, searchQuery, quickFilter, sortOrder]);
 
   const stats = {
     markets: Object.keys(locationsByMarket).filter(k => locationsByMarket[k as Market].length > 0).length,
@@ -351,150 +380,189 @@ export default function RevenueForecastMain() {
             className="max-w-[1400px] mx-auto px-4 py-6"
           >
             {/* Filter & Control Bar */}
-            <div className="bg-white dark:bg-[#2A2A2A] rounded-lg shadow-sm p-4 mb-6">
-              {/* Top Row: Title + View Toggle */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    All Markets & Locations
-                  </h2>
-                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                    Showing {filteredLocations.length} of {locations.length} forecasts
-                  </div>
-                </div>
-
-                {/* View Toggle */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">View:</span>
-                  <div className="flex rounded-md shadow-sm">
-                    <button
-                      onClick={() => setDisplayMode('cards')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-l-md border transition-colors flex items-center gap-1.5 ${
-                        displayMode === 'cards'
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Grid3x3 className="w-3.5 h-3.5" />
-                      Cards
-                    </button>
-                    <button
-                      onClick={() => setDisplayMode('table')}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-r-md border-t border-r border-b transition-colors flex items-center gap-1.5 ${
-                        displayMode === 'table'
-                          ? 'bg-blue-600 text-white border-blue-600'
-                          : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <Table className="w-3.5 h-3.5" />
-                      Table
-                    </button>
-                  </div>
+            <div className="bg-white rounded-lg shadow-sm mb-6 border border-[#E5E7EB] p-4">
+              {/* First Row: Filter Icon + Dropdowns + Search */}
+              <div className="flex items-center gap-3 mb-3">
+                <Filter className="w-4 h-4 text-[#6B7280]" />
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => setSelectedRegion(e.target.value)}
+                  className="rounded-md border border-[#E5E7EB] py-1 px-2.5 text-xs bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all h-8"
+                >
+                  <option value="all">All Regions</option>
+                  <option value="west">West</option>
+                  <option value="central">Central</option>
+                  <option value="east">East</option>
+                </select>
+                <select
+                  value={selectedLocationType}
+                  onChange={(e) => {
+                    setSelectedLocationType(e.target.value);
+                    setQuickFilter(''); // Clear quick filter when manually selecting type
+                  }}
+                  className="rounded-md border border-[#E5E7EB] py-1 px-2.5 text-xs bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all h-8"
+                >
+                  <option value="all">All Types ({locations.length})</option>
+                  <option value="Hub">Hub ({locations.filter(loc => loc.locationType?.toUpperCase() === 'HUB').length})</option>
+                  <option value="Node">Node ({locations.filter(loc => !loc.locationType || loc.locationType?.toUpperCase() === 'NODE').length})</option>
+                </select>
+                <select
+                  value={selectedVintage}
+                  onChange={(e) => setSelectedVintage(e.target.value)}
+                  className="rounded-md border border-[#E5E7EB] py-1 px-2.5 text-xs bg-white text-[#111827] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all h-8"
+                >
+                  <option value="current">Current Vintage</option>
+                  <option value="all">All Vintages</option>
+                </select>
+                <div className="flex-1 flex items-center gap-2 border border-[#E5E7EB] rounded-md px-2.5 py-1 bg-white h-8">
+                  <Search className="w-3.5 h-3.5 text-[#6B7280]" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search locations..."
+                    className="flex-1 text-xs text-[#111827] outline-none bg-transparent placeholder:text-[#9CA3AF]"
+                  />
                 </div>
               </div>
 
-              {/* Bottom Row: Filters + Date Range */}
-              <div className="flex items-center justify-between gap-4">
-                {/* Left: Filters */}
-                <div className="flex items-center gap-3">
-                  {/* Market Filter */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Market:</span>
-                    <select
-                      value={selectedMarket}
-                      onChange={(e) => setSelectedMarket(e.target.value)}
-                      className="w-[110px] h-7 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2"
-                    >
-                      <option value="all">All Markets</option>
-                      <option value="CAISO">CAISO</option>
-                      <option value="ERCOT">ERCOT</option>
-                      <option value="SPP">SPP</option>
-                    </select>
-                  </div>
-
-                  {/* Location Type Filter */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Type:</span>
-                    <select
-                      value={selectedLocationType}
-                      onChange={(e) => setSelectedLocationType(e.target.value)}
-                      className="w-[100px] h-7 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-2"
-                    >
-                      <option value="all">All Types</option>
-                      <option value="Hub">Hub</option>
-                      <option value="Node">Node</option>
-                    </select>
-                  </div>
-
-                  {/* Sort Order */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Sort:</span>
+              {/* Second Row: Forecast Period */}
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="w-4 h-4 text-[#6B7280]" />
+                <span className="text-xs text-[#111827] font-medium">Forecast Period:</span>
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { value: '1y', label: 'Next 1 Year' },
+                    { value: '5y', label: 'Next 5 Years' },
+                    { value: '10y', label: 'Next 10 Years' },
+                    { value: 'lifetime', label: 'Lifetime' }
+                  ].map((period) => (
                     <button
-                      onClick={() => setSortOrder(sortOrder === 'none' ? 'high' : sortOrder === 'high' ? 'low' : 'none')}
-                      className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                      key={period.value}
+                      onClick={() => {
+                        setDateRange(period.value);
+                        setCustomStartYear('');
+                        setCustomEndYear('');
+                      }}
+                      className={`px-2 py-1 text-xs font-medium rounded-full border transition-colors ${
+                        dateRange === period.value
+                          ? 'bg-[#3B82F6] text-white border-[#3B82F6]'
+                          : 'bg-white text-[#111827] border-[#E5E7EB] hover:bg-gray-50'
+                      }`}
                     >
-                      <ArrowUpDown className="w-3 h-3" />
-                      {sortOrder === 'none' ? 'None' : sortOrder === 'high' ? 'High → Low' : 'Low → High'}
+                      {period.label}
                     </button>
-                  </div>
+                  ))}
                 </div>
-
-                {/* Right: Date Range Controls */}
-                <div className="flex items-center gap-3">
-                  {/* Quick Date Range Buttons */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Next:</span>
-                    <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-md p-0.5">
-                      {['1y', '5y', '10y', 'lifetime'].map((range) => (
-                        <button
-                          key={range}
-                          onClick={() => setDateRange(range)}
-                          className={`px-1.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
-                            dateRange === range
-                              ? 'bg-blue-600 text-white shadow-sm'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          {range === 'lifetime' ? 'Lifetime' : range}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Month Range Dropdowns */}
-                  <div className="flex items-center gap-0.5">
-                    <select
-                      value={fromMonth}
-                      onChange={(e) => {
-                        setFromMonth(e.target.value);
-                        setDateRange('custom');
-                      }}
-                      className="w-[90px] h-6 text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1"
-                    >
-                      <option value="">Start</option>
-                      <option value="2025-01">Jan 2025</option>
-                      <option value="2025-06">Jun 2025</option>
-                      <option value="2025-12">Dec 2025</option>
-                      <option value="2026-01">Jan 2026</option>
-                      <option value="2026-06">Jun 2026</option>
-                      <option value="2026-12">Dec 2026</option>
-                    </select>
-                    <span className="text-[10px] text-gray-400">→</span>
-                    <select
-                      value={toMonth}
-                      onChange={(e) => {
-                        setToMonth(e.target.value);
-                        setDateRange('custom');
-                      }}
-                      className="w-[90px] h-6 text-[10px] bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded px-1"
-                    >
-                      <option value="">End</option>
-                      <option value="2026-12">Dec 2026</option>
-                      <option value="2027-12">Dec 2027</option>
-                      <option value="2030-12">Dec 2030</option>
-                    </select>
-                  </div>
+                <span className="text-xs text-[#6B7280] ml-1.5">or Custom:</span>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    value={customStartYear}
+                    onChange={(e) => {
+                      setCustomStartYear(e.target.value);
+                      setDateRange('custom');
+                    }}
+                    placeholder="2025"
+                    className="w-16 rounded-md border border-[#E5E7EB] py-1 px-2 text-xs text-[#111827] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all h-7"
+                  />
+                  <span className="text-xs text-[#6B7280]">to</span>
+                  <input
+                    type="text"
+                    value={customEndYear}
+                    onChange={(e) => {
+                      setCustomEndYear(e.target.value);
+                      setDateRange('custom');
+                    }}
+                    placeholder="2034"
+                    className="w-16 rounded-md border border-[#E5E7EB] py-1 px-2 text-xs text-[#111827] focus:border-[#3B82F6] focus:ring-1 focus:ring-[#3B82F6] focus:ring-opacity-50 outline-none transition-all h-7"
+                  />
                 </div>
+              </div>
+
+              {/* Third Row: Quick Filters */}
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-[#111827] font-medium">Quick:</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => {
+                      setQuickFilter(quickFilter === 'caiso' ? '' : 'caiso');
+                      setSelectedMarket('all');
+                    }}
+                    className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                      quickFilter === 'caiso'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                    }`}
+                  >
+                    CAISO All
+                  </button>
+                  <button
+                    onClick={() => {
+                      setQuickFilter(quickFilter === 'ercot' ? '' : 'ercot');
+                      setSelectedMarket('all');
+                    }}
+                    className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                      quickFilter === 'ercot'
+                        ? 'bg-red-600 text-white'
+                        : 'bg-red-100 text-red-700 hover:bg-red-200'
+                    }`}
+                  >
+                    ERCOT All
+                  </button>
+                  <button
+                    onClick={() => {
+                      setQuickFilter(quickFilter === 'spp' ? '' : 'spp');
+                      setSelectedMarket('all');
+                    }}
+                    className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                      quickFilter === 'spp'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                    }`}
+                  >
+                    SPP All
+                  </button>
+                  <button
+                    onClick={() => {
+                      setQuickFilter(quickFilter === 'hubs' ? '' : 'hubs');
+                      setSelectedLocationType('all');
+                    }}
+                    className={`px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                      quickFilter === 'hubs'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                    }`}
+                  >
+                    All Hubs
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Right: View Toggles */}
+              <div className="flex justify-end items-center gap-2">
+                <button
+                  onClick={() => setDisplayMode('cards')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-colors flex items-center gap-1.5 ${
+                    displayMode === 'cards'
+                      ? 'bg-gray-100 text-[#111827] border-gray-300'
+                      : 'bg-white text-[#111827] border-[#E5E7EB] hover:bg-gray-50'
+                  }`}
+                >
+                  <Map className="w-3.5 h-3.5" />
+                  Map View
+                </button>
+                <button
+                  onClick={() => setDisplayMode('table')}
+                  className={`px-2.5 py-1 text-xs font-medium rounded-md border transition-colors flex items-center gap-1.5 ${
+                    displayMode === 'table'
+                      ? 'bg-gray-100 text-[#111827] border-gray-300'
+                      : 'bg-white text-[#111827] border-[#E5E7EB] hover:bg-gray-50'
+                  }`}
+                >
+                  <Table className="w-3.5 h-3.5" />
+                  Table View
+                </button>
               </div>
             </div>
 

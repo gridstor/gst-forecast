@@ -1,0 +1,110 @@
+[1mdiff --git a/src/layouts/Layout.astro b/src/layouts/Layout.astro[m
+[1mindex 41eeddd..0698917 100644[m
+[1m--- a/src/layouts/Layout.astro[m
+[1m+++ b/src/layouts/Layout.astro[m
+[36m@@ -93,35 +93,25 @@[m [mconst getPageTitle = (path: string): string => {[m
+ [m
+ 						<!-- Navigation Links (Figma styling: 16px Inter Medium, 32px gaps) -->[m
+ 						<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">[m
+[31m-							<!-- Revenue Forecast Dropdown -->[m
+[32m+[m							[32m<!-- Long-term outlook Dropdown -->[m
+ 							<div class="relative group">[m
+[31m-								<a[m
+[31m-									href="/revenue-forecasts"[m
+[32m+[m								[32m<button[m
+ 									class={`${getLinkClass(isLongTerm)} flex items-center gap-1`}[m
+[31m-									aria-current={isLongTerm ? 'page' : undefined}[m
+ 								>[m
+[31m-									Revenue Forecast[m
+[32m+[m									[32mLong-term outlook[m
+ 									<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+ 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>[m
+ 									</svg>[m
+[31m-								</a>[m
+[32m+[m								[32m</button>[m
+ 								<div class="absolute left-0 mt-1 pt-1 w-64 group-hover:block z-50">[m
+ 									<div class="bg-white rounded-lg shadow-xl border border-gray-200">[m
+[31m-										<a href="/revenue-forecasts" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath === '/revenue-forecasts' || currentPath === '/revenue-forecasts/' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[31m-											<div class="font-medium">Revenue Forecast Grapher</div>[m
+[31m-											<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>[m
+[31m-										</a>[m
+[31m-										<a href="/revenue-forecasts/curves" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/curves') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[31m-											<div class="font-medium">Curve Browser</div>[m
+[31m-											<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>[m
+[31m-										</a>[m
+[31m-										<!-- Curve Admin Nested Dropdown -->[m
+[31m-										<div class="relative submenu-group border-t border-gray-100">[m
+[31m-											<div class={`block px-4 py-3 text-sm transition-colors ${currentPath.startsWith('/admin/upload') || currentPath.startsWith('/admin/inventory') || currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>[m
+[32m+[m										[32m<!-- Revenue Forecast nested submenu -->[m
+[32m+[m										[32m<div class="relative submenu-group">[m
+[32m+[m											[32m<div class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath.startsWith('/revenue-forecasts') || currentPath.startsWith('/admin/upload') || currentPath.startsWith('/admin/inventory') || currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>[m
+ 												<div class="flex items-center justify-between">[m
+ 													<div>[m
+[31m-														<div class="font-medium">Curve Admin</div>[m
+[31m-														<div class="text-xs text-gray-500 mt-0.5">Manage curves and data</div>[m
+[32m+[m														[32m<div class="font-medium">Revenue Forecast</div>[m
+[32m+[m														[32m<div class="text-xs text-gray-500 mt-0.5">Forecasting and analytics</div>[m
+ 													</div>[m
+ 													<svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">[m
+ 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>[m
+[36m@@ -130,7 +120,15 @@[m [mconst getPageTitle = (path: string): string => {[m
+ 											</div>[m
+ 											<div class="absolute left-full top-0 ml-1 pt-1 w-64 submenu-hover:block z-50">[m
+ 												<div class="bg-white rounded-lg shadow-xl border border-gray-200">[m
+[31m-													<a href="/admin/upload" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath.startsWith('/admin/upload') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[32m+[m													[32m<a href="/revenue-forecasts" class={`block px-4 py-3 text-sm transition-colors rounded-t-lg ${currentPath === '/revenue-forecasts' || currentPath === '/revenue-forecasts/' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[32m+[m														[32m<div class="font-medium">Revenue Forecast Grapher</div>[m
+[32m+[m														[32m<div class="text-xs text-gray-500 mt-0.5">Build and compare forecast graphs</div>[m
+[32m+[m													[32m</a>[m
+[32m+[m													[32m<a href="/revenue-forecasts/curves" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/curves') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[32m+[m														[32m<div class="font-medium">Curve Browser</div>[m
+[32m+[m														[32m<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>[m
+[32m+[m													[32m</a>[m
+[32m+[m													[32m<a href="/admin/upload" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/upload') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+ 														<div class="font-medium">Curve Uploader</div>[m
+ 														<div class="text-xs text-gray-500 mt-0.5">Upload new curve data</div>[m
+ 													</a>[m
+[36m@@ -145,25 +143,31 @@[m [mconst getPageTitle = (path: string): string => {[m
+ 												</div>[m
+ 											</div>[m
+ 										</div>[m
+[31m-										<a href="/revenue-forecasts/admin" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/admin') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[31m-											<div class="font-medium">Forecast Admin</div>[m
+[31m-											<div class="text-xs text-gray-500 mt-0.5">Manage curves and schedules</div>[m
+[31m-										</a>[m
+[31m-										<a href="/revenue-forecasts/documentation" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/revenue-forecasts/documentation') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[31m-											<div class="font-medium">Documentation</div>[m
+[31m-											<div class="text-xs text-gray-500 mt-0.5">Schema and model docs</div>[m
+[32m+[m										[32m<!-- Futures Markets -->[m
+[32m+[m										[32m<a href="/futures-markets" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/futures-markets') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>[m
+[32m+[m											[32m<div class="font-medium">Futures Markets</div>[m
+[32m+[m											[32m<div class="text-xs text-gray-500 mt-0.5">Natural gas, power, heat rate futures</div>[m
+ 										</a>[m
+ 									</div>[m
+ 								</div>[m
+ 							</div>[m
+ [m
+[31m-							<!-- Futures Markets Link -->[m
+[32m+[m							[32m<!-- Short-term outlook Link -->[m
+[32m+[m							[32m<a[m[41m [m
+[32m+[m								[32mhref="/short-term-outlook"[m
+[32m+[m								[32mclass={`${getLinkClass(isShortTerm)} `}[m
+[32m+[m								[32maria-current={isShortTerm ? 'page' : undefined}[m
+[32m+[m							[32m>[m
+[32m+[m								[32mShort-term outlook[m
+[32m+[m							[32m</a>[m
+[32m+[m
+[32m+[m							[32m<!-- Risk and structuring Link -->[m
+ 							<a [m
+[31m-								href="/futures-markets"[m
+[31m-								class={`${currentPath.startsWith('/futures-markets') ? 'text-gray-300' : 'text-white'} hover:text-gray-300 transition-colors font-medium`}[m
+[31m-								aria-current={currentPath.startsWith('/futures-markets') ? 'page' : undefined}[m
+[32m+[m								[32mhref="/risk-structuring"[m
+[32m+[m								[32mclass={`${getLinkClass(isRisk)}`}[m
+[32m+[m								[32maria-current={isRisk ? 'page' : undefined}[m
+ 							>[m
+[31m-								Futures Markets[m
+[32m+[m								[32mRisk and structuring[m
+ 							</a>[m
+ 						</nav>[m
+ 					</div>[m

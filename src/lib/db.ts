@@ -94,4 +94,9 @@ export const closePool = async () => {
   }
 };
 
+// Export db as a function that returns the database pool
+export const db = async () => {
+  return await createDatabase();
+};
+
 export type Database = Pool; 

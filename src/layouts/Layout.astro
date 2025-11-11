@@ -6,8 +6,8 @@ interface Props {
 const { title } = Astro.props;
 const currentPath = Astro.url.pathname;
 
-// Determine active states for navigation links
-const isLongTerm = currentPath.startsWith('/revenue-forecasts') || currentPath.startsWith('/long-term-outlook') || currentPath.startsWith('/admin/upload') || currentPath.startsWith('/curve-schedule') || currentPath.startsWith('/admin/inventory');
+// Determine active states for navigation links (matching gst-homepage)
+const isLongTerm = currentPath.startsWith('/revenue-forecasts') || currentPath.startsWith('/long-term-outlook') || currentPath.startsWith('/admin/upload') || currentPath.startsWith('/curve-schedule') || currentPath.startsWith('/admin/inventory') || currentPath.startsWith('/futures-markets');
 const isShortTerm = currentPath.startsWith('/short-term-outlook');
 const isRisk = currentPath.startsWith('/risk-structuring');
 
@@ -62,42 +62,22 @@ const getPageTitle = (path: string): string => {
 		<link rel="icon" type="image/svg+xml" href="/GST_logo.svg" />
 	</head>
 	<body class="bg-background">
-		<!-- Navigation Bar - GridStor Design System (Visual Styling from Figma) -->
-		<header class="bg-[#2A2A2A] text-white shadow-sm">
+		<!-- Navigation Bar - Matching gst-homepage exactly -->
+		<header class="bg-[#2A2A2A] dark:bg-[#1F1F1F] text-white shadow-sm border-b border-gray-800 dark:border-gray-900 relative">
 			<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div class="flex justify-between items-center py-4">
 					<!-- Left: Logo + Navigation -->
-					<div class="flex items-center gap-8">
-						<!-- Logo: Lightning Bolt + Site Title (Figma styling) -->
-						<a href="/" class="flex items-center gap-3 text-xl font-bold hover:text-gray-300 transition-colors" aria-label="GridStor Market Sight Home">
-							<!-- Lightning Bolt Icon (32x32px, cyan #06B6D4) -->
-							<svg
-								width="32"
-								height="32"
-								viewBox="0 0 100 100"
-								fill="none"
-								xmlns="http://www.w3.org/2000/svg"
-								class="w-8 h-8"
-								role="presentation"
-							>
-								<path
-									d="M55 10L30 55H50L45 90L70 45H50L55 10Z"
-									fill="#06B6D4"
-									stroke="#06B6D4"
-									stroke-width="2"
-									stroke-linejoin="round"
-								/>
-							</svg>
-							<span>GridStor Market Sight</span>
+					<div class="flex items-center gap-4">
+						<!-- Logo - Always links to home -->
+						<a href="/" class="flex items-center gap-3 hover:opacity-80 transition-opacity" aria-label="GridStor Market Sight Home">
+							<!-- Note: Replace with /gridstor-logo.png when available to match gst-homepage exactly -->
+							<img src="/GST_logo.svg" alt="GridStor Market Sight" class="h-16" style="filter: brightness(0) invert(1); max-width: none;">
 						</a>
-
-						<!-- Navigation Links (Figma styling: 16px Inter Medium, 32px gaps) -->
-						<nav class="flex items-center gap-8" role="navigation" aria-label="Primary">
+						<!-- Navigation Links -->
+						<nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Primary">
 							<!-- Long-term outlook Dropdown -->
 							<div class="relative group">
-								<button
-									class={`${getLinkClass(isLongTerm)} flex items-center gap-1`}
-								>
+								<button class={`text-white hover:text-gray-300 transition-colors font-medium flex items-center gap-1 ${isLongTerm ? 'text-gray-300' : ''}`}>
 									Long-term outlook
 									<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -128,6 +108,10 @@ const getPageTitle = (path: string): string => {
 														<div class="font-medium">Curve Browser</div>
 														<div class="text-xs text-gray-500 mt-0.5">Browse and download curves</div>
 													</a>
+													<a href="/revenue-forecasts/documentation" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/revenue-forecasts/documentation') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Documentation</div>
+														<div class="text-xs text-gray-500 mt-0.5">Forecast documentation and guides</div>
+													</a>
 													<a href="/admin/upload" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/upload') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 														<div class="font-medium">Curve Uploader</div>
 														<div class="text-xs text-gray-500 mt-0.5">Upload new curve data</div>
@@ -135,6 +119,14 @@ const getPageTitle = (path: string): string => {
 													<a href="/admin/inventory" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/inventory') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 														<div class="font-medium">Curve Inventory</div>
 														<div class="text-xs text-gray-500 mt-0.5">View all curve definitions</div>
+													</a>
+													<a href="/admin/merge-curves" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/merge-curves') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Merge Curves</div>
+														<div class="text-xs text-gray-500 mt-0.5">Combine multiple curves</div>
+													</a>
+													<a href="/admin/manage-instances" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 ${currentPath.startsWith('/admin/manage-instances') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+														<div class="font-medium">Manage Instances</div>
+														<div class="text-xs text-gray-500 mt-0.5">Manage curve instances</div>
 													</a>
 													<a href="/curve-schedule" class={`block px-4 py-3 text-sm transition-colors border-t border-gray-100 rounded-b-lg ${currentPath.startsWith('/curve-schedule') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
 														<div class="font-medium">Curve Schedule</div>
@@ -155,7 +147,7 @@ const getPageTitle = (path: string): string => {
 							<!-- Short-term outlook Link -->
 							<a 
 								href="/short-term-outlook"
-								class={`${getLinkClass(isShortTerm)} `}
+								class={getLinkClass(isShortTerm)}
 								aria-current={isShortTerm ? 'page' : undefined}
 							>
 								Short-term outlook
@@ -164,7 +156,7 @@ const getPageTitle = (path: string): string => {
 							<!-- Risk and structuring Link -->
 							<a 
 								href="/risk-structuring"
-								class={`${getLinkClass(isRisk)}`}
+								class={getLinkClass(isRisk)}
 								aria-current={isRisk ? 'page' : undefined}
 							>
 								Risk and structuring
@@ -172,28 +164,40 @@ const getPageTitle = (path: string): string => {
 						</nav>
 					</div>
 					
-					<!-- Right: Settings (Figma styling: 40x40px button) -->
+					<!-- Right: Settings -->
 					<div class="flex items-center gap-2 ml-4">
-						<div class="relative group">
-							<button class="p-2 hover:bg-gray-700 rounded-md transition-colors" aria-label="Settings" title="Settings">
-								<!-- Settings Icon (20x20px) -->
-								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-								</svg>
-							</button>
-							<div class="absolute right-0 mt-1 pt-1 w-56 group-hover:block z-50">
-								<div class="bg-white rounded-lg shadow-xl border border-gray-200">
-									<a href="/admin" class="block px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors rounded-lg">
-										<div class="font-medium">Development Operations</div>
-										<div class="text-xs text-gray-500 mt-0.5">Database & API health checks</div>
-									</a>
-								</div>
-							</div>
-						</div>
+						<button
+							class="p-2 hover:bg-gray-700 rounded-md transition-colors"
+							aria-label="Settings"
+							title="Settings"
+						>
+							<!-- Settings Icon -->
+							<svg
+								class="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+								xmlns="http://www.w3.org/2000/svg"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+								/>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+							</svg>
+						</button>
 					</div>
 				</div>
 			</div>
+			<!-- Blue accent bar below header -->
+			<div class="h-1 bg-blue-600"></div>
 		</header>
 
 		<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

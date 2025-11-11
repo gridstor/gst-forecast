@@ -60,6 +60,9 @@ debug.log
 *.swo
 *~
 
+# Backup files
+*.bak
+
 # OS generated files
 .DS_Store
 .DS_Store?
